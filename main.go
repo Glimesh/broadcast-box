@@ -229,6 +229,7 @@ func main() {
 
 	streamMap = map[string]stream{}
 	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir("./web/build")))
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 
