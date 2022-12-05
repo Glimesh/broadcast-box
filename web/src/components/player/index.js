@@ -1,7 +1,9 @@
 import React from 'react'
+import { useLocation } from 'react-router-dom'
 
 function Player (props) {
   const videoRef = React.createRef()
+  const location = useLocation()
 
   React.useEffect(() => {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
@@ -18,7 +20,11 @@ function Player (props) {
 
       fetch('http://localhost:8080/api/whep', {
         method: 'POST',
-        body: offer.sdp
+        body: offer.sdp,
+        headers: {
+          Authorization: `Bearer ${location.pathname.substring(1)}`,
+          'Content-Type': 'application/sdp'
+        }
       }).then(r => {
         return r.text()
       }).then(answer => {
@@ -32,16 +38,14 @@ function Player (props) {
     return function cleanup () {
       peerConnection.close()
     }
-  }, [videoRef])
+  }, [videoRef, location.pathname])
 
   return (
-    <div className='w-full max-w-xs'>
-      <video
-        ref={videoRef}
-        autoPlay
-        controls
-      />
-    </div>
+    <video
+      ref={videoRef}
+      autoPlay
+      controls
+    />
   )
 }
 

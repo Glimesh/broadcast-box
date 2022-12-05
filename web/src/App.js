@@ -1,28 +1,21 @@
 import React from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
-import AdminPanel from './components/admin-panel'
+import Header from './components/header'
+import Selection from './components/selection'
 import Player from './components/player'
 
 function App () {
-  const [broadcastBoxStatus, setBroadcastBoxStatus] = React.useState('')
-  const fetchStatus = () => {
-    fetch('http://localhost:8080/api/status')
-      .then(r => {
-        return r.json()
-      }).then(r => {
-        setBroadcastBoxStatus(r.status)
-      })
-  }
-  React.useEffect(fetchStatus, [])
-
-  switch (broadcastBoxStatus) {
-    case 'unconfigured':
-      return <AdminPanel onConfigurationSuccess={fetchStatus} />
-    case 'configured':
-      return <Player />
-    default:
-      return <h1> Backend returned unexpected status </h1>
-  }
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path='/' element={<Header />}>
+          <Route index element={<Selection />} />
+          <Route path='*' element={<Player />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }
 
 export default App
