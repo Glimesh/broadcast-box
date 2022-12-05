@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path"
 
 	"io/ioutil"
 	"log"
@@ -214,6 +216,18 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(res, peerConnection.LocalDescription().SDP)
 }
 
+func indexHTMLWhenNotFound(fs http.FileSystem) http.Handler {
+	fileServer := http.FileServer(fs)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, err := fs.Open(path.Clean(r.URL.Path)) // Do not allow path traversals.
+		if errors.Is(err, os.ErrNotExist) {
+			http.ServeFile(w, r, "./web/build/index.html")
+			return
+		}
+		fileServer.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	corsHandler := func(next func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
 		return func(res http.ResponseWriter, req *http.Request) {
@@ -229,7 +243,7 @@ func main() {
 
 	streamMap = map[string]stream{}
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("./web/build")))
+	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 
