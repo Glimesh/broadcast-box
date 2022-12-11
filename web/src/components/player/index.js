@@ -18,7 +18,7 @@ function Player (props) {
     peerConnection.createOffer().then(offer => {
       peerConnection.setLocalDescription(offer)
 
-      fetch('http://localhost:8080/api/whep', {
+      fetch(process.env.REACT_APP_API_PATH, {
         method: 'POST',
         body: offer.sdp,
         headers: {

@@ -14,7 +14,13 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/joho/godotenv"
 	"github.com/pion/webrtc/v3"
+)
+
+const (
+	envFileProd = ".env.production"
+	envFileDev  = ".env.development"
 )
 
 type (
@@ -218,17 +224,33 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 
 func indexHTMLWhenNotFound(fs http.FileSystem) http.Handler {
 	fileServer := http.FileServer(fs)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := fs.Open(path.Clean(r.URL.Path)) // Do not allow path traversals.
+
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		_, err := fs.Open(path.Clean(req.URL.Path)) // Do not allow path traversals.
 		if errors.Is(err, os.ErrNotExist) {
-			http.ServeFile(w, r, "./web/build/index.html")
+			http.ServeFile(resp, req, "./web/build/index.html")
+
 			return
 		}
-		fileServer.ServeHTTP(w, r)
+		fileServer.ServeHTTP(resp, req)
 	})
 }
 
 func main() {
+	if os.Getenv("APP_ENV") == "production" {
+		log.Println("Loading `" + envFileProd + "`")
+
+		if err := godotenv.Load(envFileProd); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Println("Loading `" + envFileDev + "`")
+
+		if err := godotenv.Load(envFileDev); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	corsHandler := func(next func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
 		return func(res http.ResponseWriter, req *http.Request) {
 			res.Header().Set("Access-Control-Allow-Origin", "*")
@@ -247,9 +269,11 @@ func main() {
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 
+	log.Println("Running HTTP Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
+
 	//nolint:all
 	log.Fatal((&http.Server{
 		Handler: mux,
-		Addr:    ":8080",
+		Addr:    os.Getenv("HTTP_ADDRESS"),
 	}).ListenAndServe())
 }
