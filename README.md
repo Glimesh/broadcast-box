@@ -28,6 +28,42 @@ users can upolad the same video at different quality levels. This
 keeps things cheap for the server operator and you still can provide the same
 experience.
 
+# Using
+To use Broadcast Box you don't even have to run it locally! A instance of Broadcast Box
+is hosted at [b.siobud.com](https://b.siobud.com). If you wish to run it locally skip to
+[Running](#running)
+
+### Broadcasting
+To use Broadcast Box with OBS you must set your output to WebRTC and set a proper URL + Stream Key.
+You may use any Stream Key you like. The same stream key is used for broadcasting and playback.
+
+Go to `Settings -> Stream` and set the following values.
+
+* Service: WebRTC
+* Server: https://b.siobud.com/api/whip
+* StreamKey: (Any Stream Key you like)
+
+Your settings page should look like this.
+
+<img src="./.github/streamSettings.png">
+
+OBS by default will have ~2 seconds of latency. If you want subsecond latency you can configure
+this in `Settings -> Output`. Set your encoder to `x264` and set tune to `zerolatency`. Your Output
+page will look like this.
+
+<img src="./.github/outputPage.png">
+
+When you are ready to broadcast press `Stream Streaming` and now time to watch!
+
+### Playback
+
+If you are broadcasting to the Stream Key `StreamTest` your video will be available at https://b.siobud.com/StreamTest.
+
+You can also go to the home page and enter `StreamTest`. The following is a screenshot of OBS broadcasting and
+the latency of 120 milleconds observed.
+
+<img src="./.github/broadcastView.png">
+
 # Running
 Broadcast Box is made up of two parts. The server is written in Go and is in charge
 of ingesting and broadcasting WebRTC. The frontend is in react and connects to the Go
