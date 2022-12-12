@@ -158,12 +158,10 @@ you will broadcast to `http://localhost:8080/api/whip`.
 A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on
 if you are using it locally or a server.
 
-First to build the Docker image execute `docker build -t broadcast-box .`
-
-If you want to run locally execute `docker run -e UDP_MUX_PORT=8080 -e NAT_1_TO_1_IP=127.0.0.1 -p 8080:8080 -p 8080:8080/udp broadcast-box`.
+If you want to run locally execute `docker run -e UDP_MUX_PORT=8080 -e NAT_1_TO_1_IP=127.0.0.1 -p 8080:8080 -p 8080:8080/udp seaduboi/broadcast-box`.
 This will make broadcast-box available on `http://localhost:8080`. The UDPMux is needed because Docker on macOS/Windows runs inside a NAT.
 
-If you are running on AWS (or other cloud providers) execute. `docker run --net=host -e INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes broadcast-box`
+If you are running on AWS (or other cloud providers) execute. `docker run --net=host -e INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes seaduboi/broadcast-box`
 broadcast-box needs to be run in net=host mode. broadcast-box listens on random UDP ports to establish sessions.
 
 You can also run it in docker-compose with the following
@@ -177,6 +175,8 @@ broadcast-box:
   network_mode: "host"
   privileged: true
 ```
+
+The command to upload the image to Dockerhub is `docker buildx build --platform=linux/amd64,linux/arm64 --push -t seaduboi/broadcast-box:latest .`
 
 # Design
 The backend exposes two endpoints.
