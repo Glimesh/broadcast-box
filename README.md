@@ -159,7 +159,20 @@ First to build the Docker image execute `docker build -t broadcast-box .`
 If you want to run locally execute `docker run -e UDP_MUX_PORT=8080 -e NAT_1_TO_1_IP=127.0.0.1 -p 8080:8080 -p 8080:8080/udp broadcast-box`.
 This will make broadcast-box available on `http://localhost:8080`. The UDPMux is needed because Docker on macOS/Windows runs inside a NAT.
 
-For AWS/other provides execute ``
+If you are running on AWS (or other cloud providers) execute. `docker run --net=host -e INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes broadcast-box`
+broadcast-box needs to be run in net=host mode. broadcast-box listens on random UDP ports to establish sessions.
+
+You can also run it in docker-compose with the following
+```
+broadcast-box:
+  environment:
+  - INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes
+  image: broadcast-box
+  hostname: broadcast-box
+  container_name: broadcast-box
+  network_mode: "host"
+  privileged: true
+```
 
 # Design
 The backend exposes two endpoints.
