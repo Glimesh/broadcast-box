@@ -7,15 +7,10 @@ of the cutting edge tech that is coming to the broadcast space.
 Broadcast Box uses WebRTC for broadcast and playback. By using WebRTC instead of
 RTMP and HLS you get the fastest experience possible.
 
-### Peer-to-Peer (if you need it)
-With Broadcast Box you can serve your video without a public IP or forwarding ports!
-Run Broadcast Box on the same machine that you are running OBS, and share your
-video with the world! WebRTC comes with P2P technology, so users can broadcast
-and playback video without paying for dedicated servers.
-
 ### Latest in Video Compression
 With WebRTC you get access to the latest in video codecs. With AV1 you can send
-the same video quality with a (INSERT MARKETING NUMBERS) reduction in bandwidth.
+the same video quality with a [50%](https://engineering.fb.com/2018/04/10/video-engineering/av1-beats-x264-and-libvpx-vp9-in-practical-use-case/)
+reduction in bandwidth required.
 
 ### Broadcast all angles
 WebRTC allows you to upload multiple video streams in the same session. Now you can
@@ -27,6 +22,15 @@ Generating them is prohibitively though. WebRTC provides a solution. With WebRTC
 users can upolad the same video at different quality levels. This
 keeps things cheap for the server operator and you still can provide the same
 experience.
+
+### Peer-to-Peer (if you need it)
+With Broadcast Box you can serve your video without a public IP or forwarding ports!
+Run Broadcast Box on the same machine that you are running OBS, and share your
+video with the world! WebRTC comes with P2P technology, so users can broadcast
+and playback video without paying for dedicated servers.
+
+You could also use P2P to pull other broadcasters into your stream. No special configuration
+or servers required anymore to get sub-second costreams.
 
 # Using
 To use Broadcast Box you don't even have to run it locally! A instance of Broadcast Box
