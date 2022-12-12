@@ -2,11 +2,14 @@ package main
 
 //nolint:all
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path"
+	"strconv"
 
 	"io/ioutil"
 	"log"
@@ -15,6 +18,8 @@ import (
 	"sync"
 
 	"github.com/joho/godotenv"
+	"github.com/pion/ice/v2"
+	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -33,6 +38,7 @@ type (
 var (
 	streamMap     map[string]stream
 	streamMapLock sync.Mutex
+	api           *webrtc.API
 )
 
 func logHTTPError(w http.ResponseWriter, err string, code int) {
@@ -89,7 +95,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//nolint:all
-	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -176,7 +182,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	//nolint:all
-	peerConnection, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -236,6 +242,99 @@ func indexHTMLWhenNotFound(fs http.FileSystem) http.Handler {
 	})
 }
 
+func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Access-Control-Allow-Origin", "*")
+		res.Header().Set("Access-Control-Allow-Methods", "*")
+		res.Header().Set("Access-Control-Allow-Headers", "*")
+
+		if req.Method != http.MethodOptions {
+			next(res, req)
+		}
+	}
+}
+
+func getPublicIP() string {
+	//nolint:all
+	req, err := http.Get("http://ip-api.com/json/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer req.Body.Close()
+
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		//nolint:all
+		log.Fatal(err)
+	}
+
+	//nolint:all
+	ip := struct {
+		Query string
+	}{}
+	if err = json.Unmarshal(body, &ip); err != nil {
+		log.Fatal(err)
+	}
+
+	if ip.Query == "" {
+		log.Fatal("Query entry was not populated")
+	}
+
+	return ip.Query
+}
+
+//nolint:all
+func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
+	NAT1To1IPs := []string{}
+
+	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
+		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
+	}
+
+	if os.Getenv("NAT_1_TO_1_IP") != "" {
+		NAT1To1IPs = append(NAT1To1IPs, os.Getenv("NAT_1_TO_1_IP"))
+	}
+
+	if len(NAT1To1IPs) != 0 {
+		settingEngine.SetNAT1To1IPs(NAT1To1IPs, webrtc.ICECandidateTypeHost)
+	}
+
+	if os.Getenv("INTERFACE_FILTER") != "" {
+		settingEngine.SetInterfaceFilter(func(i string) bool {
+			return i == os.Getenv("INTERFACE_FILTER")
+		})
+	}
+
+	if os.Getenv("UDP_MUX_PORT") != "" {
+		udpPort, err := strconv.Atoi(os.Getenv("UDP_MUX_PORT"))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		udpMux, err := ice.NewMultiUDPMuxFromPort(udpPort)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		settingEngine.SetICEUDPMux(udpMux)
+	}
+
+	if os.Getenv("TCP_MUX_ADDRESS") != "" {
+		tcpAddr, err := net.ResolveTCPAddr("udp", os.Getenv("TCP_MUX_ADDRESS"))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tcpListener, err := net.ListenTCP("tcp", tcpAddr)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		//nolint:all
+		settingEngine.SetICETCPMux(webrtc.NewICETCPMux(nil, tcpListener, 8))
+	}
+}
+
 func main() {
 	if os.Getenv("APP_ENV") == "production" {
 		log.Println("Loading `" + envFileProd + "`")
@@ -251,17 +350,25 @@ func main() {
 		}
 	}
 
-	corsHandler := func(next func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
-		return func(res http.ResponseWriter, req *http.Request) {
-			res.Header().Set("Access-Control-Allow-Origin", "*")
-			res.Header().Set("Access-Control-Allow-Methods", "*")
-			res.Header().Set("Access-Control-Allow-Headers", "*")
-
-			if req.Method != http.MethodOptions {
-				next(res, req)
-			}
-		}
+	mediaEngine := &webrtc.MediaEngine{}
+	if err := mediaEngine.RegisterDefaultCodecs(); err != nil {
+		log.Fatal(err)
 	}
+
+	interceptorRegistry := &interceptor.Registry{}
+	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
+		log.Fatal(err)
+	}
+
+	//nolint:all
+	settingEngine := webrtc.SettingEngine{}
+	populateSettingEngine(&settingEngine)
+
+	api = webrtc.NewAPI(
+		webrtc.WithMediaEngine(mediaEngine),
+		webrtc.WithInterceptorRegistry(interceptorRegistry),
+		webrtc.WithSettingEngine(settingEngine),
+	)
 
 	streamMap = map[string]stream{}
 	mux := http.NewServeMux()

@@ -151,9 +151,18 @@ To use Broadcast Box you will open `http://localhost:8080` in your browser. In y
 you will broadcast to `http://localhost:8080/api/whip`.
 
 ### Docker
+A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on
+if you are using it locally or a server.
+
+First to build the Docker image execute `docker build -t broadcast-box .`
+
+If you want to run locally execute `docker run -e UDP_MUX_PORT=8080 -e NAT_1_TO_1_IP=127.0.0.1 -p 8080:8080 -p 8080:8080/udp broadcast-box`.
+This will make broadcast-box available on `http://localhost:8080`. The UDPMux is needed because Docker on macOS/Windows runs inside a NAT.
+
+For AWS/other provides execute ``
 
 # Design
-Broadcast Box has a Go backend and React frontend. The backend exposes two endpoints.
+The backend exposes two endpoints.
 
 * `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
 * `/api/whep` - Start a WHEP Session. WHEP is video playback via WebRTC.
