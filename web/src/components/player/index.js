@@ -1,7 +1,7 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
 
-function Player (props) {
+function Player(props) {
   const videoRef = React.createRef()
   const location = useLocation()
 
@@ -35,7 +35,7 @@ function Player (props) {
       })
     })
 
-    return function cleanup () {
+    return function cleanup() {
       peerConnection.close()
     }
   }, [videoRef, location.pathname])
@@ -44,7 +44,10 @@ function Player (props) {
     <video
       ref={videoRef}
       autoPlay
+      muted
       controls
+      playsInline
+      className='mx-auto h-full'
     />
   )
 }
