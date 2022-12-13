@@ -31,6 +31,7 @@ function Selection(props) {
         </div>
       </form>
 
+      {/*
       <div className="rounded-md bg-gray-800 shadow-md p-8">
         <h2 className="font-light leading-tight text-2xl mb-2">Q: What is Broadcast Box?</h2>
 
@@ -57,6 +58,7 @@ function Selection(props) {
 
         <p>A: Yes, with WebRTC you can upload multiple video streams in the same session, which means you can broadcast multiple camera angles or interactive video experiences in real time. This can help to provide a more immersive and engaging experience for your viewers.</p>
       </div>
+  */}
     </div>
   )
 }
