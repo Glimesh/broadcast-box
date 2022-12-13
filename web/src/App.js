@@ -5,16 +5,18 @@ import Header from './components/header'
 import Selection from './components/selection'
 import Player from './components/player'
 
-function App () {
+function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<Header />}>
-          <Route index element={<Selection />} />
-          <Route path='*' element={<Player />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <div>
+      <BrowserRouter>
+        <Routes>
+          <Route path='/' element={<Header />}>
+            <Route index element={<Selection />} />
+            <Route path='*' element={<Player />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </div>
   )
 }
 
