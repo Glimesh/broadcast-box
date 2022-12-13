@@ -7,12 +7,12 @@ const Header = () => {
     <div>
       <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-10 top-0'>
         <div className='container mx-auto flex flex-wrap items-center'>
-          <div className='flex w-full md:w-1/2 justify-center md:justify-start text-white font-extrabold'>
+          <div className='flex flex-1 text-white font-extrabold'>
             <a href="/" className='font-light leading-tight text-2xl'>
               Broadcast Box
             </a>
           </div>
-          <div className='flex w-full content-center justify-between md:w-1/2 md:justify-end'>
+          <div className='flex content-center justify-between md:w-1/2 md:justify-end'>
             <ul className='list-reset flex justify-between flex-1 md:flex-none items-center'>
               <li className=''>
                 <button
@@ -27,15 +27,14 @@ const Header = () => {
         </div>
       </nav>
 
-      <main className='pt-24'>
-        <div className='mx-auto container'>
+      <main className='pt-20 md:pt-24'>
+        <div className='mx-auto px-2 container'>
           <Outlet />
         </div>
       </main>
 
-      <footer className="mx-auto container md:flex md:items-center md:justify-between py-6">
-        <span className="text-sm sm:text-center">Provided with love, or something... Do we have a slogan?</span>
-        <ul className="flex flex-wrap items-center mt-3 text-sm:mt-0 space-x-4  ">
+      <footer className="mx-auto px-2 container py-6">
+        <ul className="flex items-center justify-center mt-3 text-sm:mt-0 space-x-4">
           <li>
             <a href="https://github.com/Glimesh/broadcast-box" className="hover:underline">GitHub</a>
           </li>

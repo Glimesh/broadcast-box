@@ -13,7 +13,7 @@ function Selection(props) {
   }
 
   return (
-    <div className='space-y-4 w-6/12 mx-auto'>
+    <div className='space-y-4 mx-auto max-w-2xl'>
       <form className='rounded-md bg-gray-800 shadow-md p-8'>
         <h2 className="font-light leading-tight text-4xl mt-0 mb-2">Welcome to Broadcast Box</h2>
         <p>Broadcast Box is a tool that allows you to efficiently stream high-quality video in real time, using the latest in video codecs and WebRTC technology.</p>
