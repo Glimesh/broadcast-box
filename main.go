@@ -164,6 +164,7 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 
 	<-gatherComplete
 
+	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, peerConnection.LocalDescription().SDP)
 }
 
