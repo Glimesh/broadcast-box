@@ -20,6 +20,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/pion/ice/v2"
 	"github.com/pion/interceptor"
+	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -31,6 +32,7 @@ const (
 type (
 	stream struct {
 		audioTrack, videoTrack *webrtc.TrackLocalStaticRTP
+		pliChan                chan any
 	}
 )
 
@@ -49,6 +51,7 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 func getTracksForStream(streamName string) (
 	*webrtc.TrackLocalStaticRTP,
 	*webrtc.TrackLocalStaticRTP,
+	chan any,
 	error,
 ) {
 	streamMapLock.Lock()
@@ -60,24 +63,25 @@ func getTracksForStream(streamName string) (
 		videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "pion")
 		if err != nil {
 			//nolint:all
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		//nolint:all
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
 		if err != nil {
 			//nolint:all
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		foundStream = stream{
 			audioTrack: audioTrack,
 			videoTrack: videoTrack,
+			pliChan:    make(chan any, 50),
 		}
 		streamMap[streamName] = foundStream
 	}
 
-	return foundStream.audioTrack, foundStream.videoTrack, nil
+	return foundStream.audioTrack, foundStream.videoTrack, foundStream.pliChan, nil
 }
 
 //nolint:all
@@ -101,18 +105,30 @@ func whipHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	audioTrack, videoTrack, err := getTracksForStream(streamKey)
+	audioTrack, videoTrack, pliChan, err := getTracksForStream(streamKey)
 	if err != nil {
 		logHTTPError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
+	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
 		var localTrack *webrtc.TrackLocalStaticRTP
 		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
 			localTrack = audioTrack
 		} else {
 			localTrack = videoTrack
+
+			go func() {
+				for range pliChan {
+					if sendErr := peerConnection.WriteRTCP([]rtcp.Packet{
+						&rtcp.PictureLossIndication{
+							MediaSSRC: uint32(remoteTrack.SSRC()),
+						},
+					}); sendErr != nil {
+						return
+					}
+				}
+			}()
 		}
 
 		//nolint:all
@@ -189,7 +205,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	audioTrack, videoTrack, err := getTracksForStream(streamKey)
+	audioTrack, videoTrack, pliChan, err := getTracksForStream(streamKey)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -200,10 +216,29 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if _, err = peerConnection.AddTrack(videoTrack); err != nil {
+	rtpSender, err := peerConnection.AddTrack(videoTrack)
+	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	go func() {
+		for {
+			rtcpPackets, _, rtcpErr := rtpSender.ReadRTCP()
+			if rtcpErr != nil {
+				return
+			}
+
+			for _, r := range rtcpPackets {
+				if _, isPLI := r.(*rtcp.PictureLossIndication); isPLI {
+					select {
+					case pliChan <- true:
+					default:
+					}
+				}
+			}
+		}
+	}()
 
 	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		SDP:  string(offer),
@@ -336,6 +371,93 @@ func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 	}
 }
 
+func populateMediaEngine(m *webrtc.MediaEngine) error {
+	for _, codec := range []webrtc.RTPCodecParameters{
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeOpus, 48000, 2, "minptime=10;useinbandfec=1", nil},
+			PayloadType:        111,
+		},
+	} {
+		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeAudio); err != nil {
+			return err
+		}
+	}
+
+	// nolint
+	videoRTCPFeedback := []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
+	for _, codec := range []webrtc.RTPCodecParameters{
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f", videoRTCPFeedback},
+			PayloadType:        102,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=102", nil},
+			PayloadType:        121,
+		},
+
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f", videoRTCPFeedback},
+			PayloadType:        127,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=127", nil},
+			PayloadType:        120,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", videoRTCPFeedback},
+			PayloadType:        125,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=125", nil},
+			PayloadType:        107,
+		},
+
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f", videoRTCPFeedback},
+			PayloadType:        108,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=108", nil},
+			PayloadType:        109,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f", videoRTCPFeedback},
+			PayloadType:        127,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=127", nil},
+			PayloadType:        120,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032", videoRTCPFeedback},
+			PayloadType:        123,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=123", nil},
+			PayloadType:        118,
+		},
+	} {
+		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	if os.Getenv("APP_ENV") == "production" {
 		log.Println("Loading `" + envFileProd + "`")
@@ -352,8 +474,8 @@ func main() {
 	}
 
 	mediaEngine := &webrtc.MediaEngine{}
-	if err := mediaEngine.RegisterDefaultCodecs(); err != nil {
-		log.Fatal(err)
+	if err := populateMediaEngine(mediaEngine); err != nil {
+		panic(err)
 	}
 
 	interceptorRegistry := &interceptor.Registry{}

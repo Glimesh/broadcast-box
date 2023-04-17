@@ -9,7 +9,11 @@ function Selection(props) {
     setStreamKey(e.target.value)
   }
   const onWatchStreamClick = () => {
-    navigate(streamKey)
+    navigate(`/${streamKey}`)
+  }
+
+  const onPublishStreamClick = () => {
+    navigate(`/publish/${streamKey}`)
   }
 
   return (
@@ -24,9 +28,13 @@ function Selection(props) {
           </label>
           <input className='appearance-none border w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200' id='streamKey' type='text' placeholder='Stream Key' onChange={onStreamKeyChange} autoFocus />
         </div>
-        <div className='flex items-center justify-between'>
+        <div className='flex'>
           <button className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='button' onClick={onWatchStreamClick}>
             Watch Stream
+          </button>
+
+          <button className='ml-10 py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='button' onClick={onPublishStreamClick}>
+            Publish Stream
           </button>
         </div>
       </form>

@@ -12,13 +12,13 @@ function Player(props) {
       videoRef.current.srcObject = event.streams[0]
     }
 
-    peerConnection.addTransceiver('audio')
-    peerConnection.addTransceiver('video')
+    peerConnection.addTransceiver('audio', {direction: 'recvonly'})
+    peerConnection.addTransceiver('video', {direction: 'recvonly'})
 
     peerConnection.createOffer().then(offer => {
       peerConnection.setLocalDescription(offer)
 
-      fetch(process.env.REACT_APP_API_PATH, {
+      fetch(`${process.env.REACT_APP_API_PATH}/whep`, {
         method: 'POST',
         body: offer.sdp,
         headers: {
