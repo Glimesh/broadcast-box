@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"strings"
+	"sync/atomic"
 
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
@@ -21,12 +22,23 @@ func WHIP(offer, streamKey string) (string, error) {
 		return "", err
 	}
 
+	simulcastDefaultTrackSet := &atomic.Bool{}
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
 		var localTrack *webrtc.TrackLocalStaticRTP
+
 		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
 			localTrack = audioTrack
 		} else {
-			localTrack = videoTrack
+			if remoteTrack.RID() != "" && simulcastDefaultTrackSet.Swap(true) {
+				var simulcastErr error
+				localTrack, simulcastErr = createSimulcastTrackForStream(streamKey, remoteTrack.RID())
+				if simulcastErr != nil {
+					log.Println(simulcastErr)
+					return
+				}
+			} else {
+				localTrack = videoTrack
+			}
 
 			go func() {
 				for range pliChan {

@@ -33,25 +33,17 @@ var (
 	api           *webrtc.API
 )
 
-func getTracksForStream(streamName string) (
-	*webrtc.TrackLocalStaticRTP,
-	*webrtc.TrackLocalStaticRTP,
-	chan any,
-	error,
-) {
-	streamMapLock.Lock()
-	defer streamMapLock.Unlock()
-
+func getStream(streamName string) (stream, error) {
 	foundStream, ok := streamMap[streamName]
 	if !ok {
 		defaultVideoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, videoTrackLabelDefault, "pion")
 		if err != nil {
-			return nil, nil, nil, err
+			return stream{}, err
 		}
 
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
 		if err != nil {
-			return nil, nil, nil, err
+			return stream{}, err
 		}
 
 		foundStream = stream{
@@ -62,14 +54,49 @@ func getTracksForStream(streamName string) (
 		streamMap[streamName] = foundStream
 	}
 
+	return foundStream, nil
+}
+
+func getTracksForStream(streamName string) (
+	*webrtc.TrackLocalStaticRTP,
+	*webrtc.TrackLocalStaticRTP,
+	chan any,
+	error,
+) {
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+
+	stream, err := getStream(streamName)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	var defaultVideoTrack *webrtc.TrackLocalStaticRTP
-	for i := range foundStream.videoTracks {
-		if foundStream.videoTracks[i].ID() == videoTrackLabelDefault {
-			defaultVideoTrack = foundStream.videoTracks[i]
+	for i := range stream.videoTracks {
+		if stream.videoTracks[i].ID() == videoTrackLabelDefault {
+			defaultVideoTrack = stream.videoTracks[i]
 		}
 	}
 
-	return foundStream.audioTrack, defaultVideoTrack, foundStream.pliChan, nil
+	return stream.audioTrack, defaultVideoTrack, stream.pliChan, nil
+}
+
+func createSimulcastTrackForStream(streamName string, rid string) (*webrtc.TrackLocalStaticRTP, error) {
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+
+	stream, err := getStream(streamName)
+	if err != nil {
+		return nil, err
+	}
+
+	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, rid, "pion")
+	if err != nil {
+		return nil, err
+	}
+
+	stream.videoTracks = append(stream.videoTracks, videoTrack)
+	return videoTrack, nil
 }
 
 func getPublicIP() string {
@@ -228,6 +255,16 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 		},
 	} {
 		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
+			return err
+		}
+	}
+
+	for _, extension := range []string{
+		"urn:ietf:params:rtp-hdrext:sdes:mid",
+		"urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
+		"urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id",
+	} {
+		if err := m.RegisterHeaderExtension(webrtc.RTPHeaderExtensionCapability{URI: extension}, webrtc.RTPCodecTypeVideo); err != nil {
 			return err
 		}
 	}

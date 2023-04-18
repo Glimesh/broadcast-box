@@ -23,7 +23,26 @@ function Player(props) {
       videoRef.current.srcObject = s
 
       s.getTracks().forEach(t => {
-        peerConnection.addTransceiver(t, {direction: 'sendonly'})
+        if (t.kind === 'audio') {
+          peerConnection.addTransceiver(t, {direction: 'sendonly'})
+        } else {
+          peerConnection.addTransceiver(t, {
+            direction: 'sendonly',
+            sendEncodings: [
+              {
+                rid: '1080p'
+              },
+              {
+                rid: '720p',
+                scaleResolutionDownBy: 2.0
+              },
+              {
+                rid: '480p',
+                scaleResolutionDownBy: 4.0
+              }
+            ]
+          })
+        }
       })
 
       peerConnection.createOffer().then(offer => {
