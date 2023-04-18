@@ -2,8 +2,7 @@ package webrtc
 
 import (
 	"encoding/json"
-	// nolint
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -28,7 +27,6 @@ type (
 	}
 )
 
-//nolint:all
 var (
 	streamMap     map[string]stream
 	streamMapLock sync.Mutex
@@ -46,17 +44,13 @@ func getTracksForStream(streamName string) (
 
 	foundStream, ok := streamMap[streamName]
 	if !ok {
-		//nolint:all
 		defaultVideoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, videoTrackLabelDefault, "pion")
 		if err != nil {
-			//nolint:all
 			return nil, nil, nil, err
 		}
 
-		//nolint:all
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
 		if err != nil {
-			//nolint:all
 			return nil, nil, nil, err
 		}
 
@@ -79,20 +73,17 @@ func getTracksForStream(streamName string) (
 }
 
 func getPublicIP() string {
-	//nolint:all
 	req, err := http.Get("http://ip-api.com/json/")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer req.Body.Close()
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		//nolint:all
 		log.Fatal(err)
 	}
 
-	//nolint:all
 	ip := struct {
 		Query string
 	}{}
@@ -153,7 +144,6 @@ func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
 			log.Fatal(err)
 		}
 
-		//nolint:all
 		settingEngine.SetICETCPMux(webrtc.NewICETCPMux(nil, tcpListener, 8))
 	}
 }
@@ -258,7 +248,6 @@ func Configure() {
 		log.Fatal(err)
 	}
 
-	//nolint:all
 	settingEngine := webrtc.SettingEngine{}
 	populateSettingEngine(&settingEngine)
 

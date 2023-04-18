@@ -6,7 +6,6 @@ import (
 )
 
 func WHEP(offer, streamKey string) (string, error) {
-	//nolint:all
 	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		return "", err

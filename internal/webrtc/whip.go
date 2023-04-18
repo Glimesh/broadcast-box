@@ -11,7 +11,6 @@ import (
 )
 
 func WHIP(offer, streamKey string) (string, error) {
-	//nolint:all
 	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		return "", err
@@ -42,7 +41,6 @@ func WHIP(offer, streamKey string) (string, error) {
 			}()
 		}
 
-		//nolint:all
 		rtpBuf := make([]byte, 1500)
 		for {
 			rtpRead, _, readErr := remoteTrack.Read(rtpBuf)

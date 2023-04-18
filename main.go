@@ -1,13 +1,12 @@
 package main
 
-//nolint:all
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -25,7 +24,6 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 	http.Error(w, err, code)
 }
 
-//nolint:all
 func whipHandler(res http.ResponseWriter, r *http.Request) {
 	streamKey := r.Header.Get("Authorization")
 	if streamKey == "" {
@@ -33,7 +31,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	offer, err := ioutil.ReadAll(r.Body)
+	offer, err := io.ReadAll(r.Body)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -49,7 +47,6 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(res, answer)
 }
 
-//nolint:all
 func whepHandler(res http.ResponseWriter, req *http.Request) {
 	streamKey := req.Header.Get("Authorization")
 	if streamKey == "" {
@@ -57,7 +54,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	offer, err := ioutil.ReadAll(req.Body)
+	offer, err := io.ReadAll(req.Body)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -98,7 +95,6 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 	}
 }
 
-//nolint:all
 func main() {
 	if os.Getenv("APP_ENV") == "production" {
 		log.Println("Loading `" + envFileProd + "`")
@@ -123,7 +119,6 @@ func main() {
 
 	log.Println("Running HTTP Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
 
-	//nolint:all
 	log.Fatal((&http.Server{
 		Handler: mux,
 		Addr:    os.Getenv("HTTP_ADDRESS"),
