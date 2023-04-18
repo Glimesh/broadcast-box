@@ -2,26 +2,17 @@ package main
 
 //nolint:all
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"path"
-	"strconv"
 
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
-	"sync"
 
+	"github.com/glimesh/broadcast-box/internal/webrtc"
 	"github.com/joho/godotenv"
-	"github.com/pion/ice/v2"
-	"github.com/pion/interceptor"
-	"github.com/pion/rtcp"
-	"github.com/pion/webrtc/v3"
 )
 
 const (
@@ -29,159 +20,33 @@ const (
 	envFileDev  = ".env.development"
 )
 
-type (
-	stream struct {
-		audioTrack, videoTrack *webrtc.TrackLocalStaticRTP
-		pliChan                chan any
-	}
-)
-
-//nolint:all
-var (
-	streamMap     map[string]stream
-	streamMapLock sync.Mutex
-	api           *webrtc.API
-)
-
 func logHTTPError(w http.ResponseWriter, err string, code int) {
 	log.Println(err)
 	http.Error(w, err, code)
 }
 
-func getTracksForStream(streamName string) (
-	*webrtc.TrackLocalStaticRTP,
-	*webrtc.TrackLocalStaticRTP,
-	chan any,
-	error,
-) {
-	streamMapLock.Lock()
-	defer streamMapLock.Unlock()
-
-	foundStream, ok := streamMap[streamName]
-	if !ok {
-		//nolint:all
-		videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "pion")
-		if err != nil {
-			//nolint:all
-			return nil, nil, nil, err
-		}
-
-		//nolint:all
-		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
-		if err != nil {
-			//nolint:all
-			return nil, nil, nil, err
-		}
-
-		foundStream = stream{
-			audioTrack: audioTrack,
-			videoTrack: videoTrack,
-			pliChan:    make(chan any, 50),
-		}
-		streamMap[streamName] = foundStream
-	}
-
-	return foundStream.audioTrack, foundStream.videoTrack, foundStream.pliChan, nil
-}
-
 //nolint:all
-func whipHandler(w http.ResponseWriter, r *http.Request) {
+func whipHandler(res http.ResponseWriter, r *http.Request) {
 	streamKey := r.Header.Get("Authorization")
 	if streamKey == "" {
-		logHTTPError(w, "Authorization was not set", http.StatusBadRequest)
+		logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
 		return
 	}
 
 	offer, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		logHTTPError(w, err.Error(), http.StatusBadRequest)
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	//nolint:all
-	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
+	answer, err := webrtc.WHIP(string(offer), streamKey)
 	if err != nil {
-		logHTTPError(w, err.Error(), http.StatusBadRequest)
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	audioTrack, videoTrack, pliChan, err := getTracksForStream(streamKey)
-	if err != nil {
-		logHTTPError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
-		var localTrack *webrtc.TrackLocalStaticRTP
-		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
-			localTrack = audioTrack
-		} else {
-			localTrack = videoTrack
-
-			go func() {
-				for range pliChan {
-					if sendErr := peerConnection.WriteRTCP([]rtcp.Packet{
-						&rtcp.PictureLossIndication{
-							MediaSSRC: uint32(remoteTrack.SSRC()),
-						},
-					}); sendErr != nil {
-						return
-					}
-				}
-			}()
-		}
-
-		//nolint:all
-		rtpBuf := make([]byte, 1500)
-		for {
-			rtpRead, _, readErr := remoteTrack.Read(rtpBuf)
-			switch {
-			case errors.Is(readErr, io.EOF):
-				return
-			case readErr != nil:
-				log.Println(readErr)
-				return
-			}
-
-			if _, writeErr := localTrack.Write(rtpBuf[:rtpRead]); writeErr != nil && !errors.Is(writeErr, io.ErrClosedPipe) {
-				log.Println(writeErr)
-				return
-			}
-		}
-	})
-
-	peerConnection.OnICEConnectionStateChange(func(i webrtc.ICEConnectionState) {
-		if i == webrtc.ICEConnectionStateFailed {
-			if err := peerConnection.Close(); err != nil {
-				log.Println(err)
-				return
-			}
-		}
-	})
-
-	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
-		SDP:  string(offer),
-		Type: webrtc.SDPTypeOffer,
-	}); err != nil {
-		logHTTPError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
-	answer, err := peerConnection.CreateAnswer(nil)
-
-	if err != nil {
-		logHTTPError(w, err.Error(), http.StatusBadRequest)
-		return
-	} else if err = peerConnection.SetLocalDescription(answer); err != nil {
-		logHTTPError(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	<-gatherComplete
-
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, peerConnection.LocalDescription().SDP)
+	res.WriteHeader(http.StatusCreated)
+	fmt.Fprint(res, answer)
 }
 
 //nolint:all
@@ -198,70 +63,13 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	//nolint:all
-	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
+	answer, err := webrtc.WHEP(string(offer), streamKey)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	audioTrack, videoTrack, pliChan, err := getTracksForStream(streamKey)
-	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if _, err = peerConnection.AddTrack(audioTrack); err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	rtpSender, err := peerConnection.AddTrack(videoTrack)
-	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	go func() {
-		for {
-			rtcpPackets, _, rtcpErr := rtpSender.ReadRTCP()
-			if rtcpErr != nil {
-				return
-			}
-
-			for _, r := range rtcpPackets {
-				if _, isPLI := r.(*rtcp.PictureLossIndication); isPLI {
-					select {
-					case pliChan <- true:
-					default:
-					}
-				}
-			}
-		}
-	}()
-
-	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
-		SDP:  string(offer),
-		Type: webrtc.SDPTypeOffer,
-	}); err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
-	answer, err := peerConnection.CreateAnswer(nil)
-
-	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	} else if err = peerConnection.SetLocalDescription(answer); err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	<-gatherComplete
-
-	fmt.Fprint(res, peerConnection.LocalDescription().SDP)
+	fmt.Fprint(res, answer)
 }
 
 func indexHTMLWhenNotFound(fs http.FileSystem) http.Handler {
@@ -290,174 +98,7 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 	}
 }
 
-func getPublicIP() string {
-	//nolint:all
-	req, err := http.Get("http://ip-api.com/json/")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer req.Body.Close()
-
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		//nolint:all
-		log.Fatal(err)
-	}
-
-	//nolint:all
-	ip := struct {
-		Query string
-	}{}
-	if err = json.Unmarshal(body, &ip); err != nil {
-		log.Fatal(err)
-	}
-
-	if ip.Query == "" {
-		log.Fatal("Query entry was not populated")
-	}
-
-	return ip.Query
-}
-
 //nolint:all
-func populateSettingEngine(settingEngine *webrtc.SettingEngine) {
-	NAT1To1IPs := []string{}
-
-	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
-		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
-	}
-
-	if os.Getenv("NAT_1_TO_1_IP") != "" {
-		NAT1To1IPs = append(NAT1To1IPs, os.Getenv("NAT_1_TO_1_IP"))
-	}
-
-	if len(NAT1To1IPs) != 0 {
-		settingEngine.SetNAT1To1IPs(NAT1To1IPs, webrtc.ICECandidateTypeHost)
-	}
-
-	if os.Getenv("INTERFACE_FILTER") != "" {
-		settingEngine.SetInterfaceFilter(func(i string) bool {
-			return i == os.Getenv("INTERFACE_FILTER")
-		})
-	}
-
-	if os.Getenv("UDP_MUX_PORT") != "" {
-		udpPort, err := strconv.Atoi(os.Getenv("UDP_MUX_PORT"))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		udpMux, err := ice.NewMultiUDPMuxFromPort(udpPort)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		settingEngine.SetICEUDPMux(udpMux)
-	}
-
-	if os.Getenv("TCP_MUX_ADDRESS") != "" {
-		tcpAddr, err := net.ResolveTCPAddr("udp", os.Getenv("TCP_MUX_ADDRESS"))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		tcpListener, err := net.ListenTCP("tcp", tcpAddr)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		//nolint:all
-		settingEngine.SetICETCPMux(webrtc.NewICETCPMux(nil, tcpListener, 8))
-	}
-}
-
-func populateMediaEngine(m *webrtc.MediaEngine) error {
-	for _, codec := range []webrtc.RTPCodecParameters{
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeOpus, 48000, 2, "minptime=10;useinbandfec=1", nil},
-			PayloadType:        111,
-		},
-	} {
-		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeAudio); err != nil {
-			return err
-		}
-	}
-
-	// nolint
-	videoRTCPFeedback := []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
-	for _, codec := range []webrtc.RTPCodecParameters{
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f", videoRTCPFeedback},
-			PayloadType:        102,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=102", nil},
-			PayloadType:        121,
-		},
-
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f", videoRTCPFeedback},
-			PayloadType:        127,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=127", nil},
-			PayloadType:        120,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", videoRTCPFeedback},
-			PayloadType:        125,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=125", nil},
-			PayloadType:        107,
-		},
-
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f", videoRTCPFeedback},
-			PayloadType:        108,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=108", nil},
-			PayloadType:        109,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f", videoRTCPFeedback},
-			PayloadType:        127,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=127", nil},
-			PayloadType:        120,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032", videoRTCPFeedback},
-			PayloadType:        123,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=123", nil},
-			PayloadType:        118,
-		},
-	} {
-		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func main() {
 	if os.Getenv("APP_ENV") == "production" {
 		log.Println("Loading `" + envFileProd + "`")
@@ -473,27 +114,8 @@ func main() {
 		}
 	}
 
-	mediaEngine := &webrtc.MediaEngine{}
-	if err := populateMediaEngine(mediaEngine); err != nil {
-		panic(err)
-	}
+	webrtc.Configure()
 
-	interceptorRegistry := &interceptor.Registry{}
-	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
-		log.Fatal(err)
-	}
-
-	//nolint:all
-	settingEngine := webrtc.SettingEngine{}
-	populateSettingEngine(&settingEngine)
-
-	api = webrtc.NewAPI(
-		webrtc.WithMediaEngine(mediaEngine),
-		webrtc.WithInterceptorRegistry(interceptorRegistry),
-		webrtc.WithSettingEngine(settingEngine),
-	)
-
-	streamMap = map[string]stream{}
 	mux := http.NewServeMux()
 	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
