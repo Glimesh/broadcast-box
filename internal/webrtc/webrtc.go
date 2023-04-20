@@ -21,43 +21,44 @@ const (
 
 type (
 	stream struct {
-		audioTrack  *webrtc.TrackLocalStaticRTP
-		videoTracks []*webrtc.TrackLocalStaticRTP
-		pliChan     chan any
+		audioTrack             *webrtc.TrackLocalStaticRTP
+		videoTracks            []*webrtc.TrackLocalStaticRTP
+		defaultVideoTrackLabel string
+		pliChan                chan any
 	}
 )
 
 var (
-	streamMap     map[string]stream
+	streamMap     map[string]*stream
 	streamMapLock sync.Mutex
 	api           *webrtc.API
 )
 
-func getStream(streamName string) (stream, error) {
-	foundStream, ok := streamMap[streamName]
+func getStream(streamKey string) (*stream, error) {
+	foundStream, ok := streamMap[streamKey]
 	if !ok {
 		defaultVideoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, videoTrackLabelDefault, "pion")
 		if err != nil {
-			return stream{}, err
+			return nil, err
 		}
 
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
 		if err != nil {
-			return stream{}, err
+			return nil, err
 		}
 
-		foundStream = stream{
+		foundStream = &stream{
 			audioTrack:  audioTrack,
 			videoTracks: []*webrtc.TrackLocalStaticRTP{defaultVideoTrack},
 			pliChan:     make(chan any, 50),
 		}
-		streamMap[streamName] = foundStream
+		streamMap[streamKey] = foundStream
 	}
 
 	return foundStream, nil
 }
 
-func getTracksForStream(streamName string) (
+func getTracksForStream(streamKey string) (
 	*webrtc.TrackLocalStaticRTP,
 	*webrtc.TrackLocalStaticRTP,
 	chan any,
@@ -66,7 +67,7 @@ func getTracksForStream(streamName string) (
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
-	stream, err := getStream(streamName)
+	stream, err := getStream(streamKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,11 +82,30 @@ func getTracksForStream(streamName string) (
 	return stream.audioTrack, defaultVideoTrack, stream.pliChan, nil
 }
 
-func createSimulcastTrackForStream(streamName string, rid string) (*webrtc.TrackLocalStaticRTP, error) {
+func setDefaultVideoTrackLabel(streamKey, label string) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
-	stream, err := getStream(streamName)
+	stream, err := getStream(streamKey)
+	if err != nil {
+		return
+	}
+
+	stream.defaultVideoTrackLabel = label
+}
+
+func deleteStream(streamKey string) {
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+
+	delete(streamMap, streamKey)
+}
+
+func createSimulcastTrackForStream(streamKey string, rid string) (*webrtc.TrackLocalStaticRTP, error) {
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+
+	stream, err := getStream(streamKey)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +113,13 @@ func createSimulcastTrackForStream(streamName string, rid string) (*webrtc.Track
 	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, rid, "pion")
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range stream.videoTracks {
+		if rid == stream.videoTracks[i].ID() {
+			stream.videoTracks[i] = videoTrack
+			return videoTrack, nil
+		}
 	}
 
 	stream.videoTracks = append(stream.videoTracks, videoTrack)
@@ -273,7 +300,8 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 }
 
 func Configure() {
-	streamMap = map[string]stream{}
+	streamMap = map[string]*stream{}
+	whepSessions = map[string]whepSession{}
 
 	mediaEngine := &webrtc.MediaEngine{}
 	if err := populateMediaEngine(mediaEngine); err != nil {

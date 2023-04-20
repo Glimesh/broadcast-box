@@ -25,7 +25,6 @@ func WHIP(offer, streamKey string) (string, error) {
 	simulcastDefaultTrackSet := &atomic.Bool{}
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
 		var localTrack *webrtc.TrackLocalStaticRTP
-
 		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
 			localTrack = audioTrack
 		} else {
@@ -37,6 +36,7 @@ func WHIP(offer, streamKey string) (string, error) {
 					return
 				}
 			} else {
+				setDefaultVideoTrackLabel(streamKey, remoteTrack.RID())
 				localTrack = videoTrack
 			}
 
@@ -75,8 +75,8 @@ func WHIP(offer, streamKey string) (string, error) {
 		if i == webrtc.ICEConnectionStateFailed {
 			if err := peerConnection.Close(); err != nil {
 				log.Println(err)
-				return
 			}
+			deleteStream(streamKey)
 		}
 	})
 

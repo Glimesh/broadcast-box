@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	"log"
 	"net/http"
@@ -17,6 +19,13 @@ import (
 const (
 	envFileProd = ".env.production"
 	envFileDev  = ".env.development"
+)
+
+type (
+	whepLayerRequestJSON struct {
+		MediaId    string `json:"mediaId"`
+		EncodingId string `json:"encodingId"`
+	}
 )
 
 func logHTTPError(w http.ResponseWriter, err string, code int) {
@@ -60,13 +69,51 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	answer, err := webrtc.WHEP(string(offer), streamKey)
+	answer, whepSessionId, err := webrtc.WHEP(string(offer), streamKey)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	apiPath := req.Host + strings.TrimSuffix(req.URL.RequestURI(), "whep")
+	res.Header().Add("Link", `<`+apiPath+"sse/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="layers"`)
+	res.Header().Add("Link", `<`+apiPath+"layer/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:layer"`)
 	fmt.Fprint(res, answer)
+}
+
+func whepServerSentEventsHandler(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "text/event-stream")
+	res.Header().Set("Cache-Control", "no-cache")
+	res.Header().Set("Connection", "keep-alive")
+
+	vals := strings.Split(req.URL.RequestURI(), "/")
+	whepSessionId := vals[len(vals)-1]
+
+	layers, err := webrtc.WHEPLayers(whepSessionId)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprint(res, "event: layers\n")
+	fmt.Fprintf(res, "data: %s\n", string(layers))
+	fmt.Fprint(res, "\n\n")
+}
+
+func whepLayerHandler(res http.ResponseWriter, req *http.Request) {
+	var r whepLayerRequestJSON
+	if err := json.NewDecoder(req.Body).Decode(&r); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	vals := strings.Split(req.URL.RequestURI(), "/")
+	whepSessionId := vals[len(vals)-1]
+
+	if err := webrtc.WHEPChangeLayer(whepSessionId, r.EncodingId); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func indexHTMLWhenNotFound(fs http.FileSystem) http.Handler {
@@ -88,6 +135,7 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 		res.Header().Set("Access-Control-Allow-Origin", "*")
 		res.Header().Set("Access-Control-Allow-Methods", "*")
 		res.Header().Set("Access-Control-Allow-Headers", "*")
+		res.Header().Set("Access-Control-Expose-Headers", "*")
 
 		if req.Method != http.MethodOptions {
 			next(res, req)
@@ -116,6 +164,8 @@ func main() {
 	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
+	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
+	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
 
 	log.Println("Running HTTP Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
 

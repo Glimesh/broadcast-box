@@ -30,14 +30,14 @@ function Player(props) {
             direction: 'sendonly',
             sendEncodings: [
               {
-                rid: '1080p'
+                rid: 'high'
               },
               {
-                rid: '720p',
+                rid: 'med',
                 scaleResolutionDownBy: 2.0
               },
               {
-                rid: '480p',
+                rid: 'low',
                 scaleResolutionDownBy: 4.0
               }
             ]
