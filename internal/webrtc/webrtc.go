@@ -21,10 +21,11 @@ const (
 
 type (
 	stream struct {
-		audioTrack             *webrtc.TrackLocalStaticRTP
-		videoTracks            []*webrtc.TrackLocalStaticRTP
-		defaultVideoTrackLabel string
-		pliChan                chan any
+		audioTrack       *webrtc.TrackLocalStaticRTP
+		videoTrackLabels []string
+		pliChan          chan any
+		whepSessionsLock sync.RWMutex
+		whepSessions     map[string]*whepSession
 	}
 )
 
@@ -37,61 +38,20 @@ var (
 func getStream(streamKey string) (*stream, error) {
 	foundStream, ok := streamMap[streamKey]
 	if !ok {
-		defaultVideoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, videoTrackLabelDefault, "pion")
-		if err != nil {
-			return nil, err
-		}
-
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
 		if err != nil {
 			return nil, err
 		}
 
 		foundStream = &stream{
-			audioTrack:  audioTrack,
-			videoTracks: []*webrtc.TrackLocalStaticRTP{defaultVideoTrack},
-			pliChan:     make(chan any, 50),
+			audioTrack:   audioTrack,
+			pliChan:      make(chan any, 50),
+			whepSessions: map[string]*whepSession{},
 		}
 		streamMap[streamKey] = foundStream
 	}
 
 	return foundStream, nil
-}
-
-func getTracksForStream(streamKey string) (
-	*webrtc.TrackLocalStaticRTP,
-	*webrtc.TrackLocalStaticRTP,
-	chan any,
-	error,
-) {
-	streamMapLock.Lock()
-	defer streamMapLock.Unlock()
-
-	stream, err := getStream(streamKey)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	var defaultVideoTrack *webrtc.TrackLocalStaticRTP
-	for i := range stream.videoTracks {
-		if stream.videoTracks[i].ID() == videoTrackLabelDefault {
-			defaultVideoTrack = stream.videoTracks[i]
-		}
-	}
-
-	return stream.audioTrack, defaultVideoTrack, stream.pliChan, nil
-}
-
-func setDefaultVideoTrackLabel(streamKey, label string) {
-	streamMapLock.Lock()
-	defer streamMapLock.Unlock()
-
-	stream, err := getStream(streamKey)
-	if err != nil {
-		return
-	}
-
-	stream.defaultVideoTrackLabel = label
 }
 
 func deleteStream(streamKey string) {
@@ -101,29 +61,18 @@ func deleteStream(streamKey string) {
 	delete(streamMap, streamKey)
 }
 
-func createSimulcastTrackForStream(streamKey string, rid string) (*webrtc.TrackLocalStaticRTP, error) {
+func addTrack(stream *stream, rid string) error {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
-	stream, err := getStream(streamKey)
-	if err != nil {
-		return nil, err
-	}
-
-	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, rid, "pion")
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range stream.videoTracks {
-		if rid == stream.videoTracks[i].ID() {
-			stream.videoTracks[i] = videoTrack
-			return videoTrack, nil
+	for i := range stream.videoTrackLabels {
+		if rid == stream.videoTrackLabels[i] {
+			return nil
 		}
 	}
 
-	stream.videoTracks = append(stream.videoTracks, videoTrack)
-	return videoTrack, nil
+	stream.videoTrackLabels = append(stream.videoTrackLabels, rid)
+	return nil
 }
 
 func getPublicIP() string {
@@ -301,7 +250,6 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 
 func Configure() {
 	streamMap = map[string]*stream{}
-	whepSessions = map[string]whepSession{}
 
 	mediaEngine := &webrtc.MediaEngine{}
 	if err := populateMediaEngine(mediaEngine); err != nil {

@@ -5,11 +5,85 @@ import (
 	"io"
 	"log"
 	"strings"
-	"sync/atomic"
 
 	"github.com/pion/rtcp"
+	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
 )
+
+func audioWriter(remoteTrack *webrtc.TrackRemote, audioTrack *webrtc.TrackLocalStaticRTP) {
+	rtpBuf := make([]byte, 1500)
+	for {
+		rtpRead, _, err := remoteTrack.Read(rtpBuf)
+		switch {
+		case errors.Is(err, io.EOF):
+			return
+		case err != nil:
+			log.Println(err)
+			return
+		}
+
+		if _, writeErr := audioTrack.Write(rtpBuf[:rtpRead]); writeErr != nil && !errors.Is(writeErr, io.ErrClosedPipe) {
+			log.Println(writeErr)
+			return
+		}
+	}
+}
+
+func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection *webrtc.PeerConnection, s *stream) {
+	id := remoteTrack.RID()
+	if id == "" {
+		id = videoTrackLabelDefault
+	}
+
+	if err := addTrack(s, id); err != nil {
+		log.Println(err)
+		return
+	}
+
+	go func() {
+		for range stream.pliChan {
+			if sendErr := peerConnection.WriteRTCP([]rtcp.Packet{
+				&rtcp.PictureLossIndication{
+					MediaSSRC: uint32(remoteTrack.SSRC()),
+				},
+			}); sendErr != nil {
+				return
+			}
+		}
+	}()
+
+	rtpBuf := make([]byte, 1500)
+	rtpPkt := &rtp.Packet{}
+	lastTimestamp := uint32(0)
+	for {
+		rtpRead, _, err := remoteTrack.Read(rtpBuf)
+		switch {
+		case errors.Is(err, io.EOF):
+			return
+		case err != nil:
+			log.Println(err)
+			return
+		}
+
+		if err = rtpPkt.Unmarshal(rtpBuf[:rtpRead]); err != nil {
+			log.Println(err)
+			return
+		}
+
+		timeDiff := rtpPkt.Timestamp - lastTimestamp
+		if lastTimestamp == 0 {
+			timeDiff = 0
+		}
+		lastTimestamp = rtpPkt.Timestamp
+
+		s.whepSessionsLock.RLock()
+		for i := range s.whepSessions {
+			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff)
+		}
+		s.whepSessionsLock.RUnlock()
+	}
+}
 
 func WHIP(offer, streamKey string) (string, error) {
 	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
@@ -17,57 +91,19 @@ func WHIP(offer, streamKey string) (string, error) {
 		return "", err
 	}
 
-	audioTrack, videoTrack, pliChan, err := getTracksForStream(streamKey)
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+	stream, err := getStream(streamKey)
 	if err != nil {
 		return "", err
 	}
 
-	simulcastDefaultTrackSet := &atomic.Bool{}
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
-		var localTrack *webrtc.TrackLocalStaticRTP
 		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
-			localTrack = audioTrack
+			audioWriter(remoteTrack, stream.audioTrack)
 		} else {
-			if remoteTrack.RID() != "" && simulcastDefaultTrackSet.Swap(true) {
-				var simulcastErr error
-				localTrack, simulcastErr = createSimulcastTrackForStream(streamKey, remoteTrack.RID())
-				if simulcastErr != nil {
-					log.Println(simulcastErr)
-					return
-				}
-			} else {
-				setDefaultVideoTrackLabel(streamKey, remoteTrack.RID())
-				localTrack = videoTrack
-			}
+			videoWriter(remoteTrack, stream, peerConnection, stream)
 
-			go func() {
-				for range pliChan {
-					if sendErr := peerConnection.WriteRTCP([]rtcp.Packet{
-						&rtcp.PictureLossIndication{
-							MediaSSRC: uint32(remoteTrack.SSRC()),
-						},
-					}); sendErr != nil {
-						return
-					}
-				}
-			}()
-		}
-
-		rtpBuf := make([]byte, 1500)
-		for {
-			rtpRead, _, readErr := remoteTrack.Read(rtpBuf)
-			switch {
-			case errors.Is(readErr, io.EOF):
-				return
-			case readErr != nil:
-				log.Println(readErr)
-				return
-			}
-
-			if _, writeErr := localTrack.Write(rtpBuf[:rtpRead]); writeErr != nil && !errors.Is(writeErr, io.ErrClosedPipe) {
-				log.Println(writeErr)
-				return
-			}
 		}
 	})
 
