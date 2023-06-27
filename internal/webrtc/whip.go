@@ -135,3 +135,14 @@ func WHIP(offer, streamKey string) (string, error) {
 	<-gatherComplete
 	return peerConnection.LocalDescription().SDP, nil
 }
+
+func GetAllStreams() (out []string) {
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+
+	for s := range streamMap {
+		out = append(out, s)
+	}
+
+	return
+}
