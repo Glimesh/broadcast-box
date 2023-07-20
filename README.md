@@ -59,6 +59,19 @@ page will look like this.
 
 When you are ready to broadcast press `Stream Streaming` and now time to watch!
 
+### Broadcasting (Gstreamer, CLI)
+
+See the example script(s):
+  * `examples/gstreamer-broadcast.nu`
+    * can broadcast gstreamer's test sources, or pulsesrc+v4l2src
+    * expects `gstreamer-1.0`, with `good,bad,ugly` plugins and `gst-plugins-rs`
+    * ```shell
+      # testsrcs
+      ./examples/gstreamer-broadcast.nu http://localhost:8080/api/whip testStream1
+      # v4l2src
+      ./examples/gstreamer-broadcast.nu http://localhost:8080/api/whip testStream1 v4l2
+      ```
+
 ### Playback
 
 If you are broadcasting to the Stream Key `StreamTest` your video will be available at https://b.siobud.com/StreamTest.
