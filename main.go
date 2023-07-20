@@ -52,6 +52,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	res.Header().Add("Location", "/api/whip")
 	res.WriteHeader(http.StatusCreated)
 	fmt.Fprint(res, answer)
 }
