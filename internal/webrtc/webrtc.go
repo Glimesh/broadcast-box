@@ -229,6 +229,16 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=123", nil},
 			PayloadType:        118,
 		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeAV1, 90000, 0, "", videoRTCPFeedback},
+			PayloadType:        124,
+		},
+		{
+			// nolint
+			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=124", nil},
+			PayloadType:        125,
+		},
 	} {
 		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
 			return err
