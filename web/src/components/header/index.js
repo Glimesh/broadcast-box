@@ -1,36 +1,39 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { useContext } from 'react';
+import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { CinemaModeContext } from '../player';
 
 const Header = () => {
   const navigate = useNavigate()
-
+  const { cinemaMode } = useContext(CinemaModeContext);
+  const navbarEnabled = !cinemaMode;
   return (
     <div>
-      <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-10 top-0'>
-        <div className='container mx-auto flex flex-wrap items-center'>
-          <div className='flex flex-1 text-white font-extrabold'>
-            <a href="/" className='font-light leading-tight text-2xl'>
-              Broadcast Box
-            </a>
+      {navbarEnabled && (
+        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-10 top-0'>
+          <div className='container mx-auto flex flex-wrap items-center'>
+            <div className='flex flex-1 text-white font-extrabold'>
+              <a href="/" className='font-light leading-tight text-2xl'>
+                Broadcast Box
+              </a>
+            </div>
+            <div className='flex content-center justify-between md:w-1/2 md:justify-end'>
+              <ul className='list-reset flex justify-between flex-1 md:flex-none items-center'>
+                <li className=''>
+                  <button
+                    className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75'
+                    onClick={() => { navigate('/') }}
+                  >
+                    Go Home
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className='flex content-center justify-between md:w-1/2 md:justify-end'>
-            <ul className='list-reset flex justify-between flex-1 md:flex-none items-center'>
-              <li className=''>
-                <button
-                  className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75'
-                  onClick={() => { navigate('/') }}
-                >
-                  Go Home
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
-      <main className='pt-20 md:pt-24'>
-        <div className='mx-auto px-2 container'>
-          <Outlet />
-        </div>
+      <main className={`${navbarEnabled && "pt-20 md:pt-24"}`}>
+        <Outlet />
       </main>
 
       <footer className="mx-auto px-2 container py-6">
