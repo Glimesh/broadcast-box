@@ -1,8 +1,38 @@
-import React from 'react'
-import {parseLinkHeader} from '@web3-storage/parse-link-header'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { parseLinkHeader } from '@web3-storage/parse-link-header'
 import { useLocation } from 'react-router-dom'
 
-function Player(props) {
+export const CinemaModeContext = React.createContext(null);
+
+export function CinemaModeProvider({ children }) {
+  const [cinemaMode, setCinemaMode] = useState(() => localStorage.getItem("cinema-mode") === "true");
+  const state = useMemo(() => ({
+    cinemaMode,
+    setCinemaMode,
+    toggleCinemaMode: () => setCinemaMode((prev) => !prev),
+  }), [cinemaMode, setCinemaMode]);
+
+  useEffect(() => localStorage.setItem("cinema-mode", cinemaMode), [cinemaMode]);
+  return (
+    <CinemaModeContext.Provider value={state}>
+      {children}
+    </CinemaModeContext.Provider>
+  );
+}
+
+function PlayerPage() {
+  const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
+  return (
+    <div className={`flex flex-col items-center ${!cinemaMode && 'mx-auto px-2 py-2 container'}`}>
+      <Player cinemaMode={cinemaMode} />
+      <button className='bg-blue-900 px-4 py-2 rounded-lg mt-6' onClick={toggleCinemaMode}>
+        {cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
+      </button>
+    </div>
+  )
+}
+
+function Player({ cinemaMode }) {
   const videoRef = React.createRef()
   const location = useLocation()
   const [videoLayers, setVideoLayers] = React.useState([]);
@@ -12,7 +42,7 @@ function Player(props) {
   const onLayerChange = event => {
     fetch(layerEndpoint, {
       method: 'POST',
-      body: JSON.stringify({mediaId: '1', encodingId: event.target.value}),
+      body: JSON.stringify({ mediaId: '1', encodingId: event.target.value }),
       headers: {
         'Content-Type': 'application/json'
       }
@@ -32,8 +62,8 @@ function Player(props) {
       setMediaSrcObject(event.streams[0])
     }
 
-    peerConnection.addTransceiver('audio', {direction: 'recvonly'})
-    peerConnection.addTransceiver('video', {direction: 'recvonly'})
+    peerConnection.addTransceiver('audio', { direction: 'recvonly' })
+    peerConnection.addTransceiver('video', { direction: 'recvonly' })
 
     peerConnection.createOffer().then(offer => {
       peerConnection.setLocalDescription(offer)
@@ -80,7 +110,7 @@ function Player(props) {
         muted
         controls
         playsInline
-        className='mx-auto h-full'
+        className={`bg-black w-full ${cinemaMode && "min-h-screen"}`}
       />
 
       {videoLayers.length >= 2 &&
@@ -95,4 +125,4 @@ function Player(props) {
   )
 }
 
-export default Player
+export default PlayerPage

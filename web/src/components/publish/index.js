@@ -81,7 +81,7 @@ function Player(props) {
       muted
       controls
       playsInline
-      className='mx-auto h-full'
+      className='container mx-auto h-full'
     />
   )
 }
