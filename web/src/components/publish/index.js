@@ -2,8 +2,9 @@ import React from 'react'
 import { useLocation } from 'react-router-dom'
 
 function Player(props) {
-  const videoRef = React.createRef()
+  const videoRef = React.useRef(null)
   const location = useLocation()
+  const [mediaAccessError, setMediaAccessError] = React.useState(null);
 
   React.useEffect(() => {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
@@ -64,7 +65,7 @@ function Player(props) {
           })
         })
       })
-    })
+    }, setMediaAccessError)
 
     return function cleanup() {
       peerConnection.close()
@@ -75,14 +76,33 @@ function Player(props) {
   }, [videoRef, location.pathname])
 
   return (
-    <video
-      ref={videoRef}
-      autoPlay
-      muted
-      controls
-      playsInline
-      className='container mx-auto h-full'
-    />
+    <div className='container mx-auto'>
+      {mediaAccessError != null && <MediaAccessError>{mediaAccessError}</MediaAccessError>}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        controls
+        playsInline
+        className='w-full h-full'
+      />
+    </div>
+  )
+}
+
+const mediaErrorMessages = {
+  NotAllowedError: `You can't publish stream using your camera, because you have blocked access to it 😞`,
+  NotFoundError: `Seems like you don't have camera 😭 Or you just blocked access to it...\n` +
+    `Check camera settings, browser permissions and system permissions.`,
+}
+
+function MediaAccessError({ children: error }) {
+  return (
+    <p className={'bg-red-700 text-white text-lg ' +
+      'text-center p-5 rounded-t-lg whitespace-pre-wrap'
+    }>
+      {mediaErrorMessages[error.name] ?? 'Could not access your media device:\n' + error}
+    </p>
   )
 }
 
