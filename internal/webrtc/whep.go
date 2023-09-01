@@ -82,7 +82,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 
 	videoTrack := &trackMultiCodec{id: "video", streamID: "pion"}
 
-	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{})
+	peerConnection, err := apiWhep.NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		return "", "", err
 	}
