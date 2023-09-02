@@ -102,10 +102,12 @@ func getPublicIP() string {
 }
 
 func createSettingEngine(isWHIP bool) (settingEngine webrtc.SettingEngine) {
-	NAT1To1IPs := []string{}
-	interfaceFilter := func(i string) bool {
-		return i == os.Getenv("INTERFACE_FILTER")
-	}
+	var (
+		NAT1To1IPs []string
+		udpMuxPort int
+		udpMuxOpts []ice.UDPMuxFromPortOption
+		err        error
+	)
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
@@ -120,21 +122,30 @@ func createSettingEngine(isWHIP bool) (settingEngine webrtc.SettingEngine) {
 	}
 
 	if os.Getenv("INTERFACE_FILTER") != "" {
+		interfaceFilter := func(i string) bool {
+			return i == os.Getenv("INTERFACE_FILTER")
+		}
+
 		settingEngine.SetInterfaceFilter(interfaceFilter)
+		udpMuxOpts = append(udpMuxOpts, ice.UDPMuxFromPortWithInterfaceFilter(interfaceFilter))
 	}
 
-	if os.Getenv("UDP_MUX_PORT") != "" {
-		udpPort, err := strconv.Atoi(os.Getenv("UDP_MUX_PORT"))
-		if err != nil {
+	if isWHIP && os.Getenv("UDP_MUX_PORT_WHIP") != "" {
+		if udpMuxPort, err = strconv.Atoi(os.Getenv("UDP_MUX_PORT_WHIP")); err != nil {
 			log.Fatal(err)
 		}
-
-		var opts []ice.UDPMuxFromPortOption
-		if os.Getenv("INTERFACE_FILTER") != "" {
-			opts = append(opts, ice.UDPMuxFromPortWithInterfaceFilter(interfaceFilter))
+	} else if !isWHIP && os.Getenv("UDP_MUX_PORT_WHEP") != "" {
+		if udpMuxPort, err = strconv.Atoi(os.Getenv("UDP_MUX_PORT_WHEP")); err != nil {
+			log.Fatal(err)
 		}
+	} else if os.Getenv("UDP_MUX_PORT") != "" {
+		if udpMuxPort, err = strconv.Atoi(os.Getenv("UDP_MUX_PORT")); err != nil {
+			log.Fatal(err)
+		}
+	}
 
-		udpMux, err := ice.NewMultiUDPMuxFromPort(udpPort, opts...)
+	if udpMuxPort != 0 {
+		udpMux, err := ice.NewMultiUDPMuxFromPort(udpMuxPort, udpMuxOpts...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -279,17 +290,15 @@ func Configure() {
 		log.Fatal(err)
 	}
 
-	settingEngine := createSettingEngine(false)
+	apiWhip = webrtc.NewAPI(
+		webrtc.WithMediaEngine(mediaEngine),
+		webrtc.WithInterceptorRegistry(interceptorRegistry),
+		webrtc.WithSettingEngine(createSettingEngine(true)),
+	)
 
 	apiWhep = webrtc.NewAPI(
 		webrtc.WithMediaEngine(mediaEngine),
 		webrtc.WithInterceptorRegistry(interceptorRegistry),
-		webrtc.WithSettingEngine(settingEngine),
-	)
-
-	apiWhip = webrtc.NewAPI(
-		webrtc.WithMediaEngine(mediaEngine),
-		webrtc.WithInterceptorRegistry(interceptorRegistry),
-		webrtc.WithSettingEngine(settingEngine),
+		webrtc.WithSettingEngine(createSettingEngine(false)),
 	)
 }
