@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	"crypto/tls"
 	"log"
 	"net/http"
 
@@ -176,6 +177,21 @@ func main() {
 
 	webrtc.Configure()
 
+	if os.Getenv("ENABLE_HTTP_REDIRECT") != "" {
+		go func() {
+			redirectServer := &http.Server{
+				Addr: ":80",
+				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+				}),
+			}
+
+			log.Println("Running HTTP->HTTPS redirect Server at :80")
+			log.Fatal(redirectServer.ListenAndServe())
+		}()
+
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
@@ -184,10 +200,31 @@ func main() {
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
 
-	log.Println("Running HTTP Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
-
-	log.Fatal((&http.Server{
+	server := &http.Server{
 		Handler: mux,
 		Addr:    os.Getenv("HTTP_ADDRESS"),
-	}).ListenAndServe())
+	}
+
+	tlsKey := os.Getenv("SSL_KEY")
+	tlsCert := os.Getenv("SSL_CERT")
+
+	if tlsKey != "" && tlsCert != "" {
+		server.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{},
+		}
+
+		cert, err := tls.LoadX509KeyPair(tlsCert, tlsKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		server.TLSConfig.Certificates = append(server.TLSConfig.Certificates, cert)
+
+		log.Println("Running HTTPS Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
+		log.Fatal(server.ListenAndServeTLS("", ""))
+	} else {
+		log.Println("Running HTTP Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
+		log.Fatal(server.ListenAndServe())
+	}
+
 }
