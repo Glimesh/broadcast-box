@@ -1,9 +1,9 @@
-import React, { useContext } from 'react'
+import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 import Header from './components/header'
 import Selection from './components/selection'
-import PlayerPage, { CinemaModeContext } from './components/player'
+import PlayerPage from './components/player'
 import Publish from './components/publish'
 
 function App() {

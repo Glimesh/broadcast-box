@@ -1,9 +1,8 @@
 import { useContext } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { CinemaModeContext } from '../player';
 
 const Header = () => {
-  const navigate = useNavigate()
   const { cinemaMode } = useContext(CinemaModeContext);
   const navbarEnabled = !cinemaMode;
   return (
