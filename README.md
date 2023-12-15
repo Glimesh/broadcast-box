@@ -1,7 +1,7 @@
 # Broadcast Box
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Discord](https://img.shields.io/discord/1162823780708651018?logo=discord)](discord.gg/An5jjhNUE3)
+[![Discord](https://img.shields.io/discord/1162823780708651018?logo=discord)](https://discord.gg/An5jjhNUE3)
 
 Broadcast Box lets you broadcast to others in sub-second time. It was designed
 to be simple to use and easily modifiable. We wrote Broadcast Box to show off some
