@@ -53,15 +53,11 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 		}
 	}()
 
-	isAV1 :=
-		strings.Contains(
-			strings.ToLower(webrtc.MimeTypeAV1),
-			strings.ToLower(remoteTrack.Codec().RTPCodecCapability.MimeType),
-		)
-
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
 	lastTimestamp := uint32(0)
+	codec := getVideoTrackCodec(remoteTrack.Codec().RTPCodecCapability.MimeType)
+
 	for {
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 		switch {
@@ -85,7 +81,7 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 		s.whepSessionsLock.RLock()
 		for i := range s.whepSessions {
-			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff, isAV1)
+			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff, codec)
 		}
 		s.whepSessionsLock.RUnlock()
 	}

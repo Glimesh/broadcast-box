@@ -2,12 +2,14 @@ package webrtc
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/pion/ice/v2"
@@ -17,6 +19,11 @@ import (
 
 const (
 	videoTrackLabelDefault = "default"
+
+	videoTrackCodecH264 videoTrackCodec = iota + 1
+	videoTrackCodecVP8
+	videoTrackCodecVP9
+	videoTrackCodecAV1
 )
 
 type (
@@ -27,13 +34,34 @@ type (
 		whepSessionsLock sync.RWMutex
 		whepSessions     map[string]*whepSession
 	}
+
+	videoTrackCodec int
 )
 
 var (
 	streamMap        map[string]*stream
 	streamMapLock    sync.Mutex
 	apiWhip, apiWhep *webrtc.API
+
+	// nolint
+	videoRTCPFeedback = []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
 )
+
+func getVideoTrackCodec(in string) videoTrackCodec {
+	downcased := strings.ToLower(in)
+	switch {
+	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeH264)):
+		return videoTrackCodecH264
+	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeVP8)):
+		return videoTrackCodecVP8
+	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeVP9)):
+		return videoTrackCodecVP9
+	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeAV1)):
+		return videoTrackCodecAV1
+	}
+
+	return 0
+}
 
 func getStream(streamKey string) (*stream, error) {
 	foundStream, ok := streamMap[streamKey]
@@ -186,93 +214,45 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 		}
 	}
 
-	// nolint
-	videoRTCPFeedback := []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
-	for _, codec := range []webrtc.RTPCodecParameters{
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f", videoRTCPFeedback},
-			PayloadType:        102,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=102", nil},
-			PayloadType:        121,
-		},
-
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f", videoRTCPFeedback},
-			PayloadType:        127,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=127", nil},
-			PayloadType:        120,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f", videoRTCPFeedback},
-			PayloadType:        125,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=125", nil},
-			PayloadType:        107,
-		},
-
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f", videoRTCPFeedback},
-			PayloadType:        108,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=108", nil},
-			PayloadType:        109,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f", videoRTCPFeedback},
-			PayloadType:        127,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=127", nil},
-			PayloadType:        120,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeH264, 90000, 0, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032", videoRTCPFeedback},
-			PayloadType:        123,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=123", nil},
-			PayloadType:        118,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{webrtc.MimeTypeAV1, 90000, 0, "", videoRTCPFeedback},
-			PayloadType:        124,
-		},
-		{
-			// nolint
-			RTPCodecCapability: webrtc.RTPCodecCapability{"video/rtx", 90000, 0, "apt=124", nil},
-			PayloadType:        125,
-		},
+	for _, codecDetails := range []struct {
+		payloadType uint8
+		mimeType    string
+		sdpFmtpLine string
+	}{
+		{96, webrtc.MimeTypeVP8, ""},
+		{102, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"},
+		{104, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f"},
+		{106, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"},
+		{108, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f"},
+		{39, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=4d001f"},
+		{45, webrtc.MimeTypeAV1, ""},
+		{98, webrtc.MimeTypeVP9, "profile-id=0"},
+		{100, webrtc.MimeTypeVP9, "profile-id=2"},
+		{112, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f"},
 	} {
-		if err := m.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
+		if err := m.RegisterCodec(webrtc.RTPCodecParameters{
+			RTPCodecCapability: webrtc.RTPCodecCapability{
+				MimeType:     codecDetails.mimeType,
+				ClockRate:    90000,
+				Channels:     0,
+				SDPFmtpLine:  codecDetails.sdpFmtpLine,
+				RTCPFeedback: videoRTCPFeedback,
+			},
+			PayloadType: webrtc.PayloadType(codecDetails.payloadType),
+		}, webrtc.RTPCodecTypeVideo); err != nil {
 			return err
 		}
-	}
 
-	for _, extension := range []string{
-		"urn:ietf:params:rtp-hdrext:sdes:mid",
-		"urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id",
-		"urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id",
-	} {
-		if err := m.RegisterHeaderExtension(webrtc.RTPHeaderExtensionCapability{URI: extension}, webrtc.RTPCodecTypeVideo); err != nil {
+		if err := m.RegisterCodec(webrtc.RTPCodecParameters{
+			RTPCodecCapability: webrtc.RTPCodecCapability{
+				MimeType:     "video/rtx",
+				ClockRate:    90000,
+				Channels:     0,
+				SDPFmtpLine:  fmt.Sprintf("apt=%d", codecDetails.payloadType),
+				RTCPFeedback: nil,
+			},
+			PayloadType: webrtc.PayloadType(codecDetails.payloadType + 1),
+		}, webrtc.RTPCodecTypeVideo); err != nil {
 			return err
 		}
 	}

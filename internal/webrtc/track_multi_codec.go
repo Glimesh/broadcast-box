@@ -1,8 +1,6 @@
 package webrtc
 
 import (
-	"strings"
-
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 )
@@ -11,7 +9,7 @@ type trackMultiCodec struct {
 	ssrc        webrtc.SSRC
 	writeStream webrtc.TrackLocalWriter
 
-	h264PayloadType, av1PayloadType uint8
+	payloadTypeH264, payloadTypeVP8, payloadTypeVP9, payloadTypeAV1 uint8
 
 	id, rid, streamID string
 }
@@ -22,20 +20,16 @@ func (t *trackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecPar
 
 	codecs := ctx.CodecParameters()
 	for i := range codecs {
-		if t.av1PayloadType == 0 && strings.Contains(
-			strings.ToLower(webrtc.MimeTypeAV1),
-			strings.ToLower(codecs[i].MimeType),
-		) {
-			t.av1PayloadType = uint8(codecs[i].PayloadType)
+		switch getVideoTrackCodec(codecs[i].MimeType) {
+		case videoTrackCodecH264:
+			t.payloadTypeH264 = uint8(codecs[i].PayloadType)
+		case videoTrackCodecVP8:
+			t.payloadTypeVP8 = uint8(codecs[i].PayloadType)
+		case videoTrackCodecVP9:
+			t.payloadTypeVP9 = uint8(codecs[i].PayloadType)
+		case videoTrackCodecAV1:
+			t.payloadTypeAV1 = uint8(codecs[i].PayloadType)
 		}
-
-		if t.h264PayloadType == 0 && strings.Contains(
-			strings.ToLower(webrtc.MimeTypeH264),
-			strings.ToLower(codecs[i].MimeType),
-		) {
-			t.h264PayloadType = uint8(codecs[i].PayloadType)
-		}
-
 	}
 
 	return webrtc.RTPCodecParameters{RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}}, nil
@@ -45,13 +39,18 @@ func (t *trackMultiCodec) Unbind(webrtc.TrackLocalContext) error {
 	return nil
 }
 
-func (t *trackMultiCodec) WriteRTP(p *rtp.Packet, isAV1 bool) error {
+func (t *trackMultiCodec) WriteRTP(p *rtp.Packet, codec videoTrackCodec) error {
 	p.Header.SSRC = uint32(t.ssrc)
 
-	if isAV1 {
-		p.Header.PayloadType = t.av1PayloadType
-	} else {
-		p.Header.PayloadType = t.h264PayloadType
+	switch codec {
+	case videoTrackCodecH264:
+		p.Header.PayloadType = t.payloadTypeH264
+	case videoTrackCodecVP8:
+		p.Header.PayloadType = t.payloadTypeVP8
+	case videoTrackCodecVP9:
+		p.Header.PayloadType = t.payloadTypeVP9
+	case videoTrackCodecAV1:
+		p.Header.PayloadType = t.payloadTypeAV1
 	}
 
 	_, err := t.writeStream.WriteRTP(&p.Header, p.Payload)
