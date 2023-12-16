@@ -5,6 +5,7 @@ function Player(props) {
   const videoRef = React.useRef(null)
   const location = useLocation()
   const [mediaAccessError, setMediaAccessError] = React.useState(null);
+  const [publishSuccess, setPublishSuccess] = React.useState(false);
 
   React.useEffect(() => {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
@@ -63,6 +64,7 @@ function Player(props) {
             sdp: answer,
             type: 'answer'
           })
+          setPublishSuccess(true)
         })
       })
     }, setMediaAccessError)
@@ -78,6 +80,7 @@ function Player(props) {
   return (
     <div className='container mx-auto'>
       {mediaAccessError != null && <MediaAccessError>{mediaAccessError}</MediaAccessError>}
+      {publishSuccess === true && <PublishSuccess />}
       <video
         ref={videoRef}
         autoPlay
@@ -102,6 +105,18 @@ function MediaAccessError({ children: error }) {
       'text-center p-5 rounded-t-lg whitespace-pre-wrap'
     }>
       {mediaErrorMessages[error.name] ?? 'Could not access your media device:\n' + error}
+    </p>
+  )
+}
+
+function PublishSuccess() {
+  const subscribeUrl = window.location.href.replace('publish/', '')
+
+  return (
+    <p className={'bg-green-800 text-white text-lg ' +
+      'text-center p-5 rounded-t-lg whitespace-pre-wrap'
+    }>
+      Live: Currently streaming to <a href={subscribeUrl} target="_blank" rel="noreferrer" className="hover:underline">{subscribeUrl}</a>
     </p>
   )
 }
