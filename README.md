@@ -214,8 +214,6 @@ broadcast-box:
   privileged: true
 ```
 
-The command to upload the image to Dockerhub is `docker buildx build --platform=linux/amd64,linux/arm64 --push -t seaduboi/broadcast-box:latest .`
-
 # Design
 The backend exposes two endpoints.
 
