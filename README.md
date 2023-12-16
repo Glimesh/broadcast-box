@@ -29,12 +29,19 @@ experience.
 
 ### Peer-to-Peer (if you need it)
 With Broadcast Box you can serve your video without a public IP or forwarding ports!
+
 Run Broadcast Box on the same machine that you are running OBS, and share your
 video with the world! WebRTC comes with P2P technology, so users can broadcast
-and playback video without paying for dedicated servers.
+and playback video without paying for dedicated servers. To start the connection users will
+need to be able to connect to the HTTP server. After they have negotiated the session then
+NAT traversal begins.
 
 You could also use P2P to pull other broadcasters into your stream. No special configuration
 or servers required anymore to get sub-second costreams.
+
+Broadcast Box acts as a [SFU](https://webrtcforthecurious.com/docs/08-applied-webrtc/#selective-forwarding-unit). This means that
+every client connects to Broadcast Box. No direct connection is established between broadcasters/viewers.
+If you want a direct connection between OBS and your browser see [OBS2Browser](https://github.com/Sean-Der/OBS2Browser).
 
 # Using
 To use Broadcast Box you don't even have to run it locally! A instance of Broadcast Box
