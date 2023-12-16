@@ -95,7 +95,7 @@ func WHIP(offer, streamKey string) (string, error) {
 
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
-	stream, err := getStream(streamKey)
+	stream, err := getStream(streamKey, true)
 	if err != nil {
 		return "", err
 	}
@@ -138,13 +138,27 @@ func WHIP(offer, streamKey string) (string, error) {
 	return peerConnection.LocalDescription().SDP, nil
 }
 
-func GetAllStreams() (out []string) {
+type StreamStatus struct {
+	StreamKey         string `json:"streamKey"`
+	WHEPSessionsCount int    `json:"whepSessionsCount"`
+}
+
+func GetStreamStatuses() []StreamStatus {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
-	for s := range streamMap {
-		out = append(out, s)
+	out := []StreamStatus{}
+
+	for streamKey, stream := range streamMap {
+		stream.whepSessionsLock.Lock()
+		whepSessionsCount := len(stream.whepSessions)
+		stream.whepSessionsLock.Unlock()
+
+		out = append(out, StreamStatus{
+			StreamKey:         streamKey,
+			WHEPSessionsCount: whepSessionsCount,
+		})
 	}
 
-	return
+	return out
 }

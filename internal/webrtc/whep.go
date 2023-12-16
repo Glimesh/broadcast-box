@@ -70,10 +70,21 @@ func WHEPChangeLayer(whepSessionId, layer string) error {
 	return nil
 }
 
+func deleteWHEPSession(stream *stream, streamKey string, whepSessionId string) {
+	stream.whepSessionsLock.Lock()
+	defer stream.whepSessionsLock.Unlock()
+	delete(stream.whepSessions, whepSessionId)
+
+	// If WHEP is gone and we have no publisher delete the stream
+	if len(stream.whepSessions) == 0 && !stream.hasWHIPClient.Load() {
+		deleteStream(streamKey)
+	}
+}
+
 func WHEP(offer, streamKey string) (string, string, error) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
-	stream, err := getStream(streamKey)
+	stream, err := getStream(streamKey, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -93,9 +104,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 				log.Println(err)
 			}
 
-			stream.whepSessionsLock.Lock()
-			defer stream.whepSessionsLock.Unlock()
-			delete(stream.whepSessions, whepSessionId)
+			deleteWHEPSession(stream, streamKey, whepSessionId)
 		}
 	})
 

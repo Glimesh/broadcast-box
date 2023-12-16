@@ -120,17 +120,8 @@ func whepLayerHandler(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type StreamStatus struct {
-	StreamKey string `json:"streamKey"`
-}
-
 func statusHandler(res http.ResponseWriter, req *http.Request) {
-	statuses := []StreamStatus{}
-	for _, s := range webrtc.GetAllStreams() {
-		statuses = append(statuses, StreamStatus{StreamKey: s})
-	}
-
-	if err := json.NewEncoder(res).Encode(statuses); err != nil {
+	if err := json.NewEncoder(res).Encode(webrtc.GetStreamStatuses()); err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 	}
 }
@@ -198,9 +189,12 @@ func main() {
 	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
-	mux.HandleFunc("/api/status", corsHandler(statusHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
+
+	if os.Getenv("DISABLE_STATUS") == "" {
+		mux.HandleFunc("/api/status", corsHandler(statusHandler))
+	}
 
 	server := &http.Server{
 		Handler: mux,

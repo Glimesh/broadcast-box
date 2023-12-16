@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pion/ice/v2"
 	"github.com/pion/interceptor"
@@ -28,9 +29,14 @@ const (
 
 type (
 	stream struct {
-		audioTrack       *webrtc.TrackLocalStaticRTP
+		// Does this stream have a publisher?
+		// If stream was created by a WHEP request hasWHIPClient == false
+		hasWHIPClient    atomic.Bool
 		videoTrackLabels []string
-		pliChan          chan any
+		audioTrack       *webrtc.TrackLocalStaticRTP
+
+		pliChan chan any
+
 		whepSessionsLock sync.RWMutex
 		whepSessions     map[string]*whepSession
 	}
@@ -63,7 +69,7 @@ func getVideoTrackCodec(in string) videoTrackCodec {
 	return 0
 }
 
-func getStream(streamKey string) (*stream, error) {
+func getStream(streamKey string, forWHIP bool) (*stream, error) {
 	foundStream, ok := streamMap[streamKey]
 	if !ok {
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
@@ -77,6 +83,10 @@ func getStream(streamKey string) (*stream, error) {
 			whepSessions: map[string]*whepSession{},
 		}
 		streamMap[streamKey] = foundStream
+	}
+
+	if forWHIP {
+		foundStream.hasWHIPClient.Store(true)
 	}
 
 	return foundStream, nil
