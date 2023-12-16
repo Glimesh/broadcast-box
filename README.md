@@ -3,6 +3,20 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Discord](https://img.shields.io/discord/1162823780708651018?logo=discord)](https://discord.gg/An5jjhNUE3)
 
+- [What is Broadcast Box](#what-is-broadcast-box)
+- [Using](#using)
+    + [Broadcasting](#broadcasting)
+    + [Broadcasting (Gstreamer, CLI)](#broadcasting--gstreamer--cli-)
+    + [Playback](#playback)
+- [Running](#running)
+    + [Installing Dependencies](#installing-dependencies)
+    + [Configuring](#configuring)
+    + [Local Development](#local-development)
+    + [Production](#production)
+    + [Docker](#docker)
+- [Design](#design)
+
+## What is Broadcast Box
 Broadcast Box lets you broadcast to others in sub-second time. It was designed
 to be simple to use and easily modifiable. We wrote Broadcast Box to show off some
 of the cutting edge tech that is coming to the broadcast space.
@@ -207,3 +221,4 @@ The backend exposes two endpoints.
 
 * `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
 * `/api/whep` - Start a WHEP Session. WHEP is video playback via WebRTC.
+* `/api/status` - Status of the all active WHIP streams
