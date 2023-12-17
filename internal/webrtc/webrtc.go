@@ -270,6 +270,20 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 	return nil
 }
 
+func newPeerConnection(api *webrtc.API) (*webrtc.PeerConnection, error) {
+	cfg := webrtc.Configuration{}
+
+	if stunServers := os.Getenv("STUN_SERVERS"); stunServers != "" {
+		for _, stunServer := range strings.Split(stunServers, "|") {
+			cfg.ICEServers = append(cfg.ICEServers, webrtc.ICEServer{
+				URLs: []string{"stun:" + stunServer},
+			})
+		}
+	}
+
+	return api.NewPeerConnection(cfg)
+}
+
 func Configure() {
 	streamMap = map[string]*stream{}
 

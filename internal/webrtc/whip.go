@@ -88,7 +88,7 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 }
 
 func WHIP(offer, streamKey string) (string, error) {
-	peerConnection, err := apiWhip.NewPeerConnection(webrtc.Configuration{})
+	peerConnection, err := newPeerConnection(apiWhip)
 	if err != nil {
 		return "", err
 	}
