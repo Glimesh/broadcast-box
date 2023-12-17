@@ -1,21 +1,27 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
 
+let mediaOptions = {
+  audio: true,
+  video: true
+}
+
 function Player(props) {
   const videoRef = React.useRef(null)
   const location = useLocation()
   const [mediaAccessError, setMediaAccessError] = React.useState(null);
   const [publishSuccess, setPublishSuccess] = React.useState(false);
+  const [useDisplayMedia, setUseDisplayMedia] = React.useState(false);
 
   React.useEffect(() => {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
     let stream = null
 
-    navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: true
-    })
-    .then(s => {
+    const mediaPromise = useDisplayMedia ?
+      navigator.mediaDevices.getDisplayMedia(mediaOptions) :
+      navigator.mediaDevices.getUserMedia(mediaOptions)
+
+    mediaPromise.then(s => {
       if (peerConnection.connectionState === "closed") {
         s.getTracks().forEach(t => t.stop())
         return;
@@ -75,7 +81,7 @@ function Player(props) {
         stream.getTracks().forEach(t => t.stop())
       }
     }
-  }, [videoRef, location.pathname])
+  }, [videoRef, useDisplayMedia, location.pathname])
 
   return (
     <div className='container mx-auto'>
@@ -89,6 +95,13 @@ function Player(props) {
         playsInline
         className='w-full h-full'
       />
+
+      <button
+        onClick={() => { setUseDisplayMedia(!useDisplayMedia)}}
+        className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200">
+          {!useDisplayMedia && <> Publish Screen/Window/Tab instead </>}
+          {useDisplayMedia && <> Publish Webcam instead </>}
+      </button>
     </div>
   )
 }
