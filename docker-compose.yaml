@@ -1,0 +1,9 @@
+broadcast-box:
+  environment:
+  - INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes
+  image: broadcast-box
+  hostname: broadcast-box
+  container_name: broadcast-box
+  network_mode: "host"
+  privileged: true
+
