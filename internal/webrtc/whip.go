@@ -73,6 +73,9 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 			return
 		}
 
+		rtpPkt.Extension = false
+		rtpPkt.Extensions = nil
+
 		timeDiff := rtpPkt.Timestamp - lastTimestamp
 		if lastTimestamp == 0 {
 			timeDiff = 0
