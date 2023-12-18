@@ -229,7 +229,6 @@ func populateMediaEngine(m *webrtc.MediaEngine) error {
 		mimeType    string
 		sdpFmtpLine string
 	}{
-		{96, webrtc.MimeTypeVP8, ""},
 		{102, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f"},
 		{104, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f"},
 		{106, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"},
