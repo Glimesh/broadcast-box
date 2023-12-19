@@ -261,7 +261,15 @@ This will make broadcast-box available on `http://localhost:8080`. The UDPMux is
 If you are running on AWS (or other cloud providers) execute. `docker run --net=host -e INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes seaduboi/broadcast-box`
 broadcast-box needs to be run in net=host mode. broadcast-box listens on random UDP ports to establish sessions.
 
-A docker-compose.yaml is included in the repo.
+### Docker Compose
+
+A Docker Compose is included that uses LetsEncrypt for automated HTTPS. It also includes Watchtower so your instance of Broadcast Box
+will be automatically updated every night. If you are running on a VPS/Cloud server this is the quickest/easiest way to get started.
+
+```
+export URL=my-server.com
+docker-compose up -d
+```
 
 # Design
 The backend exposes two endpoints.

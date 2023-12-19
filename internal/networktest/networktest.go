@@ -95,9 +95,9 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 				return fmt.Errorf("Candidate with invalid IP %s", c.Address())
 			}
 
-			// if !ip.IsPrivate() {
-			// 	filteredAttributes = append(filteredAttributes, a)
-			// }
+			if !ip.IsPrivate() {
+				filteredAttributes = append(filteredAttributes, a)
+			}
 		} else {
 			filteredAttributes = append(filteredAttributes, a)
 		}
