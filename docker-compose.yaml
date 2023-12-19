@@ -6,4 +6,3 @@ broadcast-box:
   container_name: broadcast-box
   network_mode: "host"
   privileged: true
-

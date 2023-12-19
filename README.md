@@ -8,12 +8,16 @@
     + [Broadcasting](#broadcasting)
     + [Broadcasting (Gstreamer, CLI)](#broadcasting--gstreamer--cli-)
     + [Playback](#playback)
-- [Running](#running)
+- [Building](#building)
     + [Installing Dependencies](#installing-dependencies)
     + [Configuring](#configuring)
     + [Local Development](#local-development)
     + [Production](#production)
+- [Running](#running)
+-   + [Network Test on Start](#network-test-on-start)
+    + [Environment variables](#environment-variables)
     + [Docker](#docker)
+    + [Docker Compose](#docker-compose)
 - [Design](#design)
 
 ## What is Broadcast Box
@@ -106,7 +110,7 @@ the latency of 120 milleconds observed.
 
 <img src="./.github/broadcastView.png">
 
-# Running
+# Building
 Broadcast Box is made up of two parts. The server is written in Go and is in charge
 of ingesting and broadcasting WebRTC. The frontend is in react and connects to the Go
 backend.
@@ -161,7 +165,7 @@ webpack compiled successfully
 To use Broadcast Box you will open `http://localhost:3000` in your browser. In your broadcast tool of choice
 you will broadcast to `http://localhost:8080/api/whip`.
 
-### Production
+### Production Build
 For production usage Go will server the frontend and backend.
 
 To run the Go server run `APP_ENV=production go run .` in the root of this project. You will see the logs
@@ -191,6 +195,61 @@ File sizes after gzip:
 
 To use Broadcast Box you will open `http://localhost:8080` in your browser. In your broadcast tool of choice
 you will broadcast to `http://localhost:8080/api/whip`.
+
+## Running
+
+### Environment Variables
+The backend can be configured with the following enviroment variables.
+
+* `DISABLE_STATUS` - Disable the status API
+* `ENABLE_HTTP_REDIRECT` - HTTP traffic will be redirect to HTTPS
+* `HTTP_ADDRESS` - HTTP Server Address
+* `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
+* `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
+* `NAT_1_TO_1_IP` - If behind a NAT use this to auto insert your public IP
+* `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity
+* `SSL_CERT` - Path to SSL certificate if using Broadcast Box's HTTP Server
+* `SSL_KEY` - Path to SSL key if using Broadcast Box's HTTP Server
+* `STUN_SERVERS` - List of STUN servers seperate by '|'. Useful if Broadcast Box is running behind a NAT
+* `TCP_MUX_ADDRESS` - If you wish to make WebRTC traffic available via TCP.
+* `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
+* `UDP_MUX_PORT_WHIP` - Like `UDP_MUX_PORT` but only for WHIP traffic
+* `UDP_MUX_PORT` - Serve all UDP traffic via one port. By default Broadcast Box listens on a random port
+
+## Network Test on Start
+
+When running in Docker Broadcast Box runs a network on startup. This tests that WebRTC traffic can be established
+against your server. If you server is misconfigured Broadcast Box will not start.
+
+If the network test is enabled this will be printed on startup
+
+```
+NETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.
+See the README.md for how to debug or disable NETWORK_TEST_ON_START
+```
+
+If the test passed you will see
+
+```
+Network Test passed.
+Have fun using Broadcast Box
+```
+
+If the test failed you will see the following. The middle sentence will change depending on the error.
+
+```
+Network Test failed.
+Network Test client reported nothing in 30 seconds
+Please see the README and join Discord for help
+```
+
+Join the Discord and we are ready to help! To debug check the following.
+
+* Have you allowed UDP traffic?
+* Do you have any restrictions on ports?
+* Is your server world routable
+
+If you wish to disable the test set the enviroment variable `NETWORK_TEST_ON_START` to false.
 
 ### Docker
 A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on

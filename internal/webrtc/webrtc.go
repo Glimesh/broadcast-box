@@ -211,7 +211,7 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 	return
 }
 
-func populateMediaEngine(m *webrtc.MediaEngine) error {
+func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 	for _, codec := range []webrtc.RTPCodecParameters{
 		{
 			// nolint
@@ -287,7 +287,7 @@ func Configure() {
 	streamMap = map[string]*stream{}
 
 	mediaEngine := &webrtc.MediaEngine{}
-	if err := populateMediaEngine(mediaEngine); err != nil {
+	if err := PopulateMediaEngine(mediaEngine); err != nil {
 		panic(err)
 	}
 

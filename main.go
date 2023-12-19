@@ -8,11 +8,13 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"crypto/tls"
 	"log"
 	"net/http"
 
+	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
 	"github.com/joho/godotenv"
 )
@@ -20,6 +22,10 @@ import (
 const (
 	envFileProd = ".env.production"
 	envFileDev  = ".env.development"
+
+	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
+	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
+	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
 )
 
 type (
@@ -54,6 +60,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 	}
 
 	res.Header().Add("Location", "/api/whip")
+	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	fmt.Fprint(res, answer)
 }
@@ -81,6 +88,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	res.Header().Add("Link", `<`+apiPath+"sse/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="layers"`)
 	res.Header().Add("Link", `<`+apiPath+"layer/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:layer"`)
 	res.Header().Add("Location", "/api/whep")
+	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	fmt.Fprint(res, answer)
 }
@@ -169,6 +177,21 @@ func main() {
 	}
 
 	webrtc.Configure()
+
+	if os.Getenv("NETWORK_TEST_ON_START") == "true" {
+		fmt.Println(networkTestIntroMessage) //nolint
+
+		go func() {
+			time.Sleep(time.Second * 5)
+
+			if networkTestErr := networktest.Run(whepHandler); networkTestErr != nil {
+				fmt.Printf(networkTestFailedMessage, networkTestErr.Error())
+				os.Exit(1)
+			} else {
+				fmt.Println(networkTestSuccessMessage) //nolint
+			}
+		}()
+	}
 
 	if os.Getenv("ENABLE_HTTP_REDIRECT") != "" {
 		go func() {
