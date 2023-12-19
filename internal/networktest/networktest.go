@@ -118,10 +118,15 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 
 	select {
 	case <-iceConnected.Done():
+		_ = peerConnection.Close()
 		return nil
 	case <-iceFailed.Done():
+		_ = peerConnection.Close()
+
 		return errors.New("Network Test client failed to connect to Broadcast Box")
 	case <-time.After(time.Second * 30):
+		_ = peerConnection.Close()
+
 		return errors.New("Network Test client reported nothing in 30 seconds")
 	}
 }
