@@ -12,6 +12,7 @@
   "scripts": {
     "start": "dotenv -e ../.env.development react-scripts start",
     "build": "dotenv -e ../.env.production react-scripts build",
+    "lint": "eslint ./src --max-warnings 0",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

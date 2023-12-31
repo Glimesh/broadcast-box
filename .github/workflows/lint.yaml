@@ -20,3 +20,15 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: 'latest'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+        working-directory: web
+
+      - run: npm run lint
+        working-directory: web
