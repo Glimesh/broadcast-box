@@ -25,7 +25,7 @@ Broadcast Box lets you broadcast to others in sub-second time. It was designed
 to be simple to use and easily modifiable. We wrote Broadcast Box to show off some
 of the cutting edge tech that is coming to the broadcast space.
 
-### Subsecond Latency
+### Sub-second Latency
 Broadcast Box uses WebRTC for broadcast and playback. By using WebRTC instead of
 RTMP and HLS you get the fastest experience possible.
 
@@ -40,8 +40,8 @@ broadcast multiple camera angles, or share interactive video experiences in real
 
 ### Broadcasters provide transcodes
 Transcodes are necessary if you want to provide a good experience to all your users.
-Generating them is prohibitively though. WebRTC provides a solution. With WebRTC
-users can upolad the same video at different quality levels. This
+Generating them is prohibitively expensive though, WebRTC provides a solution. With WebRTC
+users can upload the same video at different quality levels. This
 keeps things cheap for the server operator and you still can provide the same
 experience.
 
@@ -55,7 +55,7 @@ need to be able to connect to the HTTP server. After they have negotiated the se
 NAT traversal begins.
 
 You could also use P2P to pull other broadcasters into your stream. No special configuration
-or servers required anymore to get sub-second costreams.
+or servers required anymore to get sub-second co-streams.
 
 Broadcast Box acts as a [SFU](https://webrtcforthecurious.com/docs/08-applied-webrtc/#selective-forwarding-unit). This means that
 every client connects to Broadcast Box. No direct connection is established between broadcasters/viewers.
@@ -80,7 +80,7 @@ Your settings page should look like this.
 
 <img src="./.github/streamSettings.png">
 
-OBS by default will have ~2 seconds of latency. If you want subsecond latency you can configure
+OBS by default will have ~2 seconds of latency. If you want sub-second latency you can configure
 this in `Settings -> Output`. Set your encoder to `x264` and set tune to `zerolatency`. Your Output
 page will look like this.
 
@@ -88,7 +88,7 @@ page will look like this.
 
 When you are ready to broadcast press `Stream Streaming` and now time to watch!
 
-### Broadcasting (Gstreamer, CLI)
+### Broadcasting (GStreamer, CLI)
 
 See the example script(s):
   * `examples/gstreamer-broadcast.nu`
@@ -106,7 +106,7 @@ See the example script(s):
 If you are broadcasting to the Stream Key `StreamTest` your video will be available at https://b.siobud.com/StreamTest.
 
 You can also go to the home page and enter `StreamTest`. The following is a screenshot of OBS broadcasting and
-the latency of 120 milleconds observed.
+the latency of 120 milliseconds observed.
 
 <img src="./.github/broadcastView.png">
 
@@ -199,7 +199,7 @@ you will broadcast to `http://localhost:8080/api/whip`.
 ## Running
 
 ### Environment Variables
-The backend can be configured with the following enviroment variables.
+The backend can be configured with the following environment variables.
 
 * `DISABLE_STATUS` - Disable the status API
 * `ENABLE_HTTP_REDIRECT` - HTTP traffic will be redirect to HTTPS
@@ -210,7 +210,7 @@ The backend can be configured with the following enviroment variables.
 * `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity
 * `SSL_CERT` - Path to SSL certificate if using Broadcast Box's HTTP Server
 * `SSL_KEY` - Path to SSL key if using Broadcast Box's HTTP Server
-* `STUN_SERVERS` - List of STUN servers seperate by '|'. Useful if Broadcast Box is running behind a NAT
+- `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
 * `TCP_MUX_ADDRESS` - If you wish to make WebRTC traffic available via TCP.
 * `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
 * `UDP_MUX_PORT_WHIP` - Like `UDP_MUX_PORT` but only for WHIP traffic
@@ -218,7 +218,7 @@ The backend can be configured with the following enviroment variables.
 
 ## Network Test on Start
 
-When running in Docker Broadcast Box runs a network on startup. This tests that WebRTC traffic can be established
+When running in Docker Broadcast Box runs a network tests on startup. This tests that WebRTC traffic can be established
 against your server. If you server is misconfigured Broadcast Box will not start.
 
 If the network test is enabled this will be printed on startup
@@ -247,9 +247,9 @@ Join the Discord and we are ready to help! To debug check the following.
 
 * Have you allowed UDP traffic?
 * Do you have any restrictions on ports?
-* Is your server world routable
+* Is your server publicly accessible?
 
-If you wish to disable the test set the enviroment variable `NETWORK_TEST_ON_START` to false.
+If you wish to disable the test set the environment variable `NETWORK_TEST_ON_START` to false.
 
 ### Docker
 A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on
@@ -272,8 +272,8 @@ docker-compose up -d
 ```
 
 # Design
-The backend exposes two endpoints.
+The backend exposes three endpoints (the status page is optional, if hosting locally).
 
-* `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
+- `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
 * `/api/whep` - Start a WHEP Session. WHEP is video playback via WebRTC.
 * `/api/status` - Status of the all active WHIP streams
