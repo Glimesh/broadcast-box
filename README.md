@@ -1,7 +1,7 @@
 # Broadcast Box
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Discord](https://img.shields.io/discord/1162823780708651018?logo=discord)](https://discord.gg/An5jjhNUE3)
+[![License][license-image]][license-url]
+[![Discord][discord-image]][discord-invite-url]
 
 - [What is Broadcast Box](#what-is-broadcast-box)
 - [Using](#using)
@@ -34,8 +34,9 @@ RTMP and HLS you get the fastest experience possible.
 ### Latest in Video Compression
 
 With WebRTC you get access to the latest in video codecs. With AV1 you can send
-the same video quality with a [50%](https://engineering.fb.com/2018/04/10/video-engineering/av1-beats-x264-and-libvpx-vp9-in-practical-use-case/)
-reduction in bandwidth required.
+the same video quality with a [50%][av1-practical-use-case] reduction in bandwidth required.
+
+[av1-practical-use-case]: https://engineering.fb.com/2018/04/10/video-engineering/av1-beats-x264-and-libvpx-vp9-in-practical-use-case/
 
 ### Broadcast all angles
 
@@ -63,9 +64,12 @@ NAT traversal begins.
 You could also use P2P to pull other broadcasters into your stream. No special configuration
 or servers required anymore to get sub-second co-streams.
 
-Broadcast Box acts as a [SFU](https://webrtcforthecurious.com/docs/08-applied-webrtc/#selective-forwarding-unit). This means that
+Broadcast Box acts as a [SFU][applied-webrtc-article]. This means that
 every client connects to Broadcast Box. No direct connection is established between broadcasters/viewers.
-If you want a direct connection between OBS and your browser see [OBS2Browser](https://github.com/Sean-Der/OBS2Browser).
+If you want a direct connection between OBS and your browser see [OBS2Browser][obs-2-browser-repo].
+
+[applied-webrtc-article]: https://webrtcforthecurious.com/docs/08-applied-webrtc/#selective-forwarding-unit
+[obs-2-browser-repo]: https://github.com/Sean-Der/OBS2Browser
 
 ## Using
 
@@ -296,6 +300,10 @@ docker-compose up -d
 The backend exposes three endpoints (the status page is optional, if hosting locally).
 
 - `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
-
 - `/api/whep` - Start a WHEP Session. WHEP is video playback via WebRTC.
 - `/api/status` - Status of the all active WHIP streams
+
+[license-image]: https://img.shields.io/badge/License-MIT-yellow.svg
+[license-url]: https://opensource.org/licenses/MIT
+[discord-image]: https://img.shields.io/discord/1162823780708651018?logo=discord
+[discord-invite-url]: https://discord.gg/An5jjhNUE3
