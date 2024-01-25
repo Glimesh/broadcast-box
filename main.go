@@ -41,30 +41,32 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 }
 
 func whipHandler(res http.ResponseWriter, r *http.Request) {
-	streamKey := r.Header.Get("Authorization")
-	if r.Method == "POST" {
-		if streamKey == "" {
-			logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
-			return
-		}
-
-		offer, err := io.ReadAll(r.Body)
-		if err != nil {
-			logHTTPError(res, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		answer, err := webrtc.WHIP(string(offer), streamKey)
-		if err != nil {
-			logHTTPError(res, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		res.Header().Add("Location", "/api/whip")
-		res.Header().Add("Content-Type", "application/sdp")
-		res.WriteHeader(http.StatusCreated)
-		fmt.Fprint(res, answer)
+	if r.Method == "DELETE" {
+		return
 	}
+
+	streamKey := r.Header.Get("Authorization")
+	if streamKey == "" {
+		logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
+		return
+	}
+
+	offer, err := io.ReadAll(r.Body)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	answer, err := webrtc.WHIP(string(offer), streamKey)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res.Header().Add("Location", "/api/whip")
+	res.Header().Add("Content-Type", "application/sdp")
+	res.WriteHeader(http.StatusCreated)
+	fmt.Fprint(res, answer)
 }
 
 func whepHandler(res http.ResponseWriter, req *http.Request) {
