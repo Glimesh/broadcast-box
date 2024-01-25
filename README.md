@@ -90,16 +90,20 @@ When you are ready to broadcast press `Stream Streaming` and now time to watch!
 
 ### Broadcasting (GStreamer, CLI)
 
-See the example script(s):
-  * `examples/gstreamer-broadcast.nu`
-    * can broadcast gstreamer's test sources, or pulsesrc+v4l2src
-    * expects `gstreamer-1.0`, with `good,bad,ugly` plugins and `gst-plugins-rs`
-    * ```shell
-      # testsrcs
-      ./examples/gstreamer-broadcast.nu http://localhost:8080/api/whip testStream1
-      # v4l2src
-      ./examples/gstreamer-broadcast.nu http://localhost:8080/api/whip testStream1 v4l2
-      ```
+See the example script [here](examples/gstreamer-broadcast.nu).
+
+Can broadcast gstreamer's test sources, or pulsesrc+v4l2src
+
+Expects `gstreamer-1.0`, with `good,bad,ugly` plugins and `gst-plugins-rs`
+
+Use of example scripts:
+
+```shell
+# testsrcs
+./examples/gstreamer-broadcast.nu http://localhost:8080/api/whip testStream1
+# v4l2src
+./examples/gstreamer-broadcast.nu http://localhost:8080/api/whip testStream1 v4l2
+```
 
 ### Playback
 
