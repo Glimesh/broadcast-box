@@ -195,7 +195,7 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 	}
 
 	if os.Getenv("TCP_MUX_ADDRESS") != "" {
-		tcpAddr, err := net.ResolveTCPAddr("udp", os.Getenv("TCP_MUX_ADDRESS"))
+		tcpAddr, err := net.ResolveTCPAddr("tcp", os.Getenv("TCP_MUX_ADDRESS"))
 		if err != nil {
 			log.Fatal(err)
 		}
