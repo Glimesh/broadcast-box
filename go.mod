@@ -9,6 +9,7 @@ require (
 	github.com/pion/interceptor v0.1.25
 	github.com/pion/rtcp v1.2.13
 	github.com/pion/rtp v1.8.3
+	github.com/pion/sdp/v3 v3.0.6
 	github.com/pion/webrtc/v4 v4.0.0-beta.7
 )
 
@@ -21,7 +22,6 @@ require (
 	github.com/pion/mdns v0.0.9 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/sctp v1.8.9 // indirect
-	github.com/pion/sdp/v3 v3.0.6 // indirect
 	github.com/pion/srtp/v3 v3.0.1 // indirect
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect
