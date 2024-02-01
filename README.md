@@ -84,11 +84,11 @@ You may use any Stream Key you like. The same stream key is used for broadcastin
 
 Go to `Settings -> Stream` and set the following values.
 
-- Service: WebRTC
+- Service: WHIP
 - Server: <https://b.siobud.com/api/whip>
 - StreamKey: (Any Stream Key you like)
 
-Your settings page should look like this.
+Your settings page should look like this:
 
 ![OBS Stream settings example](./.github/img/streamSettings.png)
 
