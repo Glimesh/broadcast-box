@@ -90,13 +90,13 @@ Go to `Settings -> Stream` and set the following values.
 
 Your settings page should look like this.
 
-![OBS Stream settings example](./.github/streamSettings.png)
+![OBS Stream settings example](./.github/img/streamSettings.png)
 
 OBS by default will have ~2 seconds of latency. If you want sub-second latency you can configure
 this in `Settings -> Output`. Set your encoder to `x264` and set tune to `zerolatency`. Your Output
 page will look like this.
 
-![OBS Output settings example](./.github/outputPage.png)
+![OBS Output settings example](./.github/img/outputPage.png)
 
 When you are ready to broadcast press `Stream Streaming` and now time to watch!
 
@@ -124,7 +124,7 @@ If you are broadcasting to the Stream Key `StreamTest` your video will be availa
 You can also go to the home page and enter `StreamTest`. The following is a screenshot of OBS broadcasting and
 the latency of 120 milliseconds observed.
 
-![Example have potential latency](./.github/broadcastView.png)
+![Example have potential latency](./.github/img/broadcastView.png)
 
 ## Building
 
