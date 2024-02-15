@@ -19,6 +19,7 @@ type (
 		currentLayer   atomic.Value
 		sequenceNumber uint16
 		timestamp      uint32
+		packetsWritten uint64
 	}
 
 	simulcastLayerResponse struct {
@@ -36,8 +37,8 @@ func WHEPLayers(whepSessionId string) ([]byte, error) {
 		defer streamMap[streamKey].whepSessionsLock.Unlock()
 
 		if _, ok := streamMap[streamKey].whepSessions[whepSessionId]; ok {
-			for i := range streamMap[streamKey].videoTrackLabels {
-				layers = append(layers, simulcastLayerResponse{EncodingId: streamMap[streamKey].videoTrackLabels[i]})
+			for i := range streamMap[streamKey].videoTracks {
+				layers = append(layers, simulcastLayerResponse{EncodingId: streamMap[streamKey].videoTracks[i].rid})
 			}
 
 			break
@@ -171,6 +172,7 @@ func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff
 		return
 	}
 
+	w.packetsWritten += 1
 	w.sequenceNumber += 1
 	w.timestamp += timeDiff
 

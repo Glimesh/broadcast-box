@@ -31,14 +31,22 @@ type (
 	stream struct {
 		// Does this stream have a publisher?
 		// If stream was created by a WHEP request hasWHIPClient == false
-		hasWHIPClient    atomic.Bool
-		videoTrackLabels []string
-		audioTrack       *webrtc.TrackLocalStaticRTP
+		hasWHIPClient atomic.Bool
+
+		videoTracks []*videoTrack
+
+		audioTrack           *webrtc.TrackLocalStaticRTP
+		audioPacketsReceived atomic.Uint64
 
 		pliChan chan any
 
 		whepSessionsLock sync.RWMutex
 		whepSessions     map[string]*whepSession
+	}
+
+	videoTrack struct {
+		rid             string
+		packetsReceived atomic.Uint64
 	}
 
 	videoTrackCodec int
@@ -99,18 +107,19 @@ func deleteStream(streamKey string) {
 	delete(streamMap, streamKey)
 }
 
-func addTrack(stream *stream, rid string) error {
+func addTrack(stream *stream, rid string) (*videoTrack, error) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
-	for i := range stream.videoTrackLabels {
-		if rid == stream.videoTrackLabels[i] {
-			return nil
+	for i := range stream.videoTracks {
+		if rid == stream.videoTracks[i].rid {
+			return stream.videoTracks[i], nil
 		}
 	}
 
-	stream.videoTrackLabels = append(stream.videoTrackLabels, rid)
-	return nil
+	t := &videoTrack{rid: rid}
+	stream.videoTracks = append(stream.videoTracks, t)
+	return t, nil
 }
 
 func getPublicIP() string {
@@ -309,4 +318,68 @@ func Configure() {
 		webrtc.WithInterceptorRegistry(interceptorRegistry),
 		webrtc.WithSettingEngine(createSettingEngine(false, udpMuxCache)),
 	)
+}
+
+type StreamStatusVideo struct {
+	RID             string `json:"rid"`
+	PacketsReceived uint64 `json:"packetsReceived"`
+}
+
+type StreamStatus struct {
+	StreamKey            string              `json:"streamKey"`
+	AudioPacketsReceived uint64              `json:"audioPacketsReceived"`
+	VideoStreams         []StreamStatusVideo `json:"videoStreams"`
+	WHEPSessions         []whepSessionStatus `json:"whepSessions"`
+}
+
+type whepSessionStatus struct {
+	ID             string `json:"id"`
+	CurrentLayer   string `json:"currentLayer"`
+	SequenceNumber uint16 `json:"sequenceNumber"`
+	Timestamp      uint32 `json:"timestamp"`
+	PacketsWritten uint64 `json:"packetsWritten"`
+}
+
+func GetStreamStatuses() []StreamStatus {
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
+
+	out := []StreamStatus{}
+
+	for streamKey, stream := range streamMap {
+		whepSessions := []whepSessionStatus{}
+		stream.whepSessionsLock.Lock()
+		for id, whepSession := range stream.whepSessions {
+			currentLayer, ok := whepSession.currentLayer.Load().(string)
+			if !ok {
+				continue
+			}
+
+			whepSessions = append(whepSessions, whepSessionStatus{
+				ID:             id,
+				CurrentLayer:   currentLayer,
+				SequenceNumber: whepSession.sequenceNumber,
+				Timestamp:      whepSession.timestamp,
+				PacketsWritten: whepSession.packetsWritten,
+			})
+		}
+		stream.whepSessionsLock.Unlock()
+
+		streamStatusVideo := []StreamStatusVideo{}
+		for _, videoTrack := range stream.videoTracks {
+			streamStatusVideo = append(streamStatusVideo, StreamStatusVideo{
+				RID:             videoTrack.rid,
+				PacketsReceived: videoTrack.packetsReceived.Load(),
+			})
+		}
+
+		out = append(out, StreamStatus{
+			StreamKey:            streamKey,
+			AudioPacketsReceived: stream.audioPacketsReceived.Load(),
+			VideoStreams:         streamStatusVideo,
+			WHEPSessions:         whepSessions,
+		})
+	}
+
+	return out
 }

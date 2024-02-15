@@ -11,7 +11,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-func audioWriter(remoteTrack *webrtc.TrackRemote, audioTrack *webrtc.TrackLocalStaticRTP) {
+func audioWriter(remoteTrack *webrtc.TrackRemote, stream *stream) {
 	rtpBuf := make([]byte, 1500)
 	for {
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
@@ -23,7 +23,8 @@ func audioWriter(remoteTrack *webrtc.TrackRemote, audioTrack *webrtc.TrackLocalS
 			return
 		}
 
-		if _, writeErr := audioTrack.Write(rtpBuf[:rtpRead]); writeErr != nil && !errors.Is(writeErr, io.ErrClosedPipe) {
+		stream.audioPacketsReceived.Add(1)
+		if _, writeErr := stream.audioTrack.Write(rtpBuf[:rtpRead]); writeErr != nil && !errors.Is(writeErr, io.ErrClosedPipe) {
 			log.Println(writeErr)
 			return
 		}
@@ -36,7 +37,8 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 		id = videoTrackLabelDefault
 	}
 
-	if err := addTrack(s, id); err != nil {
+	videoTrack, err := addTrack(s, id)
+	if err != nil {
 		log.Println(err)
 		return
 	}
@@ -73,6 +75,8 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 			return
 		}
 
+		videoTrack.packetsReceived.Add(1)
+
 		rtpPkt.Extension = false
 		rtpPkt.Extensions = nil
 
@@ -105,7 +109,7 @@ func WHIP(offer, streamKey string) (string, error) {
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
 		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
-			audioWriter(remoteTrack, stream.audioTrack)
+			audioWriter(remoteTrack, stream)
 		} else {
 			videoWriter(remoteTrack, stream, peerConnection, stream)
 
@@ -139,29 +143,4 @@ func WHIP(offer, streamKey string) (string, error) {
 
 	<-gatherComplete
 	return peerConnection.LocalDescription().SDP, nil
-}
-
-type StreamStatus struct {
-	StreamKey         string `json:"streamKey"`
-	WHEPSessionsCount int    `json:"whepSessionsCount"`
-}
-
-func GetStreamStatuses() []StreamStatus {
-	streamMapLock.Lock()
-	defer streamMapLock.Unlock()
-
-	out := []StreamStatus{}
-
-	for streamKey, stream := range streamMap {
-		stream.whepSessionsLock.Lock()
-		whepSessionsCount := len(stream.whepSessions)
-		stream.whepSessionsLock.Unlock()
-
-		out = append(out, StreamStatus{
-			StreamKey:         streamKey,
-			WHEPSessionsCount: whepSessionsCount,
-		})
-	}
-
-	return out
 }
