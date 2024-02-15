@@ -133,6 +133,8 @@ func whepLayerHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func statusHandler(res http.ResponseWriter, req *http.Request) {
+	res.Header().Add("Content-Type", "application/json")
+
 	if err := json.NewEncoder(res).Encode(webrtc.GetStreamStatuses()); err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 	}
