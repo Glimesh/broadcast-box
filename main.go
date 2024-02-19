@@ -168,16 +168,16 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 }
 
 func main() {
-	if os.Getenv("APP_ENV") == "production" {
-		log.Println("Loading `" + envFileProd + "`")
-
-		if err := godotenv.Load(envFileProd); err != nil {
-			log.Fatal(err)
-		}
-	} else {
+	if os.Getenv("APP_ENV") == "development" {
 		log.Println("Loading `" + envFileDev + "`")
 
 		if err := godotenv.Load(envFileDev); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Println("Loading `" + envFileProd + "`")
+
+		if err := godotenv.Load(envFileProd); err != nil {
 			log.Fatal(err)
 		}
 	}

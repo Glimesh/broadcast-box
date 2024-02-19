@@ -8,16 +8,15 @@
   - [Broadcasting](#broadcasting)
   - [Broadcasting (GStreamer, CLI)](#broadcasting-gstreamer-cli)
   - [Playback](#playback)
-- [Building](#building)
-  - [Installing Dependencies](#installing-dependencies)
+- [Getting Started](#getting-started)
   - [Configuring](#configuring)
-  - [Local Development](#local-development)
-  - [Production](#production-build)
-- [Running](#running)
-  - [Network Test on Start](#network-test-on-start)
-  - [Environment variables](#environment-variables)
+  - [Building From Source](#building-from-source)
+  - [Frontend](#frontend)
+  - [Backend](#backend)
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
+  - [Environment variables](#environment-variables)
+  - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
 ## What is Broadcast Box
@@ -25,6 +24,8 @@
 Broadcast Box lets you broadcast to others in sub-second time. It was designed
 to be simple to use and easily modifiable. We wrote Broadcast Box to show off some
 of the cutting edge tech that is coming to the broadcast space.
+
+Want to contribute to the development of Broadcast Box? See [Contributing](./CONTRIBUTING.md).
 
 ### Sub-second Latency
 
@@ -74,8 +75,7 @@ If you want a direct connection between OBS and your browser see [OBS2Browser][o
 ## Using
 
 To use Broadcast Box you don't even have to run it locally! A instance of Broadcast Box
-is hosted at [b.siobud.com](https://b.siobud.com). If you wish to run it locally skip to
-[Running](#running)
+is hosted at [b.siobud.com](https://b.siobud.com). If you wish to run it locally skip to [Getting Started](#getting-started)
 
 ### Broadcasting
 
@@ -126,78 +126,21 @@ the latency of 120 milliseconds observed.
 
 ![Example have potential latency](./.github/img/broadcastView.png)
 
-## Building
+## Getting Started
 
-Broadcast Box is made up of two parts. The server is written in Go and is in charge
-of ingesting and broadcasting WebRTC. The frontend is in react and connects to the Go
-backend.
-
-While developing `webpack-dev-server` is used for the frontend. In production the Go server
-can be used to serve the HTML/CSS/JS directly. These are the instructions on how to run all
-these parts.
-
-### Installing Dependencies
-
-Go dependencies are automatically installed.
-
-react dependencies are installed by running `npm install` in the `web` directory.
+Broadcast Box is made up of two parts. The server is written in Go and is in charge of ingesting and broadcasting WebRTC. The frontend is in react and connects to the Go backend. The Go server can be used to serve the HTML/CSS/JS directly. Use the following instructions to build from source or utilize [Docker](#docker) / [Docker Compose](#docker-compose).
 
 ### Configuring
 
-Both projects use `.env` files for configuration. For development `.env.development` is used
-and in production `.env.production` is used.
+Configurations can be made in [.env.production](./.env.production), although the defaults should get things going.
 
-For Go setting `APP_ENV` will cause `.env.production` to be loaded.
-Otherwise `.env.development` is used.
+### Building From Source
 
-For react App the dev server uses `.env.development` and `npm run build`
-uses `.env.production`
+#### Frontend
 
-### Local Development
+React dependencies are installed by running `npm install` in the `web` directory and `npm run build` will build the frontend.
 
-For local development you will run the Go server and webpack directly.
-
-To run the Go server run `go run .` in the root of this project. You will see the logs
-like the following.
-
-```console
-2022/12/11 15:22:47 Loading `.env.development`
-2022/12/11 15:22:47 Running HTTP Server at `:8080`
-```
-
-To run the web front open the `web` folder and execute `npm start` if that runs successfully you will be greeted with.
-
-```console
-Compiled successfully!
-
-You can now view broadcast-box in the browser.
-
-  Local:            http://localhost:3000
-  On Your Network:  http://192.168.1.57:3000
-
-Note that the development build is not optimized.
-To create a production build, use npm run build.
-
-webpack compiled successfully
-```
-
-To use Broadcast Box you will open `http://localhost:3000` in your browser. In your broadcast tool of choice
-you will broadcast to `http://localhost:8080/api/whip`.
-
-### Production Build
-
-For production usage Go will server the frontend and backend.
-
-To run the Go server run `APP_ENV=production go run .` in the root of this project. You will see the logs like the following.
-
-```console
-2022/12/11 16:02:14 Loading `.env.production`
-2022/12/11 16:02:14 Running HTTP Server at `:8080`
-```
-
-If `APP_ENV` was set properly `.env.production` will be loaded.
-
-To build the frontend execute `npm run build` in the `web` directory. You will get the following output.
+If everything is successful, you should see the following:
 
 ```console
 > broadcast-box@0.1.0 build
@@ -213,12 +156,41 @@ File sizes after gzip:
 ...
 ```
 
-To use Broadcast Box you will open `http://localhost:8080` in your browser. In your broadcast tool of choice
-you will broadcast to `http://localhost:8080/api/whip`.
+#### Backend
 
-## Running
+Go dependencies are automatically installed.
 
-### Environment Variables
+To run the Go server, run `go run .` in the root of this project, you should see the following:
+
+```console
+2022/12/11 16:02:14 Loading `.env.production`
+2022/12/11 16:02:14 Running HTTP Server at `:8080`
+```
+
+To use Broadcast Box navigate to: `http://<YOUR_IP>:8080`. In your broadcast tool of choice, you will broadcast to `http://<YOUR_IP>:8080/api/whip`.
+
+### Docker
+
+A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on
+if you are using it locally or a server.
+
+If you want to run locally execute `docker run -e UDP_MUX_PORT=8080 -e NAT_1_TO_1_IP=127.0.0.1 -p 8080:8080 -p 8080:8080/udp seaduboi/broadcast-box`.
+This will make broadcast-box available on `http://localhost:8080`. The UDPMux is needed because Docker on macOS/Windows runs inside a NAT.
+
+If you are running on AWS (or other cloud providers) execute. `docker run --net=host -e INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes seaduboi/broadcast-box`
+broadcast-box needs to be run in net=host mode. broadcast-box listens on random UDP ports to establish sessions.
+
+### Docker Compose
+
+A Docker Compose is included that uses LetsEncrypt for automated HTTPS. It also includes Watchtower so your instance of Broadcast Box
+will be automatically updated every night. If you are running on a VPS/Cloud server this is the quickest/easiest way to get started.
+
+```console
+export URL=my-server.com
+docker-compose up -d
+```
+
+## Environment Variables
 
 The backend can be configured with the following environment variables.
 
@@ -273,27 +245,6 @@ Join the Discord and we are ready to help! To debug check the following.
 - Is your server publicly accessible?
 
 If you wish to disable the test set the environment variable `NETWORK_TEST_ON_START` to false.
-
-### Docker
-
-A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on
-if you are using it locally or a server.
-
-If you want to run locally execute `docker run -e UDP_MUX_PORT=8080 -e NAT_1_TO_1_IP=127.0.0.1 -p 8080:8080 -p 8080:8080/udp seaduboi/broadcast-box`.
-This will make broadcast-box available on `http://localhost:8080`. The UDPMux is needed because Docker on macOS/Windows runs inside a NAT.
-
-If you are running on AWS (or other cloud providers) execute. `docker run --net=host -e INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes seaduboi/broadcast-box`
-broadcast-box needs to be run in net=host mode. broadcast-box listens on random UDP ports to establish sessions.
-
-### Docker Compose
-
-A Docker Compose is included that uses LetsEncrypt for automated HTTPS. It also includes Watchtower so your instance of Broadcast Box
-will be automatically updated every night. If you are running on a VPS/Cloud server this is the quickest/easiest way to get started.
-
-```console
-export URL=my-server.com
-docker-compose up -d
-```
 
 ## Design
 
