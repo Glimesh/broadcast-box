@@ -26,6 +26,8 @@ const (
 	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
 	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
 	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
+
+	noBuildDirectoryMessage = "\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m"
 )
 
 type (
@@ -176,6 +178,11 @@ func main() {
 		}
 	} else {
 		log.Println("Loading `" + envFileProd + "`")
+
+		_, err := os.Stat("./web/build")
+		if os.IsNotExist(err) {
+			log.Fatal(noBuildDirectoryMessage)
+		}
 
 		if err := godotenv.Load(envFileProd); err != nil {
 			log.Fatal(err)
