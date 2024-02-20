@@ -100,10 +100,27 @@ func getStream(streamKey string, forWHIP bool) (*stream, error) {
 	return foundStream, nil
 }
 
-func deleteStream(streamKey string) {
+func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
+	stream, ok := streamMap[streamKey]
+	if !ok {
+		return
+	}
+
+	if whepSessionId != "" {
+		stream.whepSessionsLock.Lock()
+		defer stream.whepSessionsLock.Unlock()
+		delete(stream.whepSessions, whepSessionId)
+
+		// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
+		if len(stream.whepSessions) != 0 || stream.hasWHIPClient.Load() {
+			return
+		}
+	}
+
+	close(stream.pliChan)
 	delete(streamMap, streamKey)
 }
 

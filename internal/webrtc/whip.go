@@ -121,7 +121,7 @@ func WHIP(offer, streamKey string) (string, error) {
 			if err := peerConnection.Close(); err != nil {
 				log.Println(err)
 			}
-			deleteStream(streamKey)
+			peerConnectionDisconnected(streamKey, "")
 		}
 	})
 
