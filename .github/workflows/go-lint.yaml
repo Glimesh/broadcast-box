@@ -1,34 +1,36 @@
-name: Lint
+name: Go Lint
 on:
   push:
     branches:
       - main
-  pull_request:
+    paths:
+      - '*.go'
+      - 'go.mod'
+      - 'go.sum'
 
+  pull_request:
+    paths:
+      - '*.go'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+
+# Avoid adding additional steps to this job. Create a new job instead.
+# https://github.com/golangci/golangci-lint-action/issues/244
 jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-
+          cache: false
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
           version: 'latest'
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-
-      - run: npm ci
-        working-directory: web
-
-      - run: npm run lint
-        working-directory: web
+          args: --timeout 5m
