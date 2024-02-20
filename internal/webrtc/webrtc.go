@@ -109,7 +109,7 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 		return
 	}
 
-	if whepSessionId != "" {
+	if whepSessionId == "" {
 		stream.whepSessionsLock.Lock()
 		defer stream.whepSessionsLock.Unlock()
 		delete(stream.whepSessions, whepSessionId)
