@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -39,6 +40,9 @@ type (
 		audioPacketsReceived atomic.Uint64
 
 		pliChan chan any
+
+		whipActiveContext       context.Context
+		whipActiveContextCancel func()
 
 		whepSessionsLock sync.RWMutex
 		whepSessions     map[string]*whepSession
@@ -85,10 +89,14 @@ func getStream(streamKey string, forWHIP bool) (*stream, error) {
 			return nil, err
 		}
 
+		whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
+
 		foundStream = &stream{
-			audioTrack:   audioTrack,
-			pliChan:      make(chan any, 50),
-			whepSessions: map[string]*whepSession{},
+			audioTrack:              audioTrack,
+			pliChan:                 make(chan any, 50),
+			whepSessions:            map[string]*whepSession{},
+			whipActiveContext:       whipActiveContext,
+			whipActiveContextCancel: whipActiveContextCancel,
 		}
 		streamMap[streamKey] = foundStream
 	}
@@ -120,7 +128,7 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 		}
 	}
 
-	close(stream.pliChan)
+	stream.whipActiveContextCancel()
 	delete(streamMap, streamKey)
 }
 

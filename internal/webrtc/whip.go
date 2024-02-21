@@ -44,13 +44,18 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 	}
 
 	go func() {
-		for range stream.pliChan {
-			if sendErr := peerConnection.WriteRTCP([]rtcp.Packet{
-				&rtcp.PictureLossIndication{
-					MediaSSRC: uint32(remoteTrack.SSRC()),
-				},
-			}); sendErr != nil {
+		for {
+			select {
+			case <-stream.whipActiveContext.Done():
 				return
+			case <-stream.pliChan:
+				if sendErr := peerConnection.WriteRTCP([]rtcp.Packet{
+					&rtcp.PictureLossIndication{
+						MediaSSRC: uint32(remoteTrack.SSRC()),
+					},
+				}); sendErr != nil {
+					return
+				}
 			}
 		}
 	}()
