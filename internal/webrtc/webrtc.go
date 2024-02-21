@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/pion/dtls/v2/pkg/crypto/elliptic"
 	"github.com/pion/ice/v2"
@@ -34,6 +35,8 @@ type (
 		// Does this stream have a publisher?
 		// If stream was created by a WHEP request hasWHIPClient == false
 		hasWHIPClient atomic.Bool
+
+		firstSeenEpoch uint64
 
 		videoTracks []*videoTrack
 
@@ -98,6 +101,7 @@ func getStream(streamKey string, forWHIP bool) (*stream, error) {
 			whepSessions:            map[string]*whepSession{},
 			whipActiveContext:       whipActiveContext,
 			whipActiveContextCancel: whipActiveContextCancel,
+			firstSeenEpoch:          uint64(time.Now().Unix()),
 		}
 		streamMap[streamKey] = foundStream
 	}
@@ -355,6 +359,7 @@ type StreamStatusVideo struct {
 
 type StreamStatus struct {
 	StreamKey            string              `json:"streamKey"`
+	FirstSeenEpoch       uint64              `json:"firstSeenEpoch"`
 	AudioPacketsReceived uint64              `json:"audioPacketsReceived"`
 	VideoStreams         []StreamStatusVideo `json:"videoStreams"`
 	WHEPSessions         []whepSessionStatus `json:"whepSessions"`
@@ -403,6 +408,7 @@ func GetStreamStatuses() []StreamStatus {
 
 		out = append(out, StreamStatus{
 			StreamKey:            streamKey,
+			FirstSeenEpoch:       stream.firstSeenEpoch,
 			AudioPacketsReceived: stream.audioPacketsReceived.Load(),
 			VideoStreams:         streamStatusVideo,
 			WHEPSessions:         whepSessions,
