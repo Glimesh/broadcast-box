@@ -11,7 +11,7 @@ require (
 	github.com/pion/rtcp v1.2.14
 	github.com/pion/rtp v1.8.3
 	github.com/pion/sdp/v3 v3.0.6
-	github.com/pion/webrtc/v4 v4.0.0-beta.9
+	github.com/pion/webrtc/v4 v4.0.0-beta.11
 )
 
 require (
