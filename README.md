@@ -206,10 +206,12 @@ The backend can be configured with the following environment variables.
 
 - `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
 
-- `TCP_MUX_ADDRESS` - If you wish to make WebRTC traffic available via TCP.
 - `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
 - `UDP_MUX_PORT_WHIP` - Like `UDP_MUX_PORT` but only for WHIP traffic
 - `UDP_MUX_PORT` - Serve all UDP traffic via one port. By default Broadcast Box listens on a random port
+
+- `TCP_MUX_ADDRESS` - If you wish to make WebRTC traffic available via TCP.
+- `TCP_MUX_FORCE` - If you wish to make WebRTC traffic only available via TCP.
 
 ## Network Test on Start
 

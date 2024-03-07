@@ -178,13 +178,14 @@ func getPublicIP() string {
 	return ip.Query
 }
 
-func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault) (settingEngine webrtc.SettingEngine) {
+func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, tcpMuxCache map[string]ice.TCPMux) (settingEngine webrtc.SettingEngine) {
 	var (
 		NAT1To1IPs []string
 		udpMuxPort int
 		udpMuxOpts []ice.UDPMuxFromPortOption
 		err        error
 	)
+	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6}
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
@@ -234,20 +235,32 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 	}
 
 	if os.Getenv("TCP_MUX_ADDRESS") != "" {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", os.Getenv("TCP_MUX_ADDRESS"))
-		if err != nil {
-			log.Fatal(err)
-		}
+		tcpMux, ok := tcpMuxCache[os.Getenv("TCP_MUX_ADDRESS")]
+		if !ok {
+			tcpAddr, err := net.ResolveTCPAddr("tcp", os.Getenv("TCP_MUX_ADDRESS"))
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		tcpListener, err := net.ListenTCP("tcp", tcpAddr)
-		if err != nil {
-			log.Fatal(err)
-		}
+			tcpListener, err := net.ListenTCP("tcp", tcpAddr)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		settingEngine.SetICETCPMux(webrtc.NewICETCPMux(nil, tcpListener, 8))
+			tcpMux = webrtc.NewICETCPMux(nil, tcpListener, 8)
+			tcpMuxCache[os.Getenv("TCP_MUX_ADDRESS")] = tcpMux
+		}
+		settingEngine.SetICETCPMux(tcpMux)
+
+		if os.Getenv("TCP_MUX_FORCE") != "" {
+			networkTypes = []webrtc.NetworkType{webrtc.NetworkTypeTCP4, webrtc.NetworkTypeTCP6}
+		} else {
+			networkTypes = append(networkTypes, webrtc.NetworkTypeTCP4, webrtc.NetworkTypeTCP6)
+		}
 	}
 
 	settingEngine.SetDTLSEllipticCurves(elliptic.X25519, elliptic.P384, elliptic.P256)
+	settingEngine.SetNetworkTypes(networkTypes)
 
 	return
 }
@@ -338,17 +351,18 @@ func Configure() {
 	}
 
 	udpMuxCache := map[int]*ice.MultiUDPMuxDefault{}
+	tcpMuxCache := map[string]ice.TCPMux{}
 
 	apiWhip = webrtc.NewAPI(
 		webrtc.WithMediaEngine(mediaEngine),
 		webrtc.WithInterceptorRegistry(interceptorRegistry),
-		webrtc.WithSettingEngine(createSettingEngine(true, udpMuxCache)),
+		webrtc.WithSettingEngine(createSettingEngine(true, udpMuxCache, tcpMuxCache)),
 	)
 
 	apiWhep = webrtc.NewAPI(
 		webrtc.WithMediaEngine(mediaEngine),
 		webrtc.WithInterceptorRegistry(interceptorRegistry),
-		webrtc.WithSettingEngine(createSettingEngine(false, udpMuxCache)),
+		webrtc.WithSettingEngine(createSettingEngine(false, udpMuxCache, tcpMuxCache)),
 	)
 }
 
