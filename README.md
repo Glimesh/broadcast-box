@@ -240,7 +240,7 @@ Network Test client reported nothing in 30 seconds
 Please see the README and join Discord for help
 ```
 
-Join the Discord and we are ready to help! To debug check the following.
+[Join the Discord][discord-invite-url] and we are ready to help! To debug check the following.
 
 - Have you allowed UDP traffic?
 - Do you have any restrictions on ports?
