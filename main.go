@@ -206,16 +206,21 @@ func main() {
 		}()
 	}
 
-	if os.Getenv("ENABLE_HTTP_REDIRECT") != "" {
+	httpsRedirectPort := "80"
+	if val := os.Getenv("HTTPS_REDIRECT_PORT"); val != "" {
+		httpsRedirectPort = val
+	}
+
+	if os.Getenv("HTTPS_REDIRECT_PORT") != "" || os.Getenv("ENABLE_HTTP_REDIRECT") != "" {
 		go func() {
 			redirectServer := &http.Server{
-				Addr: ":80",
+				Addr: ":" + httpsRedirectPort,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
 				}),
 			}
 
-			log.Println("Running HTTP->HTTPS redirect Server at :80")
+			log.Println("Running HTTP->HTTPS redirect Server at :" + httpsRedirectPort)
 			log.Fatal(redirectServer.ListenAndServe())
 		}()
 
