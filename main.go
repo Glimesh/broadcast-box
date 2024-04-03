@@ -223,10 +223,8 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 
 func main() {
 	err := loadEnvironmentFile() // Attempt to load the .env file
-	if err != nil || os.Getenv("GLOBAL_ACCESS") == "true" {
-		if err != nil {
-			log.Println("Encountered an error. Checking if executable directory is valid.")
-		}
+	if err != nil {
+		log.Println("Encountered an error. Checking if executable directory is valid.")
 		loadWorkingDirectory()
 	}
 	
