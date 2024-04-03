@@ -1,6 +1,8 @@
 package main
 
 import (
+	"path/filepath"
+	
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,6 +38,56 @@ type (
 		EncodingId string `json:"encodingId"`
 	}
 )
+
+func isTemporaryDirectory(path string) bool {
+	lower := strings.ToLower(path)
+    	return strings.Contains(lower, "tmp") || strings.Contains(lower, "temp")
+}
+
+func loadWorkingDirectory() {
+	exePath, err := os.Executable() // Executable path
+    	if err != nil {
+		log.Println("Couldn't find executable path")
+	}
+	
+	workDir, err := os.Getwd() // Working directory
+	if err != nil {
+		log.Println("Couldn't determine working directory")
+	}
+	
+	exeDir := filepath.Dir(exePath) // Executable directory
+	
+	if workDir != "" && exeDir != "." && workDir != exeDir {
+		if (!isTemporaryDirectory(exeDir)) {
+			log.Println("Changed working directory from `" + workDir + "` to `" + exeDir + "`")
+			os.Chdir(exeDir)
+		} else {
+			log.Println("The executable is likely stored in a temporary location. Continuing in working directory")
+		}
+	}
+}
+
+func loadEnvironmentFile() error {
+	if os.Getenv("APP_ENV") == "development" {
+		log.Println("Loading `" + envFileDev + "`")
+
+		if err := godotenv.Load(envFileDev); err != nil {
+			return(err)
+		}
+	} else {
+		log.Println("Loading `" + envFileProd + "`")
+
+		_, err := os.Stat("./web/build")
+		if os.IsNotExist(err) {
+			return(errors.New(noBuildDirectoryMessage))
+		}
+
+		if err := godotenv.Load(envFileProd); err != nil {
+			return(err)
+		}
+	}
+	return(nil)
+}
 
 func logHTTPError(w http.ResponseWriter, err string, code int) {
 	log.Println(err)
@@ -170,25 +222,20 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 }
 
 func main() {
-	if os.Getenv("APP_ENV") == "development" {
-		log.Println("Loading `" + envFileDev + "`")
-
-		if err := godotenv.Load(envFileDev); err != nil {
-			log.Fatal(err)
+	err := loadEnvironmentFile() // Attempt to load the .env file
+	if err != nil || os.Getenv("GLOBAL_ACCESS") == "true" {
+		if err != nil {
+			log.Println("Encountered an error. Checking if executable directory is valid.")
 		}
-	} else {
-		log.Println("Loading `" + envFileProd + "`")
-
-		_, err := os.Stat("./web/build")
-		if os.IsNotExist(err) {
-			log.Fatal(noBuildDirectoryMessage)
-		}
-
-		if err := godotenv.Load(envFileProd); err != nil {
-			log.Fatal(err)
-		}
+		loadWorkingDirectory()
 	}
-
+	
+	err = loadEnvironmentFile() // Load the file again (verify error)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	
 	webrtc.Configure()
 
 	if os.Getenv("NETWORK_TEST_ON_START") == "true" {
@@ -211,7 +258,7 @@ func main() {
                         redirectServer := &http.Server{
                                 Addr: ":" + os.Getenv("HTTPS_REDIRECT_PORT"),
                                 Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-                                        http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanenly)
+                                        http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
 				}),
                         }
 
