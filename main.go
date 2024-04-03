@@ -217,8 +217,7 @@ func main() {
                         log.Println("Running HTTP->HTTPS redirect Server at :" + os.Getenv("HTTPS_REDIRECT_PORT"))
                         log.Fatal(redirectServer.ListenAndServe())
                 }()
-        }
-	else if os.Getenv("ENABLE_HTTP_REDIRECT") != "" {
+        } else if os.Getenv("ENABLE_HTTP_REDIRECT") != "" {
 		go func() {
 			redirectServer := &http.Server{
 				Addr: ":80",
