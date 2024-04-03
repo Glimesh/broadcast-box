@@ -211,7 +211,8 @@ func main() {
                         redirectServer := &http.Server{
                                 Addr: ":" + os.Getenv("HTTPS_REDIRECT_PORT"),
                                 Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-                                        http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanent>                                }),
+                                        http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanenly)
+				}),
                         }
 
                         log.Println("Running HTTP->HTTPS redirect Server at :" + os.Getenv("HTTPS_REDIRECT_PORT"))
