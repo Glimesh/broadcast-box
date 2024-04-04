@@ -9,7 +9,7 @@ require (
 	github.com/pion/ice/v2 v2.3.14
 	github.com/pion/interceptor v0.1.27
 	github.com/pion/rtcp v1.2.14
-	github.com/pion/rtp v1.8.4
+	github.com/pion/rtp v1.8.5
 	github.com/pion/sdp/v3 v3.0.8
 	github.com/pion/webrtc/v4 v4.0.0-beta.13
 )
