@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,9 +27,9 @@ const (
 	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
 	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
 	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
-
-	noBuildDirectoryMessage = "\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m"
 )
+
+var noBuildDirectoryErr = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
 
 type (
 	whepLayerRequestJSON struct {
@@ -170,21 +171,34 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 }
 
 func main() {
-	if os.Getenv("APP_ENV") == "development" {
-		log.Println("Loading `" + envFileDev + "`")
+	loadConfigs := func() error {
+		if os.Getenv("APP_ENV") == "development" {
+			log.Println("Loading `" + envFileDev + "`")
+			return godotenv.Load(envFileDev)
+		} else {
+			if _, err := os.Stat("./web/build"); os.IsNotExist(err) {
+				return noBuildDirectoryErr
+			}
 
-		if err := godotenv.Load(envFileDev); err != nil {
+			log.Println("Loading `" + envFileProd + "`")
+			return godotenv.Load(envFileProd)
+
+		}
+	}
+
+	if err := loadConfigs(); err != nil {
+		log.Println("Failed to find config in CWD, changing CWD to executable path")
+
+		exePath, err := os.Executable()
+		if err != nil {
 			log.Fatal(err)
 		}
-	} else {
-		log.Println("Loading `" + envFileProd + "`")
 
-		_, err := os.Stat("./web/build")
-		if os.IsNotExist(err) {
-			log.Fatal(noBuildDirectoryMessage)
+		if err = os.Chdir(filepath.Dir(exePath)); err != nil {
+			log.Fatal(err)
 		}
 
-		if err := godotenv.Load(envFileProd); err != nil {
+		if err = loadConfigs(); err != nil {
 			log.Fatal(err)
 		}
 	}
