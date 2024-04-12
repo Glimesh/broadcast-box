@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"math"
 	"strings"
 
 	"github.com/pion/rtcp"
@@ -62,8 +63,13 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
-	lastTimestamp := uint32(0)
 	codec := getVideoTrackCodec(remoteTrack.Codec().RTPCodecCapability.MimeType)
+
+	lastTimestamp := uint32(0)
+	lastTimestampSet := false
+
+	lastSequenceNumber := uint16(0)
+	lastSequenceNumberSet := false
 
 	for {
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
@@ -85,17 +91,33 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 		rtpPkt.Extension = false
 		rtpPkt.Extensions = nil
 
-		timeDiff := rtpPkt.Timestamp - lastTimestamp
-		if lastTimestamp == 0 {
+		timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
+		switch {
+		case !lastTimestampSet:
 			timeDiff = 0
+			lastTimestampSet = true
+		case timeDiff < -(math.MaxUint32 / 10):
+			timeDiff += (math.MaxUint32 + 1)
 		}
+
+		sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
+		switch {
+		case !lastSequenceNumberSet:
+			lastSequenceNumberSet = true
+			sequenceDiff = 0
+		case sequenceDiff < -(math.MaxUint16 / 10):
+			sequenceDiff += (math.MaxUint16 + 1)
+		}
+
 		lastTimestamp = rtpPkt.Timestamp
+		lastSequenceNumber = rtpPkt.SequenceNumber
 
 		s.whepSessionsLock.RLock()
 		for i := range s.whepSessions {
-			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff, codec)
+			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff, sequenceDiff, codec)
 		}
 		s.whepSessionsLock.RUnlock()
+
 	}
 }
 

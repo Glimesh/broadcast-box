@@ -154,7 +154,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 	return peerConnection.LocalDescription().SDP, whepSessionId, nil
 }
 
-func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff uint32, codec videoTrackCodec) {
+func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec videoTrackCodec) {
 	if w.currentLayer.Load() == "" {
 		w.currentLayer.Store(layer)
 	} else if layer != w.currentLayer.Load() {
@@ -162,8 +162,8 @@ func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff
 	}
 
 	w.packetsWritten += 1
-	w.sequenceNumber += 1
-	w.timestamp += timeDiff
+	w.sequenceNumber = uint16(int(w.sequenceNumber) + sequenceDiff)
+	w.timestamp = uint32(int64(w.timestamp) + timeDiff)
 
 	rtpPkt.SequenceNumber = w.sequenceNumber
 	rtpPkt.Timestamp = w.timestamp
