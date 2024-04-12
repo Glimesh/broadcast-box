@@ -9,11 +9,15 @@ function Selection(props) {
     setStreamKey(e.target.value)
   }
   const onWatchStreamClick = () => {
-    navigate(`/${streamKey}`)
+    if (streamKey !== '') {
+      navigate(`/${streamKey}`)
+    }
   }
 
   const onPublishStreamClick = () => {
-    navigate(`/publish/${streamKey}`)
+    if (streamKey !== '') {
+      navigate(`/publish/${streamKey}`)
+    }
   }
 
   return (
