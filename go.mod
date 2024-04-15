@@ -7,7 +7,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/pion/dtls/v2 v2.2.10
 	github.com/pion/ice/v2 v2.3.14
-	github.com/pion/interceptor v0.1.27
+	github.com/pion/interceptor v0.1.28
 	github.com/pion/rtcp v1.2.14
 	github.com/pion/rtp v1.8.5
 	github.com/pion/sdp/v3 v3.0.9
