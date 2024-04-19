@@ -32,7 +32,7 @@ func (t *trackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecPar
 		}
 	}
 
-	return webrtc.RTPCodecParameters{RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}}, nil
+	return webrtc.RTPCodecParameters{RTPCodecCapability: webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264, RTCPFeedback: videoRTCPFeedback}}, nil
 }
 
 func (t *trackMultiCodec) Unbind(webrtc.TrackLocalContext) error {
