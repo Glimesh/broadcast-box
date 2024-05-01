@@ -129,7 +129,10 @@ func forwardRtcpToWhepSessions(rtpReceiver *webrtc.RTPReceiver, stream *stream) 
 		}
 		for _, sess := range stream.whepSessions {
 			if sess.peerConnection.ConnectionState() == webrtc.PeerConnectionStateConnected {
-				sess.peerConnection.WriteRTCP(rtcpPackets)
+				rtcpWriteErr := sess.peerConnection.WriteRTCP(rtcpPackets)
+				if rtcpWriteErr != nil {
+					continue
+				}
 			}
 		}
 	}
