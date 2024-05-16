@@ -261,6 +261,8 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 
 	settingEngine.SetDTLSEllipticCurves(elliptic.X25519, elliptic.P384, elliptic.P256)
 	settingEngine.SetNetworkTypes(networkTypes)
+	settingEngine.DisableSRTCPReplayProtection(true)
+	settingEngine.DisableSRTPReplayProtection(true)
 
 	return
 }
