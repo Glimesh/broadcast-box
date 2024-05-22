@@ -33,7 +33,7 @@ function Selection(props) {
           <input className='appearance-none border w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200' id='streamKey' type='text' placeholder='Stream Key' onChange={onStreamKeyChange} autoFocus />
         </div>
         <div className='flex'>
-          <button className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='button' onClick={onWatchStreamClick}>
+          <button className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='submit' onClick={onWatchStreamClick}>
             Watch Stream
           </button>
 
