@@ -293,7 +293,6 @@ func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 		{45, webrtc.MimeTypeAV1, ""},
 		{98, webrtc.MimeTypeVP9, "profile-id=0"},
 		{100, webrtc.MimeTypeVP9, "profile-id=2"},
-		{112, webrtc.MimeTypeH264, "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=64001f"},
 	} {
 		if err := m.RegisterCodec(webrtc.RTPCodecParameters{
 			RTPCodecCapability: webrtc.RTPCodecCapability{
