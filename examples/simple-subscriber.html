@@ -1,0 +1,67 @@
+<!--
+  This example demonstrates how to watch a stream without libraries or dependencies.
+  With this HTML you can add a 'Broadcast Box Player' to any site you want
+-->
+
+<html>
+  <head>
+    <title>simple-watcher</title>
+  </head>
+
+  <body>
+    <b> WHEP URL </b> <input type="text" value="https://b.siobud.com/api/whep" id="whepURL" /> <br />
+    <b> Stream Key </b> <input type="text" id="streamKey" /> <br />
+    <button onclick="window.watchStream()"> Watch Stream </button>
+
+    <h3> Video </h3>
+    <video id="videoPlayer" autoplay muted controls style="width: 500"> </video>
+
+    <h3> Connection State </h3>
+    <div id="connectionState"></div> <br />
+  </body>
+
+  <script>
+    window.watchStream = () => {
+      const whepURL = document.getElementById('whepURL').value
+      if (whepURL === '') {
+        return window.alert('WHEP URL must not be empty')
+      }
+
+      const streamKey = document.getElementById('streamKey').value
+      if (streamKey === '') {
+        return window.alert('Stream Key must not be empty')
+      }
+
+      let peerConnection = new RTCPeerConnection()
+      peerConnection.addTransceiver('audio', { direction: 'recvonly' })
+      peerConnection.addTransceiver('video', { direction: 'recvonly' })
+
+      peerConnection.ontrack = function (event) {
+        document.getElementById('videoPlayer').srcObject = event.streams[0]
+      }
+
+      peerConnection.oniceconnectionstatechange = () => {
+        document.getElementById('connectionState').innerText = peerConnection.iceConnectionState;
+      }
+
+      peerConnection.createOffer().then(offer => {
+        peerConnection.setLocalDescription(offer)
+
+        fetch(whepURL, {
+          method: 'POST',
+          body: offer.sdp,
+          headers: {
+            Authorization: `Bearer ${streamKey}`,
+            'Content-Type': 'application/sdp'
+          }
+        }).then(r => r.text())
+          .then(answer => {
+            peerConnection.setRemoteDescription({
+              sdp: answer,
+              type: 'answer'
+            })
+          })
+      })
+    }
+  </script>
+</html>
