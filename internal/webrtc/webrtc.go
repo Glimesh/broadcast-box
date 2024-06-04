@@ -122,15 +122,18 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 		return
 	}
 
-	if whepSessionId != "" {
-		stream.whepSessionsLock.Lock()
-		defer stream.whepSessionsLock.Unlock()
-		delete(stream.whepSessions, whepSessionId)
+	stream.whepSessionsLock.Lock()
+	defer stream.whepSessionsLock.Unlock()
 
-		// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
-		if len(stream.whepSessions) != 0 || stream.hasWHIPClient.Load() {
-			return
-		}
+	if whepSessionId != "" {
+		delete(stream.whepSessions, whepSessionId)
+	} else {
+		stream.hasWHIPClient.Store(false)
+	}
+
+	// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
+	if len(stream.whepSessions) != 0 || stream.hasWHIPClient.Load() {
+		return
 	}
 
 	stream.whipActiveContextCancel()
