@@ -1,0 +1,93 @@
+<!--
+  This example demonstrates how to use the status endpoint and pull all active streams.
+  With this HTML you can add a 'Broadcast Box Player' that plays all the streams from an instance.
+-->
+
+<html>
+  <head>
+    <title>dynamic-watcher</title>
+  </head>
+
+  <body>
+    <b> WHEP URL </b> <input type="text" value="https://b.siobud.com/api/status" id="statusURL" /> <br />
+    <button onclick="window.watchStreams()"> Watch All Streams </button>
+
+    <h3> Videos </h3>
+    <div id="videos"> </div>
+  </body>
+
+  <script>
+    let statusURL, whepURL
+
+    const watchStream = streamKey => {
+      if (document.getElementById(streamKey) !== null) {
+        return
+      }
+
+      let peerConnection = new RTCPeerConnection()
+      peerConnection.addTransceiver('audio', { direction: 'recvonly' })
+      peerConnection.addTransceiver('video', { direction: 'recvonly' })
+
+      peerConnection.ontrack = function (event) {
+        if (event.track.kind !== 'video') {
+          return
+        }
+        var el = document.createElement('video')
+        el.id = streamKey
+        el.srcObject = event.streams[0]
+        el.autoplay = true
+        el.muted = true
+
+        document.getElementById('videos').appendChild(el)
+
+        event.track.onmute = () => {
+          document.getElementById('videos').removeChild(el)
+        }
+      }
+
+      peerConnection.createOffer().then(offer => {
+        peerConnection.setLocalDescription(offer)
+
+        fetch(whepURL, {
+          method: 'POST',
+          body: offer.sdp,
+          headers: {
+            Authorization: `Bearer ${streamKey}`,
+            'Content-Type': 'application/sdp'
+          }
+        }).then(r => r.text())
+          .then(answer => {
+            peerConnection.setRemoteDescription({
+              sdp: answer,
+              type: 'answer'
+            })
+          })
+      })
+
+    }
+
+    const fetchAndWatchStreams = () => {
+      fetch(statusURL)
+        .then(r => r.json())
+        .then(r => {
+          r.forEach(stream => {
+            if (stream.videoStreams.length !== 0) {
+              watchStream(stream.streamKey.replace('Bearer ', ''))
+            }
+          })
+        })
+      setTimeout(fetchAndWatchStreams, 5000)
+    }
+
+
+    window.watchStreams = () => {
+      statusURL = document.getElementById('statusURL').value
+      if (statusURL === '') {
+        return window.alert('Status URL must not be empty')
+      }
+
+      whepURL = statusURL.replace('status', 'whep')
+      fetchAndWatchStreams()
+    }
+  </script>
+</html>
