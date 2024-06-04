@@ -53,8 +53,9 @@ type (
 	}
 
 	videoTrack struct {
-		rid             string
-		packetsReceived atomic.Uint64
+		rid              string
+		packetsReceived  atomic.Uint64
+		lastKeyFrameSeen atomic.Value
 	}
 
 	videoTrackCodec int
@@ -151,6 +152,7 @@ func addTrack(stream *stream, rid string) (*videoTrack, error) {
 	}
 
 	t := &videoTrack{rid: rid}
+	t.lastKeyFrameSeen.Store(time.Time{})
 	stream.videoTracks = append(stream.videoTracks, t)
 	return t, nil
 }
@@ -371,8 +373,9 @@ func Configure() {
 }
 
 type StreamStatusVideo struct {
-	RID             string `json:"rid"`
-	PacketsReceived uint64 `json:"packetsReceived"`
+	RID              string    `json:"rid"`
+	PacketsReceived  uint64    `json:"packetsReceived"`
+	LastKeyFrameSeen time.Time `json:"lastKeyFrameSeen"`
 }
 
 type StreamStatus struct {
@@ -418,9 +421,15 @@ func GetStreamStatuses() []StreamStatus {
 
 		streamStatusVideo := []StreamStatusVideo{}
 		for _, videoTrack := range stream.videoTracks {
+			var lastKeyFrameSeen time.Time
+			if v, ok := videoTrack.lastKeyFrameSeen.Load().(time.Time); ok {
+				lastKeyFrameSeen = v
+			}
+
 			streamStatusVideo = append(streamStatusVideo, StreamStatusVideo{
-				RID:             videoTrack.rid,
-				PacketsReceived: videoTrack.packetsReceived.Load(),
+				RID:              videoTrack.rid,
+				PacketsReceived:  videoTrack.packetsReceived.Load(),
+				LastKeyFrameSeen: lastKeyFrameSeen,
 			})
 		}
 

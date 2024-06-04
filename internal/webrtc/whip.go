@@ -6,9 +6,11 @@ import (
 	"log"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
+	"github.com/pion/rtp/codecs"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -65,6 +67,16 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 	rtpPkt := &rtp.Packet{}
 	codec := getVideoTrackCodec(remoteTrack.Codec().RTPCodecCapability.MimeType)
 
+	var depacketizer rtp.Depacketizer
+	switch codec {
+	case videoTrackCodecH264:
+		depacketizer = &codecs.H264Packet{}
+	case videoTrackCodecVP8:
+		depacketizer = &codecs.VP8Packet{}
+	case videoTrackCodecVP9:
+		depacketizer = &codecs.VP9Packet{}
+	}
+
 	lastTimestamp := uint32(0)
 	lastTimestampSet := false
 
@@ -87,6 +99,10 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 		}
 
 		videoTrack.packetsReceived.Add(1)
+
+		if isKeyframe(rtpPkt, codec, depacketizer) {
+			videoTrack.lastKeyFrameSeen.Store(time.Now())
+		}
 
 		rtpPkt.Extension = false
 		rtpPkt.Extensions = nil
