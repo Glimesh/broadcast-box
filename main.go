@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -43,14 +44,32 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 	http.Error(w, err, code)
 }
 
+func validateStreamKey(streamKey string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9_\-\.~]+$`).MatchString(streamKey)
+}
+
+func extractBearerToken(authHeader string) (string, bool) {
+	const bearerPrefix = "Bearer "
+	if strings.HasPrefix(authHeader, bearerPrefix) {
+		return strings.TrimPrefix(authHeader, bearerPrefix), true
+	}
+	return "", false
+}
+
 func whipHandler(res http.ResponseWriter, r *http.Request) {
 	if r.Method == "DELETE" {
 		return
 	}
 
-	streamKey := r.Header.Get("Authorization")
-	if streamKey == "" {
+	streamKeyHeader := r.Header.Get("Authorization")
+	if streamKeyHeader == "" {
 		logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
+		return
+	}
+
+	streamKey, ok := extractBearerToken(streamKeyHeader)
+	if !ok || !validateStreamKey(streamKey) {
+		logHTTPError(res, "Invalid stream key format", http.StatusBadRequest)
 		return
 	}
 
@@ -73,9 +92,15 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 }
 
 func whepHandler(res http.ResponseWriter, req *http.Request) {
-	streamKey := req.Header.Get("Authorization")
-	if streamKey == "" {
+	streamKeyHeader := req.Header.Get("Authorization")
+	if streamKeyHeader == "" {
 		logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
+		return
+	}
+
+	streamKey, ok := extractBearerToken(streamKeyHeader)
+	if !ok || !validateStreamKey(streamKey) {
+		logHTTPError(res, "Invalid stream key format", http.StatusBadRequest)
 		return
 	}
 
