@@ -196,12 +196,14 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 }
 
 func main() {
+	htmlEnabled := os.Getenv("DISABLE_FRONTEND") == ""
+
 	loadConfigs := func() error {
 		if os.Getenv("APP_ENV") == "development" {
 			log.Println("Loading `" + envFileDev + "`")
 			return godotenv.Load(envFileDev)
 		} else {
-			if _, err := os.Stat("./web/build"); os.IsNotExist(err) {
+			if _, err := os.Stat("./web/build"); os.IsNotExist(err) && htmlEnabled {
 				return noBuildDirectoryErr
 			}
 
@@ -266,7 +268,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
+	if htmlEnabled {
+		mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
+	}
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
