@@ -201,13 +201,16 @@ func main() {
 			log.Println("Loading `" + envFileDev + "`")
 			return godotenv.Load(envFileDev)
 		} else {
-			if _, err := os.Stat("./web/build"); os.IsNotExist(err) {
+			log.Println("Loading `" + envFileProd + "`")
+			if err := godotenv.Load(envFileProd); err != nil {
+				return err
+			}
+
+			if _, err := os.Stat("./web/build"); os.IsNotExist(err) && os.Getenv("DISABLE_FRONTEND") == "" {
 				return noBuildDirectoryErr
 			}
 
-			log.Println("Loading `" + envFileProd + "`")
-			return godotenv.Load(envFileProd)
-
+			return nil
 		}
 	}
 
@@ -266,7 +269,9 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
+	if os.Getenv("DISABLE_FRONTEND") == "" {
+		mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
+	}
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
