@@ -195,6 +195,7 @@ docker-compose up -d
 The backend can be configured with the following environment variables.
 
 - `DISABLE_STATUS` - Disable the status API
+- `DISABLE_FRONTEND` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `ENABLE_HTTP_REDIRECT` - HTTP traffic will be redirect to HTTPS
 - `HTTP_ADDRESS` - HTTP Server Address
 - `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
