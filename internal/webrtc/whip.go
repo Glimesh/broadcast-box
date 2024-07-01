@@ -137,6 +137,23 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 	}
 }
 
+func forwardRtcpToWhepSessions(rtpReceiver *webrtc.RTPReceiver, stream *stream) {
+	for {
+		rtcpPackets, _, rtcpErr := rtpReceiver.ReadRTCP()
+		if rtcpErr != nil {
+			return
+		}
+		for _, sess := range stream.whepSessions {
+			if sess.peerConnection.ConnectionState() == webrtc.PeerConnectionStateConnected {
+				rtcpWriteErr := sess.peerConnection.WriteRTCP(rtcpPackets)
+				if rtcpWriteErr != nil {
+					continue
+				}
+			}
+		}
+	}
+}
+
 func WHIP(offer, streamKey string) (string, error) {
 	peerConnection, err := newPeerConnection(apiWhip)
 	if err != nil {
@@ -151,6 +168,7 @@ func WHIP(offer, streamKey string) (string, error) {
 	}
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
+		go forwardRtcpToWhepSessions(rtpReceiver, stream)
 		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
 			audioWriter(remoteTrack, stream)
 		} else {

@@ -16,6 +16,7 @@ import (
 type (
 	whepSession struct {
 		videoTrack     *trackMultiCodec
+		peerConnection *webrtc.PeerConnection
 		currentLayer   atomic.Value
 		sequenceNumber uint16
 		timestamp      uint32
@@ -147,8 +148,9 @@ func WHEP(offer, streamKey string) (string, string, error) {
 	defer stream.whepSessionsLock.Unlock()
 
 	stream.whepSessions[whepSessionId] = &whepSession{
-		videoTrack: videoTrack,
-		timestamp:  50000,
+		peerConnection: peerConnection,
+		videoTrack:     videoTrack,
+		timestamp:      50000,
 	}
 	stream.whepSessions[whepSessionId].currentLayer.Store("")
 	return peerConnection.LocalDescription().SDP, whepSessionId, nil
