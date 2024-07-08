@@ -190,8 +190,7 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 		udpMuxOpts []ice.UDPMuxFromPortOption
 		err        error
 	)
-	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4}
-	udpMuxOpts = append(udpMuxOpts, ice.UDPMuxFromPortWithNetworks(ice.NetworkTypeUDP4))
+	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6}
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
