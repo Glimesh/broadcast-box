@@ -185,5 +185,5 @@ func WHIP(offer, streamKey string) (string, error) {
 	}
 
 	<-gatherComplete
-	return peerConnection.LocalDescription().SDP, nil
+	return appendOffer(peerConnection.LocalDescription().SDP), nil
 }
