@@ -190,14 +190,15 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 		udpMuxOpts []ice.UDPMuxFromPortOption
 		err        error
 	)
-	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6}
+	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4}
+	udpMuxOpts = append(udpMuxOpts, ice.UDPMuxFromPortWithNetworks(ice.NetworkTypeUDP4))
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
 	}
 
 	if os.Getenv("NAT_1_TO_1_IP") != "" {
-		NAT1To1IPs = append(NAT1To1IPs, strings.Split(os.Getenv("NAT_1_TO_1_IP"), ",")...)
+		NAT1To1IPs = append(NAT1To1IPs, strings.Split(os.Getenv("NAT_1_TO_1_IP"), "|")...)
 	}
 
 	natICECandidateType := webrtc.ICECandidateTypeHost
@@ -346,6 +347,15 @@ func newPeerConnection(api *webrtc.API) (*webrtc.PeerConnection, error) {
 	}
 
 	return api.NewPeerConnection(cfg)
+}
+
+func appendOffer(in string) string {
+	if extraCandidate := os.Getenv("APPEND_CANDIDATE"); extraCandidate != "" {
+		index := strings.Index(in, "a=end-of-candidates")
+		in = in[:index] + extraCandidate + in[index:]
+	}
+
+	return in
 }
 
 func Configure() {

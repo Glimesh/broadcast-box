@@ -151,7 +151,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 		timestamp:  50000,
 	}
 	stream.whepSessions[whepSessionId].currentLayer.Store("")
-	return peerConnection.LocalDescription().SDP, whepSessionId, nil
+	return appendOffer(peerConnection.LocalDescription().SDP), whepSessionId, nil
 }
 
 func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec videoTrackCodec) {

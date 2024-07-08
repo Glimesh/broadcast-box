@@ -203,7 +203,7 @@ The backend can be configured with the following environment variables.
 - `SSL_CERT` - Path to SSL certificate if using Broadcast Box's HTTP Server
 - `SSL_KEY` - Path to SSL key if using Broadcast Box's HTTP Server
 
-- `NAT_1_TO_1_IP` - Announce IPs that don't belong to local machine (like Public IP). delineated by ','
+- `NAT_1_TO_1_IP` - Announce IPs that don't belong to local machine (like Public IP). delineated by '|'
 - `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
 - `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
 - `NAT_ICE_CANDIDATE_TYPE` - By default setting a NAT_1_TO_1_IP overrides. Set this to `srflx` to instead append IPs
@@ -215,6 +215,8 @@ The backend can be configured with the following environment variables.
 
 - `TCP_MUX_ADDRESS` - If you wish to make WebRTC traffic available via TCP.
 - `TCP_MUX_FORCE` - If you wish to make WebRTC traffic only available via TCP.
+
+- `APPEND_CANDIDATE` - Append candidates to Offer that ICE Agent did not generate. Worse version of `NAT_1_TO_1_IP`
 
 ## Network Test on Start
 
