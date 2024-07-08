@@ -197,11 +197,16 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 	}
 
 	if os.Getenv("NAT_1_TO_1_IP") != "" {
-		NAT1To1IPs = append(NAT1To1IPs, os.Getenv("NAT_1_TO_1_IP"))
+		NAT1To1IPs = append(NAT1To1IPs, strings.Split(os.Getenv("NAT_1_TO_1_IP"), ",")...)
+	}
+
+	natICECandidateType := webrtc.ICECandidateTypeHost
+	if os.Getenv("NAT_ICE_CANDIDATE_TYPE") == "srflx" {
+		natICECandidateType = webrtc.ICECandidateTypeSrflx
 	}
 
 	if len(NAT1To1IPs) != 0 {
-		settingEngine.SetNAT1To1IPs(NAT1To1IPs, webrtc.ICECandidateTypeHost)
+		settingEngine.SetNAT1To1IPs(NAT1To1IPs, natICECandidateType)
 	}
 
 	if os.Getenv("INTERFACE_FILTER") != "" {
