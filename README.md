@@ -195,15 +195,18 @@ docker-compose up -d
 The backend can be configured with the following environment variables.
 
 - `DISABLE_STATUS` - Disable the status API
-- `ENABLE_HTTP_REDIRECT` - HTTP traffic will be redirect to HTTPS
+- `DISABLE_FRONTEND` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `HTTP_ADDRESS` - HTTP Server Address
-- `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
-- `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
-- `NAT_1_TO_1_IP` - If behind a NAT use this to auto insert your public IP
 - `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity
+
+- `ENABLE_HTTP_REDIRECT` - HTTP traffic will be redirect to HTTPS
 - `SSL_CERT` - Path to SSL certificate if using Broadcast Box's HTTP Server
 - `SSL_KEY` - Path to SSL key if using Broadcast Box's HTTP Server
 
+- `NAT_1_TO_1_IP` - Announce IPs that don't belong to local machine (like Public IP). delineated by ','
+- `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
+- `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
+- `NAT_ICE_CANDIDATE_TYPE` - By default setting a NAT_1_TO_1_IP overrides. Set this to `srflx` to instead append IPs
 - `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
 
 - `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
