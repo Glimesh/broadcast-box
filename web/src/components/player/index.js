@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { parseLinkHeader } from '@web3-storage/parse-link-header'
+import linkHeader from 'http-link-header'
 import { useLocation } from 'react-router-dom'
 
 export const CinemaModeContext = React.createContext(null);
@@ -77,19 +77,39 @@ function Player({ cinemaMode }) {
           'Content-Type': 'application/sdp'
         }
       }).then(r => {
-        const parsedLinkHeader = parseLinkHeader(r.headers.get('Link'))
-        setLayerEndpoint(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`)
+        return new Promise(resolve => {
+          r.text().then(answer => {
+            const parsedLinkHeader = new linkHeader(r.headers.get('Link'))
+            setLayerEndpoint(`${window.location.protocol}//${parsedLinkHeader.refs.find(l => l.rel === 'urn:ietf:params:whep:ext:core:layer').uri}`)
 
-        const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
-        evtSource.onerror = err => evtSource.close();
+            const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader.refs.find(l => l.rel === 'urn:ietf:params:whep:ext:core:server-sent-events').uri}`)
+            evtSource.onerror = err => evtSource.close();
 
-        evtSource.addEventListener("layers", event => {
-          const parsed = JSON.parse(event.data)
-          setVideoLayers(parsed['1']['layers'].map(l => l.encodingId))
+            evtSource.addEventListener("layers", event => {
+              const parsed = JSON.parse(event.data)
+              setVideoLayers(parsed['1']['layers'].map(l => l.encodingId))
+            })
+
+            let iceServers = parsedLinkHeader.refs
+              .filter(l => l.rel === 'ice-server')
+              .map(i => {
+                i.urls = i.uri
+                return i
+              })
+
+            if (iceServers.length !== 0) {
+              peerConnection.setConfiguration({
+                iceServers,
+              })
+              peerConnection.createOffer().then(offer => {
+                peerConnection.setLocalDescription(offer)
+                resolve(answer)
+              })
+            } else {
+              resolve(answer)
+            }
+          })
         })
-
-
-        return r.text()
       }).then(answer => {
         peerConnection.setRemoteDescription({
           sdp: answer,
