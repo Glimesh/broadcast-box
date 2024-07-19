@@ -207,7 +207,8 @@ The backend can be configured with the following environment variables.
 - `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
 - `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
 - `NAT_ICE_CANDIDATE_TYPE` - By default setting a NAT_1_TO_1_IP overrides. Set this to `srflx` to instead append IPs
-- `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
+- `CLIENT_ICE_SERVERS` - A JSON array of ICE Servers, same format as browser. These ICE servers will be used by clients.
+- `BACKEND_ICE_SERVERS` - A JSON array of ICE Servers, same format as browser. These ICE servers will be used by server.
 
 - `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
 - `UDP_MUX_PORT_WHIP` - Like `UDP_MUX_PORT` but only for WHIP traffic

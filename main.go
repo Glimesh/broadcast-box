@@ -28,6 +28,8 @@ const (
 	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
 	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
 	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
+
+	deprecatedConfigSTUNServers = "\033[0;31mSTUN_SERVERS has been deprecated, use BACKEND_ICE_SERVERS instead\033[0m"
 )
 
 var noBuildDirectoryErr = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
@@ -87,6 +89,10 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 
 	res.Header().Add("Location", "/api/whip")
 	res.Header().Add("Content-Type", "application/sdp")
+	if err = webrtc.AddICELinks(res); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
 	res.WriteHeader(http.StatusCreated)
 	fmt.Fprint(res, answer)
 }
@@ -119,6 +125,10 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	apiPath := req.Host + strings.TrimSuffix(req.URL.RequestURI(), "whep")
 	res.Header().Add("Link", `<`+apiPath+"sse/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="layers"`)
 	res.Header().Add("Link", `<`+apiPath+"layer/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:layer"`)
+	if err = webrtc.AddICELinks(res); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
 	res.Header().Add("Location", "/api/whep")
 	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
@@ -195,6 +205,13 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 	}
 }
 
+func checkDeprecatedConfigs() {
+	if os.Getenv("STUN_SERVERS") != "" {
+		fmt.Println(deprecatedConfigSTUNServers)
+		os.Exit(1)
+	}
+}
+
 func main() {
 	loadConfigs := func() error {
 		if os.Getenv("APP_ENV") == "development" {
@@ -231,6 +248,7 @@ func main() {
 		}
 	}
 
+	checkDeprecatedConfigs()
 	webrtc.Configure()
 
 	if os.Getenv("NETWORK_TEST_ON_START") == "true" {

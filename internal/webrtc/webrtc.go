@@ -337,11 +337,9 @@ func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 func newPeerConnection(api *webrtc.API) (*webrtc.PeerConnection, error) {
 	cfg := webrtc.Configuration{}
 
-	if stunServers := os.Getenv("STUN_SERVERS"); stunServers != "" {
-		for _, stunServer := range strings.Split(stunServers, "|") {
-			cfg.ICEServers = append(cfg.ICEServers, webrtc.ICEServer{
-				URLs: []string{"stun:" + stunServer},
-			})
+	if iceServers := os.Getenv("BACKEND_ICE_SERVERS"); iceServers != "" {
+		if err := json.Unmarshal([]byte(iceServers), &cfg.ICEServers); err != nil {
+			return nil, err
 		}
 	}
 
@@ -457,4 +455,37 @@ func GetStreamStatuses() []StreamStatus {
 	}
 
 	return out
+}
+
+func AddICELinks(res http.ResponseWriter) error {
+	if clientICEServers := os.Getenv("CLIENT_ICE_SERVERS"); clientICEServers != "" {
+		var iceServers []webrtc.ICEServer
+		if err := json.Unmarshal([]byte(clientICEServers), &iceServers); err != nil {
+			return err
+		}
+
+		for _, server := range iceServers {
+			linkValue := ""
+
+			for i, url := range server.URLs {
+				linkValue += "<" + url + ">; rel=\"ice-server\"; "
+				if server.Username != "" {
+					linkValue += "username=\"" + server.Username + "\"; "
+				}
+
+				if cred, ok := server.Credential.(string); ok && cred != "" {
+					linkValue += "credential=\"" + cred + "\"; "
+					linkValue += "credential-type=\"" + server.CredentialType.String() + "\""
+				}
+
+				if i+1 != len(server.URLs) {
+					linkValue += ","
+				}
+			}
+
+			res.Header().Add("Link", linkValue)
+		}
+	}
+
+	return nil
 }

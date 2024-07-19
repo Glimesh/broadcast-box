@@ -1,4 +1,5 @@
 import React from 'react'
+import linkHeader from 'http-link-header'
 import { useLocation } from 'react-router-dom'
 
 let mediaOptions = {
@@ -38,16 +39,16 @@ function Player(props) {
             direction: 'sendonly',
             sendEncodings: [
               {
-                rid: 'high'
+                rid: 'l',
+                scaleResolutionDownBy: 4,
               },
               {
-                rid: 'med',
-                scaleResolutionDownBy: 2.0
+                rid: 'm',
+                scaleResolutionDownBy: 2,
               },
               {
-                rid: 'low',
-                scaleResolutionDownBy: 4.0
-              }
+                rid: 'h'
+              },
             ]
           })
         }
@@ -64,7 +65,30 @@ function Player(props) {
             'Content-Type': 'application/sdp'
           }
         }).then(r => {
-          return r.text()
+        return new Promise(resolve => {
+          r.text().then(answer => {
+            const parsedLinkHeader = new linkHeader(r.headers.get('Link'))
+
+            let iceServers = parsedLinkHeader.refs
+              .filter(l => l.rel === 'ice-server')
+              .map(i => {
+                i.urls = i.uri
+                return i
+              })
+
+            if (iceServers.length !== 0) {
+              peerConnection.setConfiguration({
+                iceServers,
+              })
+              peerConnection.createOffer().then(offer => {
+                peerConnection.setLocalDescription(offer)
+                resolve(answer)
+              })
+            } else {
+              resolve(answer)
+            }
+          })
+        })
         }).then(answer => {
           peerConnection.setRemoteDescription({
             sdp: answer,
