@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/pion/dtls/v2/pkg/crypto/elliptic"
+	"github.com/pion/dtls/v3/pkg/crypto/elliptic"
 	"github.com/pion/ice/v3"
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
