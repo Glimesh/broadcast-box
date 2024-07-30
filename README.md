@@ -98,7 +98,7 @@ page will look like this.
 
 ![OBS Output settings example](./.github/img/outputPage.png)
 
-When you are ready to broadcast press `Stream Streaming` and now time to watch!
+When you are ready to broadcast press `Start Streaming` and now time to watch!
 
 ### Broadcasting (GStreamer, CLI)
 
