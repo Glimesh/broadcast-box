@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/pion/dtls/v3 v3.0.1
-	github.com/pion/ice/v3 v3.0.13
+	github.com/pion/ice/v3 v3.0.16
 	github.com/pion/interceptor v0.1.30
 	github.com/pion/rtcp v1.2.14
 	github.com/pion/rtp v1.8.9
