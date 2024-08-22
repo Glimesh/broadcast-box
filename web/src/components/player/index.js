@@ -111,7 +111,11 @@ function Player({ cinemaMode }) {
         muted
         controls
         playsInline
-        className={`bg-black w-full ${cinemaMode && "min-h-screen"}`}
+        className={`bg-black w-full ${cinemaMode && "h-full"}`}
+        style={cinemaMode && {
+          maxHeight: '100vh',
+          maxWidth: '100vw'
+        } || {}}
       />
 
       {videoLayers.length >= 2 &&
