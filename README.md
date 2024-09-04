@@ -52,6 +52,13 @@ users can upload the same video at different quality levels. This
 keeps things cheap for the server operator and you still can provide the same
 experience.
 
+### Broadcasting for all
+
+WebRTC means anyone can be a broadcaster. With Broadcast Box you could use broadcast software like OBS.
+However, another option is publishing directly from your browser! Users just getting started with streaming
+don't need to worry about bitrates, codecs anymore. With one press of a button you can go live right from
+your browser with Broadcast Box. This makes live-streaming accessible to an entirely new audience.
+
 ### Peer-to-Peer (if you need it)
 
 With Broadcast Box you can serve your video without a public IP or forwarding ports!
