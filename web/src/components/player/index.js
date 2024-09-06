@@ -1,18 +1,27 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { parseLinkHeader } from '@web3-storage/parse-link-header'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 
 export const CinemaModeContext = React.createContext(null);
 
 export function CinemaModeProvider({ children }) {
-  const [cinemaMode, setCinemaMode] = useState(() => localStorage.getItem("cinema-mode") === "true");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [cinemaMode, setCinemaMode] = useState(() => searchParams.get("cinemaMode") === "true");
   const state = useMemo(() => ({
     cinemaMode,
     setCinemaMode,
     toggleCinemaMode: () => setCinemaMode((prev) => !prev),
   }), [cinemaMode, setCinemaMode]);
 
-  useEffect(() => localStorage.setItem("cinema-mode", cinemaMode), [cinemaMode]);
+  useEffect(() => {
+    if (cinemaMode) {
+      searchParams.set("cinemaMode", "true");
+    } else {
+      searchParams.delete("cinemaMode");
+    }
+    setSearchParams(searchParams);
+  }, [cinemaMode, searchParams, setSearchParams]);
+
   return (
     <CinemaModeContext.Provider value={state}>
       {children}
