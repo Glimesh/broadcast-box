@@ -60,7 +60,7 @@ function Player(props) {
           method: 'POST',
           body: offer.sdp,
           headers: {
-            Authorization: `Bearer ${location.pathname.substring(1).replace('publish/', '')}`,
+            Authorization: `Bearer ${location.pathname.split('/').pop()}`,
             'Content-Type': 'application/sdp'
           }
         }).then(r => {

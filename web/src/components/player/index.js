@@ -73,7 +73,7 @@ function Player({ cinemaMode }) {
         method: 'POST',
         body: offer.sdp,
         headers: {
-          Authorization: `Bearer ${location.pathname.substring(1)}`,
+          Authorization: `Bearer ${location.pathname.split('/').pop()}`,
           'Content-Type': 'application/sdp'
         }
       }).then(r => {
