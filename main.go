@@ -116,7 +116,13 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	apiPath := req.Host + strings.TrimSuffix(req.URL.RequestURI(), "whep")
+	// Prefer X-Forwarded-For if available
+	host := req.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = req.Host
+	}
+
+	apiPath := host + strings.TrimSuffix(req.URL.RequestURI(), "whep")
 	res.Header().Add("Link", `<`+apiPath+"sse/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="layers"`)
 	res.Header().Add("Link", `<`+apiPath+"layer/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:layer"`)
 	res.Header().Add("Location", "/api/whep")
@@ -268,17 +274,24 @@ func main() {
 
 	}
 
+	// Retrieve the base path from the environment variable
+	basePath := os.Getenv("BASE_PATH")
+	if basePath == "" {
+		basePath = "/" // Default to root if not specified
+	}
+
 	mux := http.NewServeMux()
 	if os.Getenv("DISABLE_FRONTEND") == "" {
-		mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
+		// Strip the basePath before serving files from ./web/build
+		mux.Handle(basePath+"/", http.StripPrefix(basePath+"/", indexHTMLWhenNotFound(http.Dir("./web/build"))))
 	}
-	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
-	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
-	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
-	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
+	mux.HandleFunc(basePath+"/api/whip", corsHandler(whipHandler))
+	mux.HandleFunc(basePath+"/api/whep", corsHandler(whepHandler))
+	mux.HandleFunc(basePath+"/api/sse/", corsHandler(whepServerSentEventsHandler))
+	mux.HandleFunc(basePath+"/api/layer/", corsHandler(whepLayerHandler))
 
 	if os.Getenv("DISABLE_STATUS") == "" {
-		mux.HandleFunc("/api/status", corsHandler(statusHandler))
+		mux.HandleFunc(basePath+"/api/status", corsHandler(statusHandler))
 	}
 
 	server := &http.Server{
