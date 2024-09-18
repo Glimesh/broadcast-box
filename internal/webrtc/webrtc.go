@@ -130,6 +130,7 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 		delete(stream.whepSessions, whepSessionId)
 	} else {
 		stream.hasWHIPClient.Store(false)
+		stream.videoTracks = nil
 	}
 
 	// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
