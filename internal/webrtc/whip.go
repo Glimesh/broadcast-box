@@ -100,7 +100,9 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 		videoTrack.packetsReceived.Add(1)
 
-		if isKeyframe(rtpPkt, codec, depacketizer) {
+		// Keyframe detection has only been implemented for H264
+		isKeyframe := isKeyframe(rtpPkt, codec, depacketizer)
+		if isKeyframe && codec == videoTrackCodecH264 {
 			videoTrack.lastKeyFrameSeen.Store(time.Now())
 		}
 
@@ -130,7 +132,7 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 		s.whepSessionsLock.RLock()
 		for i := range s.whepSessions {
-			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff, sequenceDiff, codec)
+			s.whepSessions[i].sendVideoPacket(rtpPkt, id, timeDiff, sequenceDiff, codec, isKeyframe)
 		}
 		s.whepSessionsLock.RUnlock()
 

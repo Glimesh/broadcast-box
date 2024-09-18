@@ -15,11 +15,12 @@ import (
 
 type (
 	whepSession struct {
-		videoTrack     *trackMultiCodec
-		currentLayer   atomic.Value
-		sequenceNumber uint16
-		timestamp      uint32
-		packetsWritten uint64
+		videoTrack         *trackMultiCodec
+		currentLayer       atomic.Value
+		waitingForKeyframe atomic.Bool
+		sequenceNumber     uint16
+		timestamp          uint32
+		packetsWritten     uint64
 	}
 
 	simulcastLayerResponse struct {
@@ -64,6 +65,7 @@ func WHEPChangeLayer(whepSessionId, layer string) error {
 
 		if _, ok := streamMap[streamKey].whepSessions[whepSessionId]; ok {
 			streamMap[streamKey].whepSessions[whepSessionId].currentLayer.Store(layer)
+			streamMap[streamKey].whepSessions[whepSessionId].waitingForKeyframe.Store(true)
 			streamMap[streamKey].pliChan <- true
 		}
 	}
@@ -151,14 +153,22 @@ func WHEP(offer, streamKey string) (string, string, error) {
 		timestamp:  50000,
 	}
 	stream.whepSessions[whepSessionId].currentLayer.Store("")
+	stream.whepSessions[whepSessionId].waitingForKeyframe.Store(false)
+
 	return appendOffer(peerConnection.LocalDescription().SDP), whepSessionId, nil
 }
 
-func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec videoTrackCodec) {
+func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec videoTrackCodec, isKeyframe bool) {
 	if w.currentLayer.Load() == "" {
 		w.currentLayer.Store(layer)
 	} else if layer != w.currentLayer.Load() {
 		return
+	} else if w.waitingForKeyframe.Load() {
+		if !isKeyframe {
+			return
+		}
+
+		w.waitingForKeyframe.Store(false)
 	}
 
 	w.packetsWritten += 1

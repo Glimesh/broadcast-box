@@ -22,5 +22,5 @@ func isKeyframe(pkt *rtp.Packet, codec videoTrackCodec, depacketizer rtp.Depacke
 		firstNaluType := nalu[4] & naluTypeBitmask
 		return firstNaluType == idrNALUType || firstNaluType == spsNALUType || firstNaluType == ppsNALUType
 	}
-	return false
+	return true
 }
