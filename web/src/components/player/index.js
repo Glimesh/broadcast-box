@@ -112,10 +112,10 @@ function Player({ cinemaMode }) {
         controls
         playsInline
         className={`bg-black w-full ${cinemaMode && "h-full"}`}
-        style={cinemaMode && {
+        style={cinemaMode ? {
           maxHeight: '100vh',
           maxWidth: '100vw'
-        } || {}}
+        } : {}}
       />
 
       {videoLayers.length >= 2 &&
