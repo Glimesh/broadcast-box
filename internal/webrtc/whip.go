@@ -140,6 +140,8 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 }
 
 func WHIP(offer, streamKey string) (string, error) {
+	maybePrintOfferAnswer(offer, true)
+
 	peerConnection, err := newPeerConnection(apiWhip)
 	if err != nil {
 		return "", err
@@ -187,5 +189,5 @@ func WHIP(offer, streamKey string) (string, error) {
 	}
 
 	<-gatherComplete
-	return appendOffer(peerConnection.LocalDescription().SDP), nil
+	return maybePrintOfferAnswer(appendAnswer(peerConnection.LocalDescription().SDP), false), nil
 }

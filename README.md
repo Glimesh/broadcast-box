@@ -226,6 +226,9 @@ The backend can be configured with the following environment variables.
 
 - `APPEND_CANDIDATE` - Append candidates to Offer that ICE Agent did not generate. Worse version of `NAT_1_TO_1_IP`
 
+- `DEBUG_PRINT_OFFER` - Print WebRTC Offers from client to Broadcast Box. Debug things like accepted codecs.
+- `DEBUG_PRINT_ANSWER` - Print WebRTC Answers from Broadcast Box to Browser. Debug things like IP/Ports returned to client.
+
 ## Network Test on Start
 
 When running in Docker Broadcast Box runs a network tests on startup. This tests that WebRTC traffic can be established

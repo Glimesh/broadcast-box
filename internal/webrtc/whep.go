@@ -74,6 +74,8 @@ func WHEPChangeLayer(whepSessionId, layer string) error {
 }
 
 func WHEP(offer, streamKey string) (string, string, error) {
+	maybePrintOfferAnswer(offer, true)
+
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 	stream, err := getStream(streamKey, false)
@@ -155,7 +157,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 	stream.whepSessions[whepSessionId].currentLayer.Store("")
 	stream.whepSessions[whepSessionId].waitingForKeyframe.Store(false)
 
-	return appendOffer(peerConnection.LocalDescription().SDP), whepSessionId, nil
+	return maybePrintOfferAnswer(appendAnswer(peerConnection.LocalDescription().SDP), false), whepSessionId, nil
 }
 
 func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec videoTrackCodec, isKeyframe bool) {

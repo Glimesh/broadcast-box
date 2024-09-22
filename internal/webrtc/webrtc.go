@@ -350,13 +350,25 @@ func newPeerConnection(api *webrtc.API) (*webrtc.PeerConnection, error) {
 	return api.NewPeerConnection(cfg)
 }
 
-func appendOffer(in string) string {
+func appendAnswer(in string) string {
 	if extraCandidate := os.Getenv("APPEND_CANDIDATE"); extraCandidate != "" {
 		index := strings.Index(in, "a=end-of-candidates")
 		in = in[:index] + extraCandidate + in[index:]
 	}
 
 	return in
+}
+
+func maybePrintOfferAnswer(sdp string, isOffer bool) string {
+	if os.Getenv("DEBUG_PRINT_OFFER") != "" && isOffer {
+		fmt.Println(sdp)
+	}
+
+	if os.Getenv("DEBUG_PRINT_ANSWER") != "" && !isOffer {
+		fmt.Println(sdp)
+	}
+
+	return sdp
 }
 
 func Configure() {
