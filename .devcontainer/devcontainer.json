@@ -1,0 +1,42 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+    {
+        "name": "quant-develop-go",
+        "build": {
+            "dockerfile": "Dockerfile"
+        },
+        "features": {
+            "ghcr.io/devcontainers/features/go:1": {
+                    "version": "1.23"
+                },
+            "ghcr.io/devcontainers/features/docker-in-docker:2.11": {
+                "version": "latest",
+                "dockerDashComposeVersion": "v2"
+                },
+            "ghcr.io/devcontainers/features/node:1": {
+                "version": "20.18"
+            }
+        },
+        // add any required extensions that must be pre-installed in the devcontainer
+        "customizations": {
+            "vscode": {
+                "extensions": [
+                    "golang.go",
+                    "ms-azuretools.vscode-docker",
+                    "EditorConfig.EditorConfig",
+                    "eamodio.gitlens",
+                    "ms-vscode.makefile-tools",
+                    "redhat.vscode-yaml"
+                ]
+            }
+        },
+        "mounts": [
+            // Source: https://github.com/microsoft/vscode-remote-release/issues/5823
+            // Creates a named volume mounted to /home/vscode. Survives a rebuild.
+            // Creates a named volume mounted to /root/.docker. Survives a rebuild.
+            // Creates an anonymous volume mounted to /home/vscode/.vscode-server. Gets destroyed on rebuild, which allows vscode to reinstall the extensions and dotfiles.
+            "source=broadcast-box-vscode-home-dir,target=/home/vscode,type=volume",
+            "source=broadcast-box-docker-root-config,target=/root/.docker,type=volume",
+            "target=/home/vscode/.vscode-server,type=volume"
+        ]
+    }
