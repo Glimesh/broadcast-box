@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   broadcast-box:
     environment:
@@ -9,6 +7,14 @@ services:
     container_name: broadcast-box
     network_mode: "host"
     privileged: true
+  
+  authentication-backend:
+    build:
+      context: .
+      dockerfile: authentication-backend/Dockerfile
+    hostname: authentication-backend
+    container_name: authentication-backend
+
 
   caddy:
     image: lucaslorentz/caddy-docker-proxy:ci-alpine
