@@ -45,10 +45,21 @@ jobs:
           tags: |
             type=raw,value=latest
 
-      - name: Build and push
+      - name: Build and push streaming server
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64, linux/arm64, linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # Not working yet
+      - name: Build and push authentication-backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          dockerfile: authentication-backend/Dockerfile
           platforms: linux/amd64, linux/arm64, linux/arm/v7
           push: true
           tags: ${{ steps.meta.outputs.tags }}
