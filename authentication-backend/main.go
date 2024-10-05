@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/authentication-backend/internal"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
@@ -20,6 +21,8 @@ func main() {
 		// (the isGoRun check is to enable it only during development)
 		Automigrate: isGoRun,
 	})
+
+	app.OnBeforeServe().Add(internal.HandleServeEvent)
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
