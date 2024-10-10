@@ -39,7 +39,8 @@ func HandleServeEvent(e *core.ServeEvent) error {
 		}
 
 		e.App.Logger().Debug("User found: " + user.Username)
-		return c.JSON(http.StatusOK, map[string]string{"message": "Hello " + user.Username})
+		response := webrtc.WebhookResponse{Username: user.Username}
+		return c.JSON(http.StatusOK, response)
 	} /* optional middlewares */)
 
 	return nil
