@@ -62,6 +62,7 @@ func extractBearerToken(authHeader string) (string, bool) {
 	return "", false
 }
 
+// For streaming
 func whipHandler(res http.ResponseWriter, r *http.Request) {
 	if r.Method == "DELETE" {
 		return
@@ -81,7 +82,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 
 	// Prepare webhook payload
 	payload := prepareWebhookPayload("publish", streamKey, r)
-	statusCode, err := handleWebhook(payload)
+	username, statusCode, err := handleWebhook(payload)
 	if err != nil {
 		logHTTPError(res, err.Error(), statusCode)
 		return
@@ -93,7 +94,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer, err := webrtc.WHIP(string(offer), streamKey)
+	answer, err := webrtc.WHIP(string(offer), username)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -105,24 +106,17 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(res, answer)
 }
 
+// For watching
 func whepHandler(res http.ResponseWriter, req *http.Request) {
-	streamKeyHeader := req.Header.Get("Authorization")
-	if streamKeyHeader == "" {
+	targetHeader := req.Header.Get("Authorization")
+	if targetHeader == "" {
 		logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
 		return
 	}
 
-	streamKey, ok := extractBearerToken(streamKeyHeader)
-	if !ok || !validateStreamKey(streamKey) {
+	target, ok := extractBearerToken(targetHeader)
+	if !ok || !validateStreamKey(target) {
 		logHTTPError(res, "Invalid stream key format", http.StatusBadRequest)
-		return
-	}
-
-	// Prepare webhook payload
-	payload := prepareWebhookPayload("view", streamKey, req)
-	statusCode, err := handleWebhook(payload)
-	if err != nil {
-		logHTTPError(res, err.Error(), statusCode)
 		return
 	}
 
@@ -132,7 +126,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	answer, whepSessionId, err := webrtc.WHEP(string(offer), streamKey)
+	answer, whepSessionId, err := webrtc.WHEP(string(offer), target)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -357,22 +351,22 @@ func prepareWebhookPayload(action, streamKey string, r *http.Request) webrtc.Web
 	}
 }
 
-func handleWebhook(payload webrtc.WebhookPayload) (int, error) {
+func handleWebhook(payload webrtc.WebhookPayload) (string, int, error) {
 	if webhookURL == "" {
-		return http.StatusOK, nil
+		return "", http.StatusOK, nil
 	}
 
-	statusCode, err := webrtc.CallWebhook(webhookURL, webhookTimeout, payload)
+	username, statusCode, err := webrtc.CallWebhook(webhookURL, webhookTimeout, payload)
 	if err != nil {
-		return http.StatusInternalServerError, fmt.Errorf("Webhook call failed: %w", err)
+		return username, http.StatusInternalServerError, fmt.Errorf("Webhook call failed: %w", err)
 	}
 	if statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden {
-		return statusCode, fmt.Errorf("Webhook denied access")
+		return username, statusCode, fmt.Errorf("Webhook denied access")
 	}
 	if statusCode != http.StatusOK {
-		return statusCode, fmt.Errorf("Webhook returned unexpected status")
+		return username, statusCode, fmt.Errorf("Webhook returned unexpected status")
 	}
-	return http.StatusOK, nil
+	return username, http.StatusOK, nil
 }
 
 func getIPAddress(r *http.Request) string {
