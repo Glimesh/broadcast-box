@@ -18,13 +18,17 @@ type WebhookPayload struct {
 	UserAgent   string            `json:"userAgent"`
 }
 
-func CallWebhook(url string, timeout int, payload WebhookPayload) (int, error) {
+type WebhookResponse struct {
+	Username string `json:"username"`
+}
+
+func CallWebhook(url string, timeout int, payload WebhookPayload) (string, int, error) {
 	start := time.Now()
 	log.Printf("Starting webhook call to %s with timeout %d ms", url, timeout)
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
-		return 0, fmt.Errorf("failed to marshal payload: %w", err)
+		return "", 0, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	client := &http.Client{
@@ -33,7 +37,7 @@ func CallWebhook(url string, timeout int, payload WebhookPayload) (int, error) {
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
+		return "", 0, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
@@ -41,11 +45,18 @@ func CallWebhook(url string, timeout int, payload WebhookPayload) (int, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Webhook request failed after %v: %v", time.Since(start), err)
-		return 0, fmt.Errorf("failed to send request: %w", err)
+		return "", 0, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	response := WebhookResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		log.Printf("Failed to decode webhook response: %v", err)
+		return "", resp.StatusCode, fmt.Errorf("failed to decode response: %w", err)
+	}
+
 	log.Printf("Received webhook response with status code %d after %v", resp.StatusCode, time.Since(start))
 
-	return resp.StatusCode, nil
+	return response.Username, resp.StatusCode, nil
 }
