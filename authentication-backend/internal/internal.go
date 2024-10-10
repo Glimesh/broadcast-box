@@ -8,18 +8,21 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-type User struct {
+type basicDBUser struct {
 	Username string `json:"username" db:"username"`
 }
 
 func HandleServeEvent(e *core.ServeEvent) error {
 	e.Router.GET("/internal/request-stream/:streamkey", func(c echo.Context) error {
 		streamkey := c.PathParam("streamkey")
-
 		e.App.Logger().Debug("Requesting stream with key: " + streamkey)
 
-		user := &User{}
-		err := e.App.Dao().DB().Select("username").From("users").Where(dbx.NewExp("streamkey.streamkey = " + streamkey)).One(user)
+		user := &basicDBUser{}
+		err := e.App.Dao().DB().
+			Select("username").
+			From("users").
+			InnerJoin("streamkeys", dbx.NewExp("users.streamkey_id = streamkeys.id")).
+			Where(dbx.Like("streamkey", streamkey)).One(user)
 		if err != nil {
 			e.App.Logger().Error("Error finding user: " + err.Error())
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error finding user"})
