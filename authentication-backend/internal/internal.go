@@ -32,7 +32,7 @@ func HandleServeEvent(e *core.ServeEvent) error {
 			Select("username").
 			From("users").
 			InnerJoin("streamkeys", dbx.NewExp("users.streamkey_id = streamkeys.id")).
-			Where(dbx.Like("streamkey", streamkey)).One(user)
+			Where(dbx.NewExp("streamkey = {:input}", dbx.Params{"input": streamkey})).One(user)
 		if err != nil {
 			e.App.Logger().Error("Error finding user: " + err.Error())
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error finding user"})

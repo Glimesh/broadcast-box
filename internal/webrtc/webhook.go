@@ -35,7 +35,6 @@ func CallWebhook(url string, timeout int, payload WebhookPayload) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to create request: %w", err)
 	}
-
 	req.Header.Set("Content-Type", "application/json")
 
 	log.Printf("Sending webhook request...")
