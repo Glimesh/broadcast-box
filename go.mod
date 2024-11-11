@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/pion/dtls/v3 v3.0.2
+	github.com/pion/dtls/v3 v3.0.4
 	github.com/pion/ice/v3 v3.0.16
 	github.com/pion/interceptor v0.1.30
 	github.com/pion/rtcp v1.2.14
@@ -30,7 +30,7 @@ require (
 	github.com/pion/turn/v3 v3.0.3 // indirect
 	github.com/pion/turn/v4 v4.0.0 // indirect
 	github.com/wlynxg/anet v0.0.3 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 )
