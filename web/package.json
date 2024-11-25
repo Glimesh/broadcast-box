@@ -37,7 +37,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.45",
-    "react-router-dom": "^6.26.1",
+    "react-router-dom": "^7.0.1",
     "tailwindcss": "^3.4.10"
   }
 }
