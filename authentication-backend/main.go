@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/glimesh/broadcast-box/authentication-backend/internal"
+	_ "github.com/glimesh/broadcast-box/authentication-backend/migrations"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
