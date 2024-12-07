@@ -135,7 +135,7 @@ the latency of 120 milliseconds observed.
 
 ## Getting Started
 
-Broadcast Box is made up of two parts. The server is written in Go and is in charge of ingesting and broadcasting WebRTC. The frontend is in react and connects to the Go backend. The Go server can be used to serve the HTML/CSS/JS directly. Use the following instructions to build from source or utilize [Docker](#docker) / [Docker Compose](#docker-compose).
+Broadcast Box is made up of three parts. The server is written in Go and is in charge of ingesting and broadcasting WebRTC. The authentication-backend is written in go and utilizes pocketbase to abstract most api endpoints.The frontend is in react and connects to the Go backend. The Go server can be used to serve the HTML/CSS/JS directly. Use the following instructions to build from source or utilize [Docker](#docker) / [Docker Compose](#docker-compose).
 
 ### Configuring
 
