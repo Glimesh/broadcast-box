@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,6 +29,11 @@ const (
 	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
 	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
 	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
+)
+
+var (
+	webhookURL     string
+	webhookTimeout int
 )
 
 var noBuildDirectoryErr = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
@@ -56,6 +62,7 @@ func extractBearerToken(authHeader string) (string, bool) {
 	return "", false
 }
 
+// For streaming
 func whipHandler(res http.ResponseWriter, r *http.Request) {
 	if r.Method == "DELETE" {
 		return
@@ -73,13 +80,21 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Prepare webhook payload
+	payload := prepareWebhookPayload("publish", streamKey, r)
+	username, statusCode, err := handleWebhook(payload)
+	if err != nil {
+		logHTTPError(res, err.Error(), statusCode)
+		return
+	}
+
 	offer, err := io.ReadAll(r.Body)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	answer, err := webrtc.WHIP(string(offer), streamKey)
+	answer, err := webrtc.WHIP(string(offer), username)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -91,15 +106,16 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(res, answer)
 }
 
+// For watching
 func whepHandler(res http.ResponseWriter, req *http.Request) {
-	streamKeyHeader := req.Header.Get("Authorization")
-	if streamKeyHeader == "" {
+	targetHeader := req.Header.Get("Authorization")
+	if targetHeader == "" {
 		logHTTPError(res, "Authorization was not set", http.StatusBadRequest)
 		return
 	}
 
-	streamKey, ok := extractBearerToken(streamKeyHeader)
-	if !ok || !validateStreamKey(streamKey) {
+	target, ok := extractBearerToken(targetHeader)
+	if !ok || !validateStreamKey(target) {
 		logHTTPError(res, "Invalid stream key format", http.StatusBadRequest)
 		return
 	}
@@ -110,7 +126,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	answer, whepSessionId, err := webrtc.WHEP(string(offer), streamKey)
+	answer, whepSessionId, err := webrtc.WHEP(string(offer), target)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -268,6 +284,12 @@ func main() {
 
 	}
 
+	webhookURL = os.Getenv("WEBHOOK_URL")
+	webhookTimeout, _ := strconv.Atoi(os.Getenv("WEBHOOK_TIMEOUT"))
+	if webhookTimeout == 0 {
+		webhookTimeout = 5000 // Default to 5 seconds if not set or invalid
+	}
+
 	mux := http.NewServeMux()
 	if os.Getenv("DISABLE_FRONTEND") == "" {
 		mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
@@ -308,4 +330,49 @@ func main() {
 		log.Fatal(server.ListenAndServe())
 	}
 
+}
+
+func prepareWebhookPayload(action, streamKey string, r *http.Request) webrtc.WebhookPayload {
+	// Convert url.Values to map[string]string
+	queryParams := make(map[string]string)
+	for k, v := range r.URL.Query() {
+		if len(v) > 0 {
+			queryParams[k] = v[0]
+		}
+	}
+
+	return webrtc.WebhookPayload{
+		Action:      action,
+		StreamKey:   streamKey,
+		IP:          getIPAddress(r),
+		BearerToken: streamKey,
+		QueryParams: queryParams,
+		UserAgent:   r.UserAgent(),
+	}
+}
+
+func handleWebhook(payload webrtc.WebhookPayload) (string, int, error) {
+	if webhookURL == "" {
+		return "", http.StatusOK, nil
+	}
+
+	username, statusCode, err := webrtc.CallWebhook(webhookURL, webhookTimeout, payload)
+	if err != nil {
+		return username, http.StatusInternalServerError, fmt.Errorf("Webhook call failed: %w", err)
+	}
+	if statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden {
+		return username, statusCode, fmt.Errorf("Webhook denied access")
+	}
+	if statusCode != http.StatusOK {
+		return username, statusCode, fmt.Errorf("Webhook returned unexpected status")
+	}
+	return username, http.StatusOK, nil
+}
+
+func getIPAddress(r *http.Request) string {
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = r.RemoteAddr
+	}
+	return ip
 }

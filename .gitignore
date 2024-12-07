@@ -21,3 +21,6 @@ broadcast-box
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Pocketbase
+authentication-backend/pb_data
