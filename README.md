@@ -135,7 +135,7 @@ the latency of 120 milliseconds observed.
 
 ## Getting Started
 
-Broadcast Box is made up of two parts. The server is written in Go and is in charge of ingesting and broadcasting WebRTC. The frontend is in react and connects to the Go backend. The Go server can be used to serve the HTML/CSS/JS directly. Use the following instructions to build from source or utilize [Docker](#docker) / [Docker Compose](#docker-compose).
+Broadcast Box is made up of three parts. The server is written in Go and is in charge of ingesting and broadcasting WebRTC. The authentication-backend is written in go and utilizes pocketbase to abstract most api endpoints.The frontend is in react and connects to the Go backend. The Go server can be used to serve the HTML/CSS/JS directly. Use the following instructions to build from source or utilize [Docker](#docker) / [Docker Compose](#docker-compose).
 
 ### Configuring
 
@@ -175,6 +175,12 @@ To run the Go server, run `go run .` in the root of this project, you should see
 ```
 
 To use Broadcast Box navigate to: `http://<YOUR_IP>:8080`. In your broadcast tool of choice, you will broadcast to `http://<YOUR_IP>:8080/api/whip`.
+
+#### Authetication-backend
+The authentication backend can be started by going into the `authentication-backend` folder and run:
+```shell
+go run main.go serve 
+```
 
 ### Docker
 
