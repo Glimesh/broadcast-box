@@ -31,7 +31,7 @@ func HandleServeEvent(e *core.ServeEvent) error {
 		err = e.App.Dao().DB().
 			Select("username").
 			From("users").
-			InnerJoin("streamkeys", dbx.NewExp("users.streamkey_id = streamkeys.id")).
+			InnerJoin("streamkeys", dbx.NewExp("users.streamkey_ID = streamkeys.id")).
 			Where(dbx.NewExp("streamkey = {:input}", dbx.Params{"input": streamkey})).One(user)
 		if err != nil {
 			e.App.Logger().Error("Error finding user: " + err.Error())

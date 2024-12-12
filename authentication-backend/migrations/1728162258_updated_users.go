@@ -11,7 +11,7 @@ import (
 
 func init() {
 	m.Register(func(db dbx.Builder) error {
-		dao := daos.New(db);
+		dao := daos.New(db)
 
 		collection, err := dao.FindCollectionByNameOrId("_pb_users_auth_")
 		if err != nil {
@@ -23,7 +23,7 @@ func init() {
 		if err := json.Unmarshal([]byte(`{
 			"system": false,
 			"id": "yb8cpxlq",
-			"name": "streamkey",
+			"name": "streamkey_ID",
 			"type": "relation",
 			"required": false,
 			"presentable": false,
@@ -42,7 +42,7 @@ func init() {
 
 		return dao.SaveCollection(collection)
 	}, func(db dbx.Builder) error {
-		dao := daos.New(db);
+		dao := daos.New(db)
 
 		collection, err := dao.FindCollectionByNameOrId("_pb_users_auth_")
 		if err != nil {
