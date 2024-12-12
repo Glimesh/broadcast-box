@@ -176,6 +176,12 @@ To run the Go server, run `go run .` in the root of this project, you should see
 
 To use Broadcast Box navigate to: `http://<YOUR_IP>:8080`. In your broadcast tool of choice, you will broadcast to `http://<YOUR_IP>:8080/api/whip`.
 
+#### Authetication-backend
+The authentication backend can be started by going into the `authentication-backend` folder and run:
+```shell
+go run main.go serve 
+```
+
 ### Docker
 
 A Docker image is also provided to make it easier to run locally and in production. The arguments you run the Dockerfile with depending on
