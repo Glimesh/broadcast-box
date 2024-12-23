@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@web3-storage/parse-link-header": "^3.1.0",
-    "dotenv-cli": "^7.4.4",
+    "dotenv-cli": "^8.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "^5.0.1"
