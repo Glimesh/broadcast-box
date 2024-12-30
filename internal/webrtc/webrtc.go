@@ -28,6 +28,8 @@ const (
 	videoTrackCodecVP8
 	videoTrackCodecVP9
 	videoTrackCodecAV1
+
+	playoutDelayURI = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
 )
 
 type (
@@ -381,6 +383,14 @@ func Configure() {
 
 	interceptorRegistry := &interceptor.Registry{}
 	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := mediaEngine.RegisterHeaderExtension(webrtc.RTPHeaderExtensionCapability{URI: playoutDelayURI}, webrtc.RTPCodecTypeVideo); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := mediaEngine.RegisterHeaderExtension(webrtc.RTPHeaderExtensionCapability{URI: playoutDelayURI}, webrtc.RTPCodecTypeAudio); err != nil {
 		log.Fatal(err)
 	}
 
