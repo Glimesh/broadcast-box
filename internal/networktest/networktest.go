@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"time"
 
@@ -57,7 +58,14 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 		}
 	})
 
-	req := httptest.NewRequest("POST", "/api/whip", strings.NewReader(offer.SDP))
+
+	// Retrieve the base path from the environment variable
+	basePath := os.Getenv("BASE_PATH")
+	if basePath == "" {
+		basePath = "/" // Default to root if not specified
+	}
+
+	req := httptest.NewRequest("POST", basePath+"/api/whip", strings.NewReader(offer.SDP))
 	req.Header["Authorization"] = []string{"Bearer networktest"}
 	recorder := httptest.NewRecorder()
 
