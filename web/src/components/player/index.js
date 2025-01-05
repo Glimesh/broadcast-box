@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { parseLinkHeader } from '@web3-storage/parse-link-header'
 import { useLocation, useSearchParams } from 'react-router-dom'
+import { Statistics } from '../statistics';
 
 export const CinemaModeContext = React.createContext(null);
 
@@ -36,8 +37,9 @@ function PlayerPage() {
 }
 
 function Player({ cinemaMode }) {
-  const videoRef = React.createRef()
-  const location = useLocation()
+  const videoRef = React.createRef();
+  const connectionRef = React.createRef();
+  const location = useLocation();
   const [videoLayers, setVideoLayers] = React.useState([]);
   const [mediaSrcObject, setMediaSrcObject] = React.useState(null);
   const [layerEndpoint, setLayerEndpoint] = React.useState('');
@@ -60,7 +62,7 @@ function Player({ cinemaMode }) {
 
   React.useEffect(() => {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
-
+    connectionRef.current = peerConnection;
     peerConnection.ontrack = function (event) {
       setMediaSrcObject(event.streams[0])
     }
@@ -104,7 +106,7 @@ function Player({ cinemaMode }) {
     return function cleanup() {
       peerConnection.close()
     }
-  }, [location.pathname])
+  }, [location.pathname, connectionRef])
 
   return (
     <>
@@ -129,6 +131,7 @@ function Player({ cinemaMode }) {
           })}
         </select>
       }
+      <Statistics visible={true} connectionRef={connectionRef} />
     </>
   )
 }
