@@ -28,6 +28,7 @@ const (
 	videoTrackCodecVP8
 	videoTrackCodecVP9
 	videoTrackCodecAV1
+	videoTrackCodecH265
 )
 
 type (
@@ -81,6 +82,8 @@ func getVideoTrackCodec(in string) videoTrackCodec {
 		return videoTrackCodecVP9
 	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeAV1)):
 		return videoTrackCodecAV1
+	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeH265)):
+		return videoTrackCodecH265
 	}
 
 	return 0
@@ -305,6 +308,7 @@ func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 		{45, webrtc.MimeTypeAV1, ""},
 		{98, webrtc.MimeTypeVP9, "profile-id=0"},
 		{100, webrtc.MimeTypeVP9, "profile-id=2"},
+		{113, webrtc.MimeTypeH265, "level-id=93;profile-id=1;tier-flag=0;tx-mode=SRST"},
 	} {
 		if err := m.RegisterCodec(webrtc.RTPCodecParameters{
 			RTPCodecCapability: webrtc.RTPCodecCapability{

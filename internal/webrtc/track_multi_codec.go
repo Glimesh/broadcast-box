@@ -9,7 +9,7 @@ type trackMultiCodec struct {
 	ssrc        webrtc.SSRC
 	writeStream webrtc.TrackLocalWriter
 
-	payloadTypeH264, payloadTypeVP8, payloadTypeVP9, payloadTypeAV1 uint8
+	payloadTypeH264, payloadTypeH265, payloadTypeVP8, payloadTypeVP9, payloadTypeAV1 uint8
 
 	id, rid, streamID string
 }
@@ -29,6 +29,8 @@ func (t *trackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecPar
 			t.payloadTypeVP9 = uint8(codecs[i].PayloadType)
 		case videoTrackCodecAV1:
 			t.payloadTypeAV1 = uint8(codecs[i].PayloadType)
+		case videoTrackCodecH265:
+			t.payloadTypeH265 = uint8(codecs[i].PayloadType)
 		}
 	}
 
@@ -51,6 +53,8 @@ func (t *trackMultiCodec) WriteRTP(p *rtp.Packet, codec videoTrackCodec) error {
 		p.Header.PayloadType = t.payloadTypeVP9
 	case videoTrackCodecAV1:
 		p.Header.PayloadType = t.payloadTypeAV1
+	case videoTrackCodecH265:
+		p.Header.PayloadType = t.payloadTypeH265
 	}
 
 	_, err := t.writeStream.WriteRTP(&p.Header, p.Payload)
