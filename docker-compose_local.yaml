@@ -4,7 +4,9 @@ services:
     - INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP=yes
     - WEBHOOK_URL=http://authentication-backend:8090/internal/request-stream
     - WEBHOOK_TIMEOUT=5000
-    image: seaduboi/broadcast-box:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     hostname: broadcast-box
     container_name: broadcast-box
     network_mode: "host"
