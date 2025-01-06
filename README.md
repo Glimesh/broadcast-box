@@ -196,6 +196,13 @@ will be automatically updated every night. If you are running on a VPS/Cloud ser
 export URL=my-server.com
 docker-compose up -d
 ```
+
+## Authentication
+
+To prevent random users from streaming to your server, you can enable the authentication webhook to an external webserver.
+If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given by the external server, otherwise the streaming request is dropped.
+
+
 ## URL Parameters
 
 The frontend can be configured by passing these URL Parameters.
