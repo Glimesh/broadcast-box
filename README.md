@@ -202,6 +202,11 @@ will be automatically updated every night. If you are running on a VPS/Cloud ser
 export URL=my-server.com
 docker-compose up -d
 ```
+## URL Parameters
+
+The frontend can be configured by passing these URL Parameters.
+
+- `cinemaMode=true` - Forces the player into cinema mode by adding to end of URL like https://b.siobud.com/myStream?cinemaMode=true
 
 ## Environment Variables
 
