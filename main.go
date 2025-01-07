@@ -1,20 +1,19 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
-
-	"crypto/tls"
-	"log"
-	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
@@ -30,7 +29,7 @@ const (
 	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
 )
 
-var noBuildDirectoryErr = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
+var errNoBuildDirectoryErr = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
 
 type (
 	whepLayerRequestJSON struct {
@@ -207,7 +206,7 @@ func main() {
 			}
 
 			if _, err := os.Stat("./web/build"); os.IsNotExist(err) && os.Getenv("DISABLE_FRONTEND") == "" {
-				return noBuildDirectoryErr
+				return errNoBuildDirectoryErr
 			}
 
 			return nil
@@ -265,7 +264,6 @@ func main() {
 			log.Println("Running HTTP->HTTPS redirect Server at :" + httpsRedirectPort)
 			log.Fatal(redirectServer.ListenAndServe())
 		}()
-
 	}
 
 	mux := http.NewServeMux()
@@ -307,5 +305,4 @@ func main() {
 		log.Println("Running HTTP Server at `" + os.Getenv("HTTP_ADDRESS") + "`")
 		log.Fatal(server.ListenAndServe())
 	}
-
 }
