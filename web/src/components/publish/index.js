@@ -17,6 +17,11 @@ function Player(props) {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
     let stream = null
 
+    if (!navigator.mediaDevices) {
+      setMediaAccessError({name: 'NoMediaDevices'})
+      return
+    }
+
     const mediaPromise = useDisplayMedia ?
       navigator.mediaDevices.getDisplayMedia(mediaOptions) :
       navigator.mediaDevices.getUserMedia(mediaOptions)
@@ -107,6 +112,7 @@ function Player(props) {
 }
 
 const mediaErrorMessages = {
+  NoMediaDevices: `MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS 👮`,
   NotAllowedError: `You can't publish stream using your camera, because you have blocked access to it 😞`,
   NotFoundError: `Seems like you don't have camera 😭 Or you just blocked access to it...\n` +
     `Check camera settings, browser permissions and system permissions.`,
