@@ -220,6 +220,7 @@ The backend can be configured with the following environment variables.
 - `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
 - `NAT_ICE_CANDIDATE_TYPE` - By default setting a NAT_1_TO_1_IP overrides. Set this to `srflx` to instead append IPs
 - `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
+- `NETWORK_TYPES` - List of network types to use, delineated by '|'. Default is `udp4|udp6`.
 - `INCLUDE_LOOPBACK_CANDIDATE` - Also listen for WebRTC traffic on loopback, disabled by default
 
 - `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic

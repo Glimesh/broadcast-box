@@ -189,12 +189,24 @@ func getPublicIP() string {
 
 func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, tcpMuxCache map[string]ice.TCPMux) (settingEngine webrtc.SettingEngine) {
 	var (
-		NAT1To1IPs []string
-		udpMuxPort int
-		udpMuxOpts []ice.UDPMuxFromPortOption
-		err        error
+		NAT1To1IPs   []string
+		networkTypes []webrtc.NetworkType
+		udpMuxPort   int
+		udpMuxOpts   []ice.UDPMuxFromPortOption
+		err          error
 	)
-	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6}
+
+	if os.Getenv("NETWORK_TYPES") != "" {
+		for _, networkTypeStr := range strings.Split(os.Getenv("NETWORK_TYPES"), "|") {
+			networkType, err := webrtc.NewNetworkType(networkTypeStr)
+			if err != nil {
+				log.Fatal(err)
+			}
+			networkTypes = append(networkTypes, networkType)
+		}
+	} else {
+		networkTypes = append(networkTypes, webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6)
+	}
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
