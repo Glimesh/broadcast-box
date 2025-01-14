@@ -1,17 +1,26 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
+import ErrorHeader from '../error-header'
 
 let mediaOptions = {
   audio: true,
   video: true
 }
 
+const mediaErrorMessages = {
+  NoMediaDevices: `MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS 👮`,
+  NotAllowedError: `You can't publish stream using your camera, because you have blocked access to it 😞`,
+  NotFoundError: `Seems like you don't have camera 😭 Or you just blocked access to it...\n` +
+    `Check camera settings, browser permissions and system permissions.`,
+}
+
 function Player(props) {
   const videoRef = React.useRef(null)
   const location = useLocation()
-  const [mediaAccessError, setMediaAccessError] = React.useState(null);
-  const [publishSuccess, setPublishSuccess] = React.useState(false);
-  const [useDisplayMedia, setUseDisplayMedia] = React.useState(false);
+  const [mediaAccessError, setMediaAccessError] = React.useState(null)
+  const [publishSuccess, setPublishSuccess] = React.useState(false)
+  const [useDisplayMedia, setUseDisplayMedia] = React.useState(false)
+  const [peerConnectionDisconnected, setPeerConnectionDisconnected] = React.useState(false)
 
   React.useEffect(() => {
     const peerConnection = new RTCPeerConnection() // eslint-disable-line
@@ -29,7 +38,7 @@ function Player(props) {
     mediaPromise.then(s => {
       if (peerConnection.connectionState === "closed") {
         s.getTracks().forEach(t => t.stop())
-        return;
+        return
       }
 
       stream = s
@@ -58,6 +67,16 @@ function Player(props) {
         }
       })
 
+      peerConnection.oniceconnectionstatechange = () => {
+        if (peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed') {
+          setPublishSuccess(true)
+          setPeerConnectionDisconnected(false)
+        } else if (peerConnection.iceConnectionState === 'disconnected' ||  peerConnection.iceConnectionState === 'failed') {
+          setPublishSuccess(false)
+          setPeerConnectionDisconnected(true)
+        }
+      }
+
       peerConnection.createOffer().then(offer => {
         peerConnection.setLocalDescription(offer)
 
@@ -75,7 +94,6 @@ function Player(props) {
             sdp: answer,
             type: 'answer'
           })
-          setPublishSuccess(true)
         })
       })
     }, setMediaAccessError)
@@ -90,8 +108,11 @@ function Player(props) {
 
   return (
     <div className='container mx-auto'>
-      {mediaAccessError != null && <MediaAccessError>{mediaAccessError}</MediaAccessError>}
-      {publishSuccess === true && <PublishSuccess />}
+      {mediaAccessError != null && <ErrorHeader>
+        {mediaErrorMessages[mediaAccessError.name] ?? 'Could not access your media device:\n' + mediaAccessError}
+       </ErrorHeader>}
+      {peerConnectionDisconnected && <ErrorHeader> WebRTC has disconnected or failed to connect at all 😭 </ErrorHeader>}
+      {publishSuccess && <PublishSuccess />}
       <video
         ref={videoRef}
         autoPlay
@@ -108,23 +129,6 @@ function Player(props) {
           {useDisplayMedia && <> Publish Webcam instead </>}
       </button>
     </div>
-  )
-}
-
-const mediaErrorMessages = {
-  NoMediaDevices: `MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS 👮`,
-  NotAllowedError: `You can't publish stream using your camera, because you have blocked access to it 😞`,
-  NotFoundError: `Seems like you don't have camera 😭 Or you just blocked access to it...\n` +
-    `Check camera settings, browser permissions and system permissions.`,
-}
-
-function MediaAccessError({ children: error }) {
-  return (
-    <p className={'bg-red-700 text-white text-lg ' +
-      'text-center p-5 rounded-t-lg whitespace-pre-wrap'
-    }>
-      {mediaErrorMessages[error.name] ?? 'Could not access your media device:\n' + error}
-    </p>
   )
 }
 
