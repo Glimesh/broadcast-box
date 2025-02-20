@@ -86,7 +86,12 @@ function Player({ cinemaMode, peerConnectionDisconnected, setPeerConnectionDisco
       offer["sdp"] = offer["sdp"].replace("useinbandfec=1", "useinbandfec=1;stereo=1")
       peerConnection.setLocalDescription(offer)
 
-      fetch(`${import.meta.env.VITE_API_PATH}/whep`, {
+      const apiPath = import.meta.env.VITE_API_PATH ?? (() => {
+      console.warn('[broadcast box] REACT_APP_API_PATH is deprecated, please use VITE_API_PATH instead');
+      return import.meta.env.REACT_APP_API_PATH;
+      })();
+
+      fetch(`${apiPath}/whep`, {
         method: 'POST',
         body: offer.sdp,
         headers: {
