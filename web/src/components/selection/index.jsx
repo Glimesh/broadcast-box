@@ -30,14 +30,14 @@ function Selection(props) {
           <label className='block text-sm font-bold mb-2' htmlFor='streamKey'>
             Stream Key
           </label>
-          <input className='appearance-none border w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200' id='streamKey' type='text' placeholder='Stream Key' onChange={onStreamKeyChange} autoFocus />
+          <input className='appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200' id='streamKey' type='text' placeholder='Stream Key' onChange={onStreamKeyChange} autoFocus />
         </div>
         <div className='flex'>
-          <button className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='submit' onClick={onWatchStreamClick}>
+          <button className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='button' onClick={onWatchStreamClick}>
             Watch Stream
           </button>
 
-          <button className='ml-10 py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='button' onClick={onPublishStreamClick}>
+          <button className='ml-10 py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='button' onClick={onPublishStreamClick}>
             Publish Stream
           </button>
         </div>

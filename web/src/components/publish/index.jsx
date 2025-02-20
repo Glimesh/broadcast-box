@@ -80,7 +80,12 @@ function Player(props) {
       peerConnection.createOffer().then(offer => {
         peerConnection.setLocalDescription(offer)
 
-        fetch(`${process.env.REACT_APP_API_PATH}/whip`, {
+        const apiPath = import.meta.env.VITE_API_PATH ?? (() => {
+          console.warn('[broadcast box] REACT_APP_API_PATH is deprecated, please use VITE_API_PATH instead');
+          return import.meta.env.REACT_APP_API_PATH;
+        })();
+
+        fetch(`${apiPath}/whip`, {
           method: 'POST',
           body: offer.sdp,
           headers: {
@@ -124,7 +129,7 @@ function Player(props) {
 
       <button
         onClick={() => { setUseDisplayMedia(!useDisplayMedia)}}
-        className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200">
+        className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
           {!useDisplayMedia && <> Publish Screen/Window/Tab instead </>}
           {useDisplayMedia && <> Publish Webcam instead </>}
       </button>
