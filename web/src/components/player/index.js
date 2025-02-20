@@ -86,7 +86,7 @@ function Player({ cinemaMode, peerConnectionDisconnected, setPeerConnectionDisco
       offer["sdp"] = offer["sdp"].replace("useinbandfec=1", "useinbandfec=1;stereo=1")
       peerConnection.setLocalDescription(offer)
 
-      fetch(`${process.env.REACT_APP_API_PATH}/whep`, {
+      fetch(`${import.meta.env.VITE_API_PATH}/whep`, {
         method: 'POST',
         body: offer.sdp,
         headers: {

@@ -2,18 +2,16 @@
   "name": "broadcast-box",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@web3-storage/parse-link-header": "^3.1.0",
-    "dotenv-cli": "^8.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-scripts": "^5.0.1"
+    "react-dom": "^19.0.0"
   },
   "scripts": {
-    "start": "dotenv -e ../.env.development react-scripts start",
-    "build": "dotenv -e ../.env.production react-scripts build",
-    "lint": "eslint ./src --max-warnings 0",
-    "eject": "react-scripts eject"
+    "start": "vite",
+    "build": "vite build",
+    "lint": "eslint ./src --max-warnings 0"
   },
   "eslintConfig": {
     "extends": [
@@ -36,8 +34,11 @@
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@tailwindcss/postcss": "^4.0.7",
+    "@tailwindcss/vite": "^4.0.7",
+    "@vitejs/plugin-react": "^4.3.4",
     "postcss": "^8.5.3",
-    "react-router-dom": "^6.22.2",
-    "tailwindcss": "^4.0.7"
+    "react-router-dom": "^7.2.0",
+    "tailwindcss": "^4.0.7",
+    "vite": "^6.1.1"
   }
 }

@@ -80,7 +80,7 @@ function Player(props) {
       peerConnection.createOffer().then(offer => {
         peerConnection.setLocalDescription(offer)
 
-        fetch(`${process.env.REACT_APP_API_PATH}/whip`, {
+        fetch(`${import.meta.env.VITE_API_PATH}/whip`, {
           method: 'POST',
           body: offer.sdp,
           headers: {
