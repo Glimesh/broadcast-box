@@ -136,7 +136,7 @@ function Player({ cinemaMode, peerConnectionDisconnected, setPeerConnectionDisco
       />
 
       {videoLayers.length >= 2 &&
-        <select defaultValue="disabled" onChange={onLayerChange} className="appearance-none border w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200">
+        <select defaultValue="disabled" onChange={onLayerChange} className="appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
           <option value="disabled" disabled={true}>Choose Quality Level</option>
           {videoLayers.map(layer => {
             return <option key={layer} value={layer}>{layer}</option>

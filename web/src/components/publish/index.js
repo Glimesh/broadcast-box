@@ -124,7 +124,7 @@ function Player(props) {
 
       <button
         onClick={() => { setUseDisplayMedia(!useDisplayMedia)}}
-        className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-none focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded shadow-md placeholder-gray-200">
+        className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
           {!useDisplayMedia && <> Publish Screen/Window/Tab instead </>}
           {useDisplayMedia && <> Publish Webcam instead </>}
       </button>
