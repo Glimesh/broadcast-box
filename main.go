@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
 	"github.com/joho/godotenv"
@@ -274,6 +275,14 @@ func main() {
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
+
+	// Initialize chat manager
+	chatManager := chat.NewChatManager()
+	
+	// Chat WebSocket endpoint
+	mux.HandleFunc("/api/chat", corsHandler(func(w http.ResponseWriter, r *http.Request) {
+		chat.ChatWebSocketHandler(w, r, chatManager)
+	}))
 
 	if os.Getenv("DISABLE_STATUS") == "" {
 		mux.HandleFunc("/api/status", corsHandler(statusHandler))

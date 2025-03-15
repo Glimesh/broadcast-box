@@ -80,12 +80,28 @@ function Player(props) {
       peerConnection.createOffer().then(offer => {
         peerConnection.setLocalDescription(offer)
 
+        // Get API path from environment variables, with fallback to deprecated REACT_APP_API_PATH
         const apiPath = import.meta.env.VITE_API_PATH ?? (() => {
           console.warn('[broadcast box] REACT_APP_API_PATH is deprecated, please use VITE_API_PATH instead');
           return import.meta.env.REACT_APP_API_PATH;
         })();
 
-        fetch(`${apiPath}/whip`, {
+        // For API calls, always use dynamic URL construction for consistent behavior with WebSockets
+        let fetchUrl;
+        if (apiPath && (apiPath.startsWith('http://') || apiPath.startsWith('https://'))) {
+          // Use the full URL from environment
+          fetchUrl = `${apiPath}/whip`;
+        } else if (apiPath) {
+          // It's just a path, use with current host
+          fetchUrl = `${window.location.protocol}//${window.location.host}${apiPath}/whip`;
+        } else {
+          // No API path, just use current host with /api prefix
+          fetchUrl = `${window.location.protocol}//${window.location.host}/api/whip`;
+        }
+        
+        console.log('Fetching from:', fetchUrl);
+        
+        fetch(fetchUrl, {
           method: 'POST',
           body: offer.sdp,
           headers: {

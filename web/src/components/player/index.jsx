@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { parseLinkHeader } from '@web3-storage/parse-link-header'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import ErrorHeader from '../error-header'
+import Chat from '../chat'
 
 export const CinemaModeContext = React.createContext(null);
 
@@ -28,14 +29,31 @@ function PlayerPage() {
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
   const [peerConnectionDisconnected, setPeerConnectionDisconnected] = React.useState(false)
 
+  const location = useLocation()
+  const streamKey = location.pathname.split('/').pop()
+  
   return (
     <>
       {peerConnectionDisconnected && <ErrorHeader> WebRTC has disconnected or failed to connect at all 😭 </ErrorHeader>}
       <div className={`flex flex-col items-center ${!cinemaMode && 'mx-auto px-2 py-2 container'}`}>
-        <Player cinemaMode={cinemaMode} peerConnectionDisconnected={peerConnectionDisconnected} setPeerConnectionDisconnected={setPeerConnectionDisconnected} />
-        <button className='bg-blue-900 px-4 py-2 rounded-lg mt-6' onClick={toggleCinemaMode}>
-          {cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
-        </button>
+        <div className={`w-full ${cinemaMode ? 'flex flex-col' : 'grid grid-cols-1 lg:grid-cols-3 gap-4'}`}>
+          <div className={cinemaMode ? 'w-full' : 'lg:col-span-2'}>
+            <Player 
+              cinemaMode={cinemaMode} 
+              peerConnectionDisconnected={peerConnectionDisconnected} 
+              setPeerConnectionDisconnected={setPeerConnectionDisconnected} 
+            />
+            <button className='bg-blue-900 px-4 py-2 rounded-lg mt-6' onClick={toggleCinemaMode}>
+              {cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
+            </button>
+          </div>
+          
+          {!cinemaMode && (
+            <div className="h-[500px] lg:h-[600px]">
+              <Chat roomName={streamKey} />
+            </div>
+          )}
+        </div>
       </div>
     </>
   )
@@ -86,12 +104,28 @@ function Player({ cinemaMode, peerConnectionDisconnected, setPeerConnectionDisco
       offer["sdp"] = offer["sdp"].replace("useinbandfec=1", "useinbandfec=1;stereo=1")
       peerConnection.setLocalDescription(offer)
 
+      // Get API path from environment variables, with fallback to deprecated REACT_APP_API_PATH
       const apiPath = import.meta.env.VITE_API_PATH ?? (() => {
-      console.warn('[broadcast box] REACT_APP_API_PATH is deprecated, please use VITE_API_PATH instead');
-      return import.meta.env.REACT_APP_API_PATH;
+        console.warn('[broadcast box] REACT_APP_API_PATH is deprecated, please use VITE_API_PATH instead');
+        return import.meta.env.REACT_APP_API_PATH;
       })();
 
-      fetch(`${apiPath}/whep`, {
+      // For API calls, always use dynamic URL construction for consistent behavior with WebSockets
+      let fetchUrl;
+      if (apiPath && (apiPath.startsWith('http://') || apiPath.startsWith('https://'))) {
+        // Use the full URL from environment
+        fetchUrl = `${apiPath}/whep`;
+      } else if (apiPath) {
+        // It's just a path, use with current host
+        fetchUrl = `${window.location.protocol}//${window.location.host}${apiPath}/whep`;
+      } else {
+        // No API path, just use current host with /api prefix
+        fetchUrl = `${window.location.protocol}//${window.location.host}/api/whep`;
+      }
+      
+      console.log('Fetching from:', fetchUrl);
+      
+      fetch(fetchUrl, {
         method: 'POST',
         body: offer.sdp,
         headers: {

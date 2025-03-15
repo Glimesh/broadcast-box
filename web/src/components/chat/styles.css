@@ -1,0 +1,257 @@
+.chat-component {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  overflow: hidden;
+}
+
+.chat-header {
+  padding: 12px 16px;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #e1e1e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chat-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.status-connected {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.status-disconnected {
+  color: #f44336;
+  font-weight: 500;
+}
+
+.reconnect-button {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.reconnect-button:hover {
+  background-color: #0d8bf2;
+}
+
+.chat-error {
+  padding: 12px 16px;
+  background-color: #ffebee;
+  color: #c62828;
+  font-size: 14px;
+  border-bottom: 1px solid #ffcdd2;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100% - 120px); /* Subtract header and input form height */
+}
+
+.chat-empty {
+  text-align: center;
+  color: #666666;
+  margin: auto;
+}
+
+.chat-message {
+  padding: 10px 14px;
+  border-radius: 8px;
+  max-width: 85%;
+  word-break: break-word;
+}
+
+.chat-message.self {
+  align-self: flex-end;
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+}
+
+.chat-message.other {
+  align-self: flex-start;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+}
+
+.chat-message.system {
+  align-self: center;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  color: #444444;
+  font-style: italic;
+  font-size: 13px;
+  max-width: 90%;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.message-sender {
+  font-weight: 600;
+  color: #000000;
+}
+
+.message-time {
+  color: #444444;
+  font-size: 12px;
+}
+
+.message-content {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #222222;
+}
+
+.chat-input-form {
+  display: flex;
+  padding: 12px;
+  border-top: 1px solid #e1e1e1;
+  background-color: white;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #000000;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #2196f3;
+}
+
+.chat-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.chat-send-button {
+  margin-left: 8px;
+  padding: 0 16px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.chat-send-button:hover:not(:disabled) {
+  background-color: #0d8bf2;
+}
+
+.chat-send-button:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+}
+/* Add these to your styles.css file */
+
+.chat-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.user-count {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+}
+
+.user-count-label {
+  color: #555;
+}
+
+.user-count-number {
+  font-weight: bold;
+  background-color: #4a76a8;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Add these styles to your existing styles.css file */
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 5px;
+}
+
+.current-user {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.nickname-hint {
+  font-size: 0.8em;
+  color: #7f8c8d;
+  margin-top: 2px;
+}
+
+/* Update chat header to accommodate the new user info section */
+.chat-header {
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .chat-info {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* Style for system messages about nickname changes */
+.chat-message.system:has(.message-content:contains("changed their nickname")) {
+  background-color: #f0f7ff;
+  border-left: 3px solid #7c9fc4;
+}

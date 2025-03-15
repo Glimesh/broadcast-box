@@ -12,7 +12,7 @@ const Header = () => {
           <div className='container mx-auto flex flex-wrap items-center'>
             <div className='flex flex-1 text-white font-extrabold'>
               <Link to="/" className='font-light leading-tight text-2xl'>
-                Broadcast Box
+               HanSoloBlaster
               </Link>
             </div>
           </div>
