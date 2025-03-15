@@ -64,26 +64,31 @@ const Chat = ({ roomName = 'default', username: usernameProp = null }) => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     
-    // Get API path from environment variables
-    const apiPathBase = import.meta.env.VITE_API_PATH || '';
+    // Get API path from environment variables, with fallback to deprecated REACT_APP_API_PATH
+    // Using the same approach as the player component for consistency
+    const apiPath = import.meta.env.VITE_API_PATH ?? (() => {
+      console.warn('[broadcast box] REACT_APP_API_PATH is deprecated, please use VITE_API_PATH instead');
+      return import.meta.env.REACT_APP_API_PATH;
+    })();
     
-    // Build WebSocket URL with username parameter
+    // Build WebSocket URL with username parameter - using same logic as player component
     let wsUrl;
-    if (apiPathBase && (apiPathBase.startsWith('http://') || apiPathBase.startsWith('https://'))) {
-      const apiUrl = new URL(apiPathBase);
-      const apiPath = apiUrl.pathname.endsWith('/api') 
-        ? apiUrl.pathname.slice(0, -4) 
-        : apiUrl.pathname;
-      
-      wsUrl = `${protocol}//${host}${apiPath}/api/chat?room=${encodeURIComponent(roomName)}&username=${encodeURIComponent(username)}`;
-    } else if (apiPathBase) {
-      const apiPath = apiPathBase.endsWith('/api') 
-        ? apiPathBase.slice(0, -4)
-        : apiPathBase;
-      
-      wsUrl = `${protocol}//${host}${apiPath}/api/chat?room=${encodeURIComponent(roomName)}&username=${encodeURIComponent(username)}`;
+    if (apiPath && (apiPath.startsWith('http://') || apiPath.startsWith('https://'))) {
+      // Use the full URL from environment
+      wsUrl = `${protocol}//${host}${apiPath}/chat?room=${encodeURIComponent(roomName)}&username=${encodeURIComponent(username)}`;
+    } else if (apiPath) {
+      // It's just a path, use with current host
+      wsUrl = `${protocol}//${host}${apiPath}/chat?room=${encodeURIComponent(roomName)}&username=${encodeURIComponent(username)}`;
     } else {
+      // No API path, just use current host with /api prefix
       wsUrl = `${protocol}//${host}/api/chat?room=${encodeURIComponent(roomName)}&username=${encodeURIComponent(username)}`;
+    }
+    
+    // Fix the URL if it has a double path issue - there shouldn't be /api/api/
+    wsUrl = wsUrl.replace('/api/api/', '/api/');
+    // Fix the endpoint if necessary - ensure we use /api/chat
+    if (!wsUrl.includes('/api/chat')) {
+      wsUrl = wsUrl.replace('/chat', '/api/chat');
     }
     
     console.log('Connecting to WebSocket URL:', wsUrl);

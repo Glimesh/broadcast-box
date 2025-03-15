@@ -133,11 +133,30 @@ function Player({ cinemaMode, peerConnectionDisconnected, setPeerConnectionDisco
           'Content-Type': 'application/sdp'
         }
       }).then(r => {
-        const parsedLinkHeader = parseLinkHeader(r.headers.get('Link'))
-        setLayerEndpoint(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`)
+        const linkHeader = r.headers.get('Link');
+        if (!linkHeader) {
+          console.error('WHEP server did not return Link header');
+          throw new Error('WHEP server did not return Link header');
+        }
+        
+        const parsedLinkHeader = parseLinkHeader(linkHeader);
+        
+        // Check for required endpoints
+        if (!parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'] || 
+            !parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events']) {
+          console.error('WHEP server returned incomplete Link header', parsedLinkHeader);
+          throw new Error('WHEP server returned incomplete Link header');
+        }
+        
+        // Set layer endpoint
+        setLayerEndpoint(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`);
 
-        const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
-        evtSource.onerror = err => evtSource.close();
+        // Create EventSource for layers
+        const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`);
+        evtSource.onerror = err => {
+          console.error('EventSource error:', err);
+          evtSource.close();
+        };
 
         evtSource.addEventListener("layers", event => {
           const parsed = JSON.parse(event.data)
