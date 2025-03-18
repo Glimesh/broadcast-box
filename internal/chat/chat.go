@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -17,6 +18,13 @@ type Message struct {
 	Content string `json:"content"`
 	Sender  string `json:"sender,omitempty"`
 	NewNick string `json:"newNick,omitempty"` // Add this field for nickname changes
+	Users   []User `json:"users,omitempty"`   // Add this field for user list updates
+}
+
+// User represents a chat user with their connection status
+type User struct {
+	Username string `json:"username"`
+	Status   string `json:"status"` // "connected" or "disconnected"
 }
 
 // Client represents a connected chat client
@@ -27,6 +35,7 @@ type Client struct {
 	SendBuffer chan []byte
 	Manager    *ChatManager
 	Username   string // Add username field for tracking current nickname
+	LastPing   time.Time // Track the last ping time
 }
 
 // Room represents a chat room
@@ -167,6 +176,54 @@ func (room *Room) BroadcastUserCount() {
 			// Buffer full, skip
 		}
 	}
+	
+	// Also broadcast the user list
+	room.BroadcastUserList()
+}
+
+// BroadcastUserList sends the current user list with status to all clients in the room
+func (room *Room) BroadcastUserList() {
+	room.mu.RLock()
+	
+	// Build user list
+	users := make([]User, 0, len(room.Clients))
+	
+	// Copy clients to a temporary map to avoid holding the lock during broadcast
+	clients := make(map[string]*Client, len(room.Clients))
+	for id, client := range room.Clients {
+		clients[id] = client
+		users = append(users, User{
+			Username: client.Username,
+			Status:   "connected",
+		})
+	}
+	room.mu.RUnlock()
+	
+	// Log user list update
+	log.Printf("Broadcasting user list with %d users for room %s", len(users), room.Name)
+	
+	// Create user list message
+	userListMsg := Message{
+		Type:  "userlist",
+		Users: users,
+	}
+	
+	// Convert to JSON
+	jsonMsg, err := json.Marshal(userListMsg)
+	if err != nil {
+		log.Printf("Error marshaling user list message: %v", err)
+		return
+	}
+	
+	// Broadcast to all clients
+	for _, client := range clients {
+		select {
+		case client.SendBuffer <- jsonMsg:
+			// Message sent
+		default:
+			// Buffer full, skip
+		}
+	}
 }
 
 // Broadcast sends a message to all clients in the room
@@ -239,6 +296,19 @@ func (client *Client) readPump() {
 		close(client.SendBuffer)
 	}()
 
+	// Set read limit to prevent memory issues
+	client.Conn.SetReadLimit(maxMessageSize)
+	
+	// Set deadline for initial pong message
+	client.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	
+	// Configure pong handler to reset deadline
+	client.Conn.SetPongHandler(func(string) error {
+		client.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		client.LastPing = time.Now()
+		return nil
+	})
+
 	for {
 		_, message, err := client.Conn.ReadMessage()
 		if err != nil {
@@ -247,6 +317,9 @@ func (client *Client) readPump() {
 			}
 			break
 		}
+
+		// Update read deadline with each message
+		client.Conn.SetReadDeadline(time.Now().Add(pongWait))
 
 		// Try to parse the message
 		var msgObj Message
@@ -261,10 +334,11 @@ func (client *Client) readPump() {
 			// Regular chat message - broadcast to everyone in the room except sender
 			// No need to echo messages back to sender as they're handled locally
 			client.Room.Broadcast(message, client.ID)
-		case "join", "leave":
-			// System messages for join/leave events - broadcast to everyone
-			client.Room.Broadcast(message, client.ID)
-			// No need to echo these back to sender
+		case "join":
+			// Don't broadcast system messages for join events anymore, just update user list
+			client.Room.BroadcastUserList()
+		case "leave":
+			// Don't broadcast system messages for leave events either, user list will update automatically
 		case "nickname":
 			// Nickname change message
 			oldNick := client.UpdateNickname(msgObj.NewNick)
@@ -284,7 +358,25 @@ func (client *Client) readPump() {
 
 			// Broadcast to everyone including the sender
 			client.Room.Broadcast(jsonMsg, "")
-
+			
+			// Update user list after nickname change
+			client.Room.BroadcastUserList()
+		case "ping":
+			// Handle client-side ping messages
+			client.LastPing = time.Now()
+			
+			// Send pong response
+			pongMsg := Message{
+				Type: "pong",
+			}
+			
+			jsonMsg, err := json.Marshal(pongMsg)
+			if err != nil {
+				log.Printf("Error marshaling pong message: %v", err)
+				continue
+			}
+			
+			client.SendBuffer <- jsonMsg
 		default:
 			// Unknown message type
 			log.Printf("Unknown message type: %s", msgObj.Type)
@@ -294,23 +386,76 @@ func (client *Client) readPump() {
 
 // writePump writes messages to the WebSocket
 func (client *Client) writePump() {
-	defer client.Conn.Close()
+	// Ticker for sending pings to the client
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		client.Conn.Close()
+	}()
+
+	// Initialize LastPing
+	client.LastPing = time.Now()
 
 	for {
-		message, ok := <-client.SendBuffer
-		if !ok {
-			// Channel closed
-			client.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-			return
-		}
+		select {
+		case message, ok := <-client.SendBuffer:
+			if !ok {
+				// Channel closed
+				client.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
 
-		err := client.Conn.WriteMessage(websocket.TextMessage, message)
-		if err != nil {
-			log.Printf("Error writing message: %v", err)
-			return
+			// Set write deadline
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			
+			err := client.Conn.WriteMessage(websocket.TextMessage, message)
+			if err != nil {
+				log.Printf("Error writing message: %v", err)
+				return
+			}
+			
+		case <-ticker.C:
+			// Send ping to client
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			
+			// Send a ping frame
+			if err := client.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Printf("Error sending ping: %v", err)
+				return
+			}
+			
+			// Also send a ping message that the client can handle in JavaScript
+			pingMsg := Message{
+				Type: "ping",
+			}
+			
+			jsonMsg, err := json.Marshal(pingMsg)
+			if err != nil {
+				log.Printf("Error marshaling ping message: %v", err)
+				continue
+			}
+			
+			// Set write deadline and send message
+			client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := client.Conn.WriteMessage(websocket.TextMessage, jsonMsg); err != nil {
+				log.Printf("Error sending ping message: %v", err)
+				return
+			}
 		}
 	}
 }
+
+// Constants for WebSocket configuration
+const (
+	// Time allowed to read the next pong message from the client.
+	pongWait = 30 * time.Minute
+
+	// Send pings to client with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+
+	// Maximum message size allowed from client.
+	maxMessageSize = 4096
+)
 
 // Upgrader for WebSocket connections
 var upgrader = websocket.Upgrader{
@@ -359,6 +504,7 @@ func ChatWebSocketHandler(w http.ResponseWriter, r *http.Request, cm *ChatManage
 		SendBuffer: make(chan []byte, 256),
 		Manager:    cm,
 		Username:   username, // Store the username in the client
+		LastPing:   time.Now(),
 	}
 
 	// Start client goroutines

@@ -128,7 +128,7 @@ function Player(props) {
   }, [videoRef, useDisplayMedia, location.pathname])
 
   return (
-    <div className='container mx-auto'>
+    <div className='w-full px-2'>
       {mediaAccessError != null && <ErrorHeader>
         {mediaErrorMessages[mediaAccessError.name] ?? 'Could not access your media device:\n' + mediaAccessError}
        </ErrorHeader>}
