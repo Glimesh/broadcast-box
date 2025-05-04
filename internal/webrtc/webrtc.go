@@ -108,6 +108,10 @@ func getStream(streamKey string, forWHIP bool) (*stream, error) {
 			firstSeenEpoch:          uint64(time.Now().Unix()),
 		}
 		streamMap[streamKey] = foundStream
+	} else {
+		if forWHIP && foundStream.hasWHIPClient.Load() {
+			return nil, fmt.Errorf("stream with key '%s' already has an active publisher", streamKey)
+		}
 	}
 
 	if forWHIP {
