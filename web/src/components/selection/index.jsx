@@ -12,7 +12,7 @@ function Selection() {
     
     const interval = setInterval(() => {
       updateStreams()
-    }, 2000);
+    }, 5000);
 
     return () => clearInterval(interval); 
   }, []);
