@@ -86,8 +86,8 @@ function Selection() {
         </div>
         
         <h2 className="font-light leading-tight text-4xl mb-2 mt-6">Current Streams</h2>
-        <p className='flex justify-center mt-6'>{streams.length === 0 && "No streams currently available"}</p>
-        <p>{streams.length !== 0 && "Click a stream to join it"}</p>
+        {streams.length === 0 && <p className='flex justify-center mt-6'>No streams currently available</p>}
+        {streams.length !== 0 && <p>Click a stream to join it</p>}
         <div className="m-6"/>
         
         <div className='flex flex-col'>
