@@ -1,25 +1,66 @@
-import React from 'react'
+import React, {useEffect, useState} from 'react'
 import { useNavigate } from 'react-router-dom'
 
-function Selection(props) {
-  const [streamKey, setStreamKey] = React.useState('')
+function Selection() {
+  const apiPath = import.meta.env.VITE_API_PATH;
+  const [streamKey, setStreamKey] = useState('')
   const navigate = useNavigate()
+  
+  const [streams, setStreams] = useState([]);
+  useEffect(() => {
+    updateStreams();
+    
+    const interval = setInterval(() => {
+      updateStreams()
+    }, 2000);
 
+    return () => clearInterval(interval); 
+  }, []);
+  
+  const isActiveSession = (videoStreams) => {
+    if(videoStreams === undefined || videoStreams.length === 0){
+      return false;
+    }
+    
+    return videoStreams.filter(stream => (new Date() - new Date(stream.lastKeyFrameSeen)) > 5_000).length > 0;
+  }
+  const updateStreams = () => {
+    fetch(`${apiPath}/status`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(result => result.json())
+      .then(result => {
+        if(result){
+          
+          setStreams(result.map((e) => ({
+            key: e.streamKey,
+            isActive: isActiveSession(e.videoStreams)
+          })
+        ));
+        }
+      });
+  }
   const onStreamKeyChange = e => {
     setStreamKey(e.target.value)
   }
-  const onWatchStreamClick = () => {
+  const onWatchStreamClick = (key) => {
+    if(key !== ''){
+      navigate(`/${key}`);
+    }
+    
     if (streamKey !== '') {
       navigate(`/${streamKey}`)
     }
   }
-
   const onPublishStreamClick = () => {
     if (streamKey !== '') {
       navigate(`/publish/${streamKey}`)
     }
   }
-
+  
   return (
     <div className='space-y-4 mx-auto max-w-2xl pt-20 md:pt-24'>
       <form className='rounded-md bg-gray-800 shadow-md p-8'>
@@ -30,9 +71,11 @@ function Selection(props) {
           <label className='block text-sm font-bold mb-2' htmlFor='streamKey'>
             Stream Key
           </label>
+          
           <input className='appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200' id='streamKey' type='text' placeholder='Stream Key' onChange={onStreamKeyChange} autoFocus />
         </div>
-        <div className='flex'>
+        
+        <div className='flex justify-center'>
           <button className='py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75' type='submit' onClick={onWatchStreamClick}>
             Watch Stream
           </button>
@@ -41,36 +84,23 @@ function Selection(props) {
             Publish Stream
           </button>
         </div>
+        
+        <h2 className="font-light leading-tight text-4xl mb-2 mt-6">Current Streams</h2>
+        <p className='flex justify-center mt-6'>{streams.length === 0 && "No streams currently available"}</p>
+        <p>{streams.length !== 0 && "Click a stream to join it"}</p>
+        <div className="m-6"/>
+        
+        <div className='flex flex-col'>
+        {streams.map((e, i) => (
+          <button
+            key={i+'_'+e.key}
+            className={`mt-2 py-2 px-4 ${e.isActive ? 'bg-blue-500' : 'bg-orange-500'} text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75`}
+            onClick={() => onPublishStreamClick(e.key)}>
+            {e.key}
+          </button>))
+        }
+        </div>
       </form>
-
-      {/*
-      <div className="rounded-md bg-gray-800 shadow-md p-8">
-        <h2 className="font-light leading-tight text-2xl mb-2">Q: What is Broadcast Box?</h2>
-
-
-        <p>A: Broadcast Box is a tool that lets you broadcast video to others in sub-second time. It is designed to be simple to use and easily modifiable, and is built using cutting-edge technology.</p>
-
-
-        <h2 className="font-light leading-tight text-2xl mt-4 mb-2">Q: How does Broadcast Box work?</h2>
-
-        <p>A: Broadcast Box uses WebRTC for broadcast and playback, which allows for fast and efficient video streaming. This is in contrast to RTMP and HLS, which can be slower and more complex to use.</p>
-
-
-        <h2 className="font-light leading-tight text-2xl mt-4 mb-2">Q: Can I serve my video with Broadcast Box without a public IP or forwarding ports?</h2>
-
-        <p>A: Yes, with Broadcast Box you can share your video without needing a public IP or forwarding ports. This makes it easy to share your video with others, even if you are running Broadcast Box on the same machine as your video source.</p>
-
-
-        <h2 className="font-light leading-tight text-2xl mt-4 mb-2">Q: What are the benefits of using WebRTC with Broadcast Box?</h2>
-
-        <p>A: There are several benefits to using WebRTC with Broadcast Box, including access to the latest in video codecs, the ability to upload multiple video streams in the same session, and the ability for your viewers to upload the same video at different quality levels. This can help to provide a high-quality viewing experience while keeping costs low for the server operator.</p>
-
-
-        <h2 className="font-light leading-tight text-2xl mt-4 mb-2">Q: Can I use Broadcast Box to broadcast multiple camera angles or interactive video experiences?</h2>
-
-        <p>A: Yes, with WebRTC you can upload multiple video streams in the same session, which means you can broadcast multiple camera angles or interactive video experiences in real time. This can help to provide a more immersive and engaging experience for your viewers.</p>
-      </div>
-  */}
     </div>
   )
 }
