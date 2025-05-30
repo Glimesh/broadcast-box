@@ -22,7 +22,7 @@ function Selection() {
       return false;
     }
     
-    return videoStreams.filter(stream => (new Date() - new Date(stream.lastKeyFrameSeen)) > 5_000).length > 0;
+    return videoStreams.filter(stream => (new Date() - new Date(stream.lastKeyFrameSeen)) > 5_000).length === 0;
   }
   const updateStreams = () => {
     fetch(`${apiPath}/status`, {
