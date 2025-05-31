@@ -31,6 +31,10 @@ function AvailableStreams() {
       }
     })
       .then(result => {
+        if (result.ok === false) {
+          throw new Error('Unknown error when calling status');
+        }
+        
         if (result.status === 503) {
           throw new Error('Status API disabled');
         }
