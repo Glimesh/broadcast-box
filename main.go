@@ -160,6 +160,10 @@ func whepLayerHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func statusHandler(res http.ResponseWriter, req *http.Request) {
+	if os.Getenv("DISABLE_STATUS") != "" {
+		logHTTPError(res, "Status Service Unavailable", http.StatusServiceUnavailable)
+	}
+
 	res.Header().Add("Content-Type", "application/json")
 
 	if err := json.NewEncoder(res).Encode(webrtc.GetStreamStatuses()); err != nil {
@@ -274,10 +278,7 @@ func main() {
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
-
-	if os.Getenv("DISABLE_STATUS") == "" {
-		mux.HandleFunc("/api/status", corsHandler(statusHandler))
-	}
+	mux.HandleFunc("/api/status", corsHandler(statusHandler))
 
 	server := &http.Server{
 		Handler: mux,
