@@ -5,7 +5,7 @@ import ErrorHeader from "../error-header/errorHeader";
 
 const PlayerPage = () => {
 	const {cinemaMode, toggleCinemaMode} = useContext(CinemaModeContext);
-	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState<boolean>(true)
+	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState<boolean>(false)
 
 	return (
 		<div className="mt-0">
