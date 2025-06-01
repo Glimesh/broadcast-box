@@ -19,6 +19,13 @@
     "skipLibCheck": true,
     
     /* Skip type checking all .d.ts files. */
-    "jsx": "react"
-  }
+    "jsx": "react",
+    
+    "outDir": "./build",
+    "allowJs": false,
+  },
+  "exclude": [
+    "node_modules",
+    "**/*.js"
+  ]
 }
