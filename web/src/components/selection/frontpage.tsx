@@ -66,7 +66,7 @@ const Frontpage = () => {
 							className='mb-2 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200'
 							id='streamKey'
 							type='text'
-							placeholder={`Insert the key you want to ${streamType === "Share" ? 'share' : 'join'}`}
+							placeholder={`Insert the key you of the stream you want to ${streamType === "Share" ? 'share' : 'join'}`}
 							onChange={onStreamKeyChange}
 							autoFocus/>
 
