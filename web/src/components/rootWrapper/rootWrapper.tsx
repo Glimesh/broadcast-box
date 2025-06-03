@@ -1,10 +1,12 @@
 import { useContext } from 'react';
 import { Link, Outlet } from 'react-router-dom'
-import { CinemaModeContext } from '../player';
+import { CinemaModeContext } from "../player/CinemaModeProvider";
+import React from 'react';
 
-const Header = () => {
+const RootWrapper = () => {
   const { cinemaMode } = useContext(CinemaModeContext);
   const navbarEnabled = !cinemaMode;
+  
   return (
     <div>
       {navbarEnabled && (
@@ -19,7 +21,7 @@ const Header = () => {
         </nav>
       )}
 
-      <main className={`${navbarEnabled && "pt-20 md:pt-24"}`}>
+      <main className={`${navbarEnabled && "pt-12 md:pt-12"}`}>
         <Outlet />
       </main>
 
@@ -41,4 +43,4 @@ const Header = () => {
   )
 }
 
-export default Header
+export default RootWrapper
