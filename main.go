@@ -162,6 +162,7 @@ func whepLayerHandler(res http.ResponseWriter, req *http.Request) {
 func statusHandler(res http.ResponseWriter, req *http.Request) {
 	if os.Getenv("DISABLE_STATUS") != "" {
 		logHTTPError(res, "Status Service Unavailable", http.StatusServiceUnavailable)
+		return
 	}
 
 	res.Header().Add("Content-Type", "application/json")
