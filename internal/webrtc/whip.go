@@ -65,7 +65,7 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
-	codec := getVideoTrackCodec(remoteTrack.Codec().RTPCodecCapability.MimeType)
+	codec := getVideoTrackCodec(remoteTrack.Codec().MimeType)
 
 	var depacketizer rtp.Depacketizer
 	switch codec {
@@ -155,7 +155,7 @@ func WHIP(offer, streamKey string) (string, error) {
 	}
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
-		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
+		if strings.HasPrefix(remoteTrack.Codec().MimeType, "audio") {
 			audioWriter(remoteTrack, stream)
 		} else {
 			videoWriter(remoteTrack, stream, peerConnection, stream)

@@ -87,7 +87,9 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 	res.Header().Add("Location", "/api/whip")
 	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
-	fmt.Fprint(res, answer)
+	if _, err = fmt.Fprint(res, answer); err != nil {
+		log.Println(err)
+	}
 }
 
 func whepHandler(res http.ResponseWriter, req *http.Request) {
@@ -121,7 +123,9 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	res.Header().Add("Location", "/api/whep")
 	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
-	fmt.Fprint(res, answer)
+	if _, err = fmt.Fprint(res, answer); err != nil {
+		log.Println(err)
+	}
 }
 
 func whepServerSentEventsHandler(res http.ResponseWriter, req *http.Request) {
@@ -138,9 +142,9 @@ func whepServerSentEventsHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Fprint(res, "event: layers\n")
-	fmt.Fprintf(res, "data: %s\n", string(layers))
-	fmt.Fprint(res, "\n\n")
+	if _, err = fmt.Fprintf(res, "event: layers\ndata: %s\n\n\n", string(layers)); err != nil {
+		log.Println(err)
+	}
 }
 
 func whepLayerHandler(res http.ResponseWriter, req *http.Request) {

@@ -42,19 +42,19 @@ func (t *trackMultiCodec) Unbind(webrtc.TrackLocalContext) error {
 }
 
 func (t *trackMultiCodec) WriteRTP(p *rtp.Packet, codec videoTrackCodec) error {
-	p.Header.SSRC = uint32(t.ssrc)
+	p.SSRC = uint32(t.ssrc)
 
 	switch codec {
 	case videoTrackCodecH264:
-		p.Header.PayloadType = t.payloadTypeH264
+		p.PayloadType = t.payloadTypeH264
 	case videoTrackCodecVP8:
-		p.Header.PayloadType = t.payloadTypeVP8
+		p.PayloadType = t.payloadTypeVP8
 	case videoTrackCodecVP9:
-		p.Header.PayloadType = t.payloadTypeVP9
+		p.PayloadType = t.payloadTypeVP9
 	case videoTrackCodecAV1:
-		p.Header.PayloadType = t.payloadTypeAV1
+		p.PayloadType = t.payloadTypeAV1
 	case videoTrackCodecH265:
-		p.Header.PayloadType = t.payloadTypeH265
+		p.PayloadType = t.payloadTypeH265
 	}
 
 	_, err := t.writeStream.WriteRTP(&p.Header, p.Payload)

@@ -166,7 +166,11 @@ func getPublicIP() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer req.Body.Close()
+	defer func() {
+		if closeErr := req.Body.Close(); closeErr != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
