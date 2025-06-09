@@ -4,7 +4,6 @@ import {ArrowsPointingOutIcon, Square2StackIcon} from "@heroicons/react/16/solid
 import VolumeComponent from "./components/VolumeComponent";
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import QualitySelectorComponent from "./components/QualitySelectorComponent";
-import useKeyboardShortcuts, {ShortcutEvent} from "../../hooks/useKeyboardShortcuts";
 
 interface PlayerProps {
 	streamKey: string;
@@ -15,12 +14,6 @@ interface PlayerProps {
 const Player = (props: PlayerProps) => {
 	const apiPath = import.meta.env.VITE_API_PATH;
 	const {streamKey, cinemaMode} = props;
-
-	useKeyboardShortcuts((event) => {
-		if(event === ShortcutEvent.FullscreenToggle){
-			videoRef.current?.requestFullscreen().catch((err) => console.error("RequestFullscreen", err))
-		}
-	})
 	
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [videoLayers, setVideoLayers] = useState([]);

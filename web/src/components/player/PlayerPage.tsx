@@ -3,18 +3,12 @@ import Player from "./Player";
 import {useNavigate} from "react-router-dom";
 import {CinemaModeContext} from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
-import useKeyboardShortcuts, {ShortcutEvent} from "../../hooks/useKeyboardShortcuts";
 
 const PlayerPage = () => {
 	const navigate = useNavigate();
 	const {cinemaMode, toggleCinemaMode} = useContext(CinemaModeContext);
 	const [streamKeys, setStreamKeys] = useState<string[]>([window.location.pathname.substring(1)]);
 	const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
-	useKeyboardShortcuts((event) => {
-		if(event === ShortcutEvent.CinemaMode){
-			toggleCinemaMode()
-		}
-	})
 
 	const addStream = (streamKey: string) => {
 		if (streamKeys.some((key: string) => key.toLowerCase() === streamKey.toLowerCase())) {
@@ -66,16 +60,16 @@ const PlayerPage = () => {
 						{cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
 					</button>
 
-				{/*Show modal to add stream keys with*/}
-				<button
-					className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg mt-6"
-					onClick={() => setIsModelOpen((prev) => !prev)}>
-					Add Stream
-				</button>
+					{/*Show modal to add stream keys with*/}
+					<button
+						className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg mt-6"
+						onClick={() => setIsModelOpen((prev) => !prev)}>
+						Add Stream
+					</button>
+				</div>
 			</div>
 		</div>
-</div>
-)
+	)
 };
 
 export default PlayerPage;

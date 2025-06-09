@@ -1,6 +1,5 @@
 ﻿import React, {useEffect, useRef, useState} from "react";
 import {SpeakerWaveIcon, SpeakerXMarkIcon} from "@heroicons/react/16/solid";
-import useKeyboardShortcuts, {ShortcutEvent} from "../../../hooks/useKeyboardShortcuts";
 
 interface VolumeComponentProps {
 	isMuted: boolean;
@@ -13,12 +12,6 @@ const VolumeComponent = (props: VolumeComponentProps) => {
 	const [showSlider, setShowSlider] = useState<boolean>(false);
 	const volumeRef = useRef<number>(20);
 	
-	useKeyboardShortcuts((event) => {
-		if(event === ShortcutEvent.MuteUnmute){
-			setIsMuted((prev) => !prev)
-		}
-	})
-
 	useEffect(() => {
 		props.onStateChanged(isMuted);
 	}, [isMuted]);

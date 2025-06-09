@@ -1,6 +1,5 @@
 ﻿import React, {useEffect, useState} from "react";
 import {PauseIcon, PlayIcon} from "@heroicons/react/16/solid";
-import useKeyboardShortcuts, {ShortcutEvent} from "../../../hooks/useKeyboardShortcuts";
 
 interface PlayPauseComponentProps {
 	videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -8,12 +7,6 @@ interface PlayPauseComponentProps {
 
 const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 	const [isPaused, setIsPaused] = useState<boolean>(true);
-	
-	useKeyboardShortcuts((event) => {
-		if(event === ShortcutEvent.PlayPause){
-			setIsPaused((prev) => !prev)
-		}
-	})
 
 	if (props.videoRef.current === null) {
 		return <></>;
