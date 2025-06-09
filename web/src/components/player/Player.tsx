@@ -1,9 +1,10 @@
-﻿import React, { useEffect, useRef, useState} from 'react'
+﻿import React, {useEffect, useRef, useState} from 'react'
 import {parseLinkHeader} from '@web3-storage/parse-link-header'
-import { ArrowsPointingOutIcon, Square2StackIcon } from "@heroicons/react/16/solid";
-import VolumeComponent from "./components/volumeComponent";
-import PlayPauseComponent from "./components/playPauseComponent";
-import QualitySelectorComponent from "./components/qualitySelectorComponent";
+import {ArrowsPointingOutIcon, Square2StackIcon} from "@heroicons/react/16/solid";
+import VolumeComponent from "./components/VolumeComponent";
+import PlayPauseComponent from "./components/PlayPauseComponent";
+import QualitySelectorComponent from "./components/QualitySelectorComponent";
+import useKeyboardShortcuts, {ShortcutEvent} from "../../hooks/useKeyboardShortcuts";
 
 interface PlayerProps {
 	streamKey: string;
@@ -12,12 +13,15 @@ interface PlayerProps {
 }
 
 const Player = (props: PlayerProps) => {
-	// TODO:
-	// - Implement shortcut buttons for Play/Pause, Mute/Unmute in player
-
 	const apiPath = import.meta.env.VITE_API_PATH;
 	const {streamKey, cinemaMode} = props;
 
+	useKeyboardShortcuts((event) => {
+		if(event === ShortcutEvent.FullscreenToggle){
+			videoRef.current?.requestFullscreen().catch((err) => console.error("RequestFullscreen", err))
+		}
+	})
+	
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [videoLayers, setVideoLayers] = useState([]);
 	const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
@@ -67,19 +71,10 @@ const Player = (props: PlayerProps) => {
 		}
 
 		peerRef.current = peerConnection;
-
-		peerConnection.addEventListener("track", (e) => {
-			if (e.transceiver.sender.track) {
-				e.transceiver.sender.track.onended = (track) => console.log("Track Ended", track)
-			}
-		})
-
 		peerConnection.ontrack = (event: RTCTrackEvent) => {
 			if (videoRef.current) {
 				videoRef.current.srcObject = event.streams[0];
-			} else {
-				console.log("PeerConnection:OnTrack", "Could not assign to VideoRef", videoRef)
-			}
+			} 
 		}
 
 		peerConnection.addTransceiver('audio', {direction: 'recvonly'})
@@ -114,7 +109,7 @@ const Player = (props: PlayerProps) => {
 					
 					evtSource.addEventListener("layers", event => {
 						const parsed = JSON.parse(event.data)
-						setVideoLayers(parsed['1']['layers'].map((layer: any) => layer.encodingId))
+						setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
 					})
 
 					return r.text()
@@ -125,7 +120,7 @@ const Player = (props: PlayerProps) => {
 					}).catch((err) => console.error("RemoteDescription", err))
 				}).catch((err) => {
 						console.error("PeerConnectionError", err)
-					})
+				})
 			})
 
 		return function cleanup() {
@@ -135,30 +130,32 @@ const Player = (props: PlayerProps) => {
 
 	return (
 		<div
-			className="inline-block w-full aspect-video relative"
+			className="inline-block w-full relative"
 			style={cinemaMode ? {
 				maxHeight: '100vh',
 				maxWidth: '100vw'
 			} : {}}>
 			<div
 				className={`
-				absolute
-				${!hasSignal && "bg-gray-800"}
-				rounded-md
-				w-full
-				h-full
-				z-10
-				${hasSignal && `
-					transition-opacity
-					duration-500
-					opacity-0
-					hover:opacity-100
-				`}
+					absolute
+					rounded-md
+					w-full
+					h-full
+					z-10
+					${!hasSignal && "bg-gray-800"}
+					${hasSignal && `
+						transition-opacity
+						duration-500
+						opacity-0
+						hover:opacity-100
+					`}
 				`}
 			>
 
 				{/*Opaque background*/}
-				<div className="absolute w-full bg-gray-950 opacity-40 h-full"/>
+				<div
+					onDoubleClick={() => videoRef.current?.requestFullscreen()}
+					className="absolute w-full bg-gray-950 opacity-40 h-full"/>
 
 				{/*Buttons */}
 				{videoRef.current !== null && (
@@ -169,9 +166,9 @@ const Player = (props: PlayerProps) => {
 
 							<VolumeComponent
 								isMuted={videoRef.current?.muted ?? false}
-								onStateChanged={(newState) => {
-									videoRef.current!.muted = newState;
-								}}/>
+								onVolumeChanged={(newValue) => videoRef.current!.volume = newValue}
+								onStateChanged={(newState) => videoRef.current!.muted = newState}
+							/>
 
 							<div className="w-full"></div>
 
@@ -201,13 +198,18 @@ const Player = (props: PlayerProps) => {
 					</button>
 				)}
 
-				{/* TODO: Find a way to discern No Stream available and No incoming bytes and show message accordingly*/}
-				{!hasSignal && (
+				{videoLayers.length === 0 && !hasSignal && (
 					<h2
 						className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
 						{props.streamKey} is not currently streaming
 					</h2>
 				)}
+				{
+					videoLayers.length > 0 && !hasSignal && (
+					<h2 className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+						Loading video
+					</h2>) 
+				}
 
 			</div>
 
