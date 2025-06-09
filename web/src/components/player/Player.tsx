@@ -154,8 +154,6 @@ const Player = (props: PlayerProps) => {
 					opacity-0
 					hover:opacity-100
 				`}
-					// TODO: Remove after overlay is complete
-					opacity-100
 				`}
 			>
 
