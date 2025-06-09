@@ -38,7 +38,7 @@ const Player = (props: PlayerProps) => {
 							const signalIsValid = e.availableIncomingBitrate !== undefined;
 							badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
 
-							if (badSignalCountRef.current > 5) {
+							if (badSignalCountRef.current > 2) {
 								setHasSignal(() => false);
 							} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
 								setHasSignal(() => true);
