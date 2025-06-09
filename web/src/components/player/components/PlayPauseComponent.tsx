@@ -1,5 +1,6 @@
 ﻿import React, {useEffect, useState} from "react";
 import {PauseIcon, PlayIcon} from "@heroicons/react/16/solid";
+import useKeyboardShortcuts, {ShortcutEvent} from "../../../hooks/useKeyboardShortcuts";
 
 interface PlayPauseComponentProps {
 	videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -7,6 +8,12 @@ interface PlayPauseComponentProps {
 
 const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 	const [isPaused, setIsPaused] = useState<boolean>(false);
+	
+	useKeyboardShortcuts((event) => {
+		if(event === ShortcutEvent.PlayPause){
+			setIsPaused((prev) => !prev)
+		}
+	})
 
 	if (props.videoRef.current === null) {
 		return <></>;
@@ -17,7 +24,7 @@ const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 			return;
 		}
 
-		const canPlayHandler = (e: Event) => props.videoRef.current?.play()
+		const canPlayHandler = (_: Event) => props.videoRef.current?.play()
 		const playingHandler = (_: Event) => setIsPaused(() => false)
 		const pauseHandler = (_: Event) => setIsPaused(() => true);
 
@@ -32,8 +39,16 @@ const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 				props.videoRef.current.removeEventListener("pause", pauseHandler);
 			}
 		}
-
 	}, []);
+
+	useEffect(() => {
+		if(isPaused){
+			props.videoRef.current?.pause();
+		}
+		if(!isPaused){
+			props.videoRef.current?.play().catch((err) => console.error("VideoError", err));
+		}
+	}, [isPaused]);
 
 	if (isPaused) {
 		return <PlayIcon onClick={() => props.videoRef.current?.play()}/>
