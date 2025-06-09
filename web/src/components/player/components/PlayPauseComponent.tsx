@@ -7,7 +7,7 @@ interface PlayPauseComponentProps {
 }
 
 const PlayPauseComponent = (props: PlayPauseComponentProps) => {
-	const [isPaused, setIsPaused] = useState<boolean>(false);
+	const [isPaused, setIsPaused] = useState<boolean>(true);
 	
 	useKeyboardShortcuts((event) => {
 		if(event === ShortcutEvent.PlayPause){
