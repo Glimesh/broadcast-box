@@ -10,7 +10,7 @@ const RootWrapper = () => {
   return (
     <div>
       {navbarEnabled && (
-        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-10 top-0'>
+        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-100 top-0'>
           <div className='container mx-auto flex flex-wrap items-center'>
             <div className='flex flex-1 text-white font-extrabold'>
               <Link to="/" className='font-light leading-tight text-2xl'>
