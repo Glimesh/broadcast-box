@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Link, Outlet } from 'react-router-dom'
-import { CinemaModeContext } from "../player/CinemaModeProvider";
 import React from 'react';
+import {CinemaModeContext} from "../../providers/CinemaModeProvider";
 
 const RootWrapper = () => {
   const { cinemaMode } = useContext(CinemaModeContext);
