@@ -1,6 +1,6 @@
 import React, {createRef, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
-import AvailableStreams from "./availableStreams.jsx";
+import AvailableStreams from "./AvailableStreams";
 
 const Frontpage = () => {
 	const [streamType, setStreamType] = useState<'Watch' | 'Share'>('Watch');

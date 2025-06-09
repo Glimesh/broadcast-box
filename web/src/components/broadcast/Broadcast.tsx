@@ -1,6 +1,6 @@
 ﻿import React, {useEffect, useRef, useState} from 'react'
 import {useLocation} from 'react-router-dom'
-import ErrorHeader from '../error-header/errorHeader'
+import ErrorHeader from '../error-header/ErrorHeader'
 import {useNavigate} from 'react-router-dom'
 
 const mediaOptions = {
