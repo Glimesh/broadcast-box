@@ -1,14 +1,20 @@
 ﻿import React, {useContext, useState} from "react";
-import {CinemaModeContext} from "./CinemaModeProvider";
 import Player from "./Player";
-import Modal from "../shared/modal";
 import {useNavigate} from "react-router-dom";
+import {CinemaModeContext} from "../../providers/CinemaModeProvider";
+import ModalTextInput from "../shared/ModalTextInput";
+import useKeyboardShortcuts, {ShortcutEvent} from "../../hooks/useKeyboardShortcuts";
 
 const PlayerPage = () => {
 	const navigate = useNavigate();
 	const {cinemaMode, toggleCinemaMode} = useContext(CinemaModeContext);
 	const [streamKeys, setStreamKeys] = useState<string[]>([window.location.pathname.substring(1)]);
 	const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
+	useKeyboardShortcuts((event) => {
+		if(event === ShortcutEvent.CinemaMode){
+			toggleCinemaMode()
+		}
+	})
 
 	const addStream = (streamKey: string) => {
 		if (streamKeys.some((key: string) => key.toLowerCase() === streamKey.toLowerCase())) {
@@ -21,7 +27,7 @@ const PlayerPage = () => {
 	return (
 		<div>
 			{isModalOpen && (
-				<Modal<string>
+				<ModalTextInput<string>
 					title="Add stream"
 					message={"Insert stream key to add to multi stream"}
 					isOpen={isModalOpen}
@@ -31,7 +37,7 @@ const PlayerPage = () => {
 				/>
 			)}
 
-			<div className={`flex flex-col items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`}>
+			<div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`}>
 				<div className={`grid ${streamKeys.length !== 1 ? "grid-cols-2" : ""}  w-full gap-2`}>
 					{streamKeys.map((streamKey) =>
 						<Player
