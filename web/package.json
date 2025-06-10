@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@web3-storage/parse-link-header": "^3.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "scripts": {
     "start": "vite",
+    "host": "vite --host",
     "build": "vite build",
     "lint": "eslint ./src --max-warnings 0"
   },

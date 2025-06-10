@@ -1,42 +1,73 @@
-﻿import React, {ChangeEvent, createRef, Dispatch, SetStateAction, useEffect, useState} from 'react'
+﻿import React, {useEffect, useRef, useState} from 'react'
 import {parseLinkHeader} from '@web3-storage/parse-link-header'
-import {useLocation} from 'react-router-dom'
+import {ArrowsPointingOutIcon, Square2StackIcon} from "@heroicons/react/16/solid";
+import VolumeComponent from "./components/VolumeComponent";
+import PlayPauseComponent from "./components/PlayPauseComponent";
+import QualitySelectorComponent from "./components/QualitySelectorComponent";
 
 interface PlayerProps {
+	streamKey: string;
 	cinemaMode: boolean;
-	peerConnectionDisconnected: boolean;
-	setPeerConnectionDisconnected: Dispatch<SetStateAction<boolean>>;
+	onCloseStream?: () => void;
 }
 
 const Player = (props: PlayerProps) => {
 	const apiPath = import.meta.env.VITE_API_PATH;
-	const {cinemaMode, setPeerConnectionDisconnected} = props;
-
-	const location = useLocation();
-	const videoRef = createRef<HTMLVideoElement>();
+	const {streamKey, cinemaMode} = props;
+	
+	const videoRef = useRef<HTMLVideoElement>(null);
 	const [videoLayers, setVideoLayers] = useState([]);
-	const [mediaSrcObject, setMediaSrcObject] = useState<MediaStream | null>(null);
-	const [layerEndpoint, setLayerEndpoint] = useState('');
+	const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
+	const [hasSignal, setHasSignal] = useState<boolean>(false);
+	const layerEndpointRef = useRef<string>('');
+	const hasSignalRef = useRef<boolean>(false);
+	const peerRef = useRef(peerConnection);
+	const badSignalCountRef = useRef<number>(10);
 
 	useEffect(() => {
-		if (videoRef.current) {
-			videoRef.current.srcObject = mediaSrcObject
+		hasSignalRef.current = hasSignal;
+
+		const intervalHandler = () => {
+			peerRef.current?.getStats()
+				.then((stats) => {
+					stats.forEach(e => {
+						if (e.type === "candidate-pair") {
+							const signalIsValid = e.availableIncomingBitrate !== undefined;
+							badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
+
+							if (badSignalCountRef.current > 2) {
+								setHasSignal(() => false);
+							} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
+								setHasSignal(() => true);
+							}
+						}
+					})
+				})
 		}
-	}, [mediaSrcObject, videoRef])
+
+		const interval = setInterval(intervalHandler, hasSignal ? 15_000 : 2_500)
+
+		return () => {
+			clearInterval(interval);
+		}
+	}, [hasSignal]);
 
 	useEffect(() => {
-		const peerConnection = new RTCPeerConnection()
+		if (!peerConnection && !!videoRef.current) {
+			setPeerConnection(() => new RTCPeerConnection());
+		}
+	}, [videoRef])
 
-		peerConnection.ontrack = function (event: RTCTrackEvent) {
-			setMediaSrcObject(event.streams[0])
+	useEffect(() => {
+		if (!peerConnection) {
+			return;
 		}
 
-		peerConnection.oniceconnectionstatechange = () => {
-			if (peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed') {
-				setPeerConnectionDisconnected(false)
-			} else if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
-				setPeerConnectionDisconnected(true)
-			}
+		peerRef.current = peerConnection;
+		peerConnection.ontrack = (event: RTCTrackEvent) => {
+			if (videoRef.current) {
+				videoRef.current.srcObject = event.streams[0];
+			} 
 		}
 
 		peerConnection.addTransceiver('audio', {direction: 'recvonly'})
@@ -54,7 +85,7 @@ const Player = (props: PlayerProps) => {
 					method: 'POST',
 					body: offer.sdp,
 					headers: {
-						Authorization: `Bearer ${location.pathname.split('/').pop()}`,
+						Authorization: `Bearer ${streamKey}`,
 						'Content-Type': 'application/sdp'
 					}
 				}).then(r => {
@@ -64,14 +95,14 @@ const Player = (props: PlayerProps) => {
 						throw new DOMException("Missing link header");
 					}
 
-					setLayerEndpoint(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`)
+					layerEndpointRef.current = `${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
 
 					const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 					evtSource.onerror = _ => evtSource.close();
-
+					
 					evtSource.addEventListener("layers", event => {
 						const parsed = JSON.parse(event.data)
-						setVideoLayers(parsed['1']['layers'].map((layer: any) => layer.encodingId))
+						setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
 					})
 
 					return r.text()
@@ -79,51 +110,110 @@ const Player = (props: PlayerProps) => {
 					peerConnection.setRemoteDescription({
 						sdp: answer,
 						type: 'answer'
-					})
-						.catch((err) => console.error(err))
+					}).catch((err) => console.error("RemoteDescription", err))
+				}).catch((err) => {
+						console.error("PeerConnectionError", err)
 				})
 			})
 
 		return function cleanup() {
 			peerConnection.close()
 		}
-	}, [location.pathname, setPeerConnectionDisconnected])
+	}, [peerConnection])
 
-	const onLayerChange = (event: ChangeEvent<HTMLSelectElement>) => {
-		fetch(layerEndpoint, {
-			method: 'POST',
-			body: JSON.stringify({mediaId: '1', encodingId: event.target.value}),
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		}).catch((err) => console.error(err))
-	}
 	return (
-		<>
+		<div
+			className="inline-block w-full relative"
+			style={cinemaMode ? {
+				maxHeight: '100vh',
+				maxWidth: '100vw'
+			} : {}}>
+			<div
+				className={`
+					absolute
+					rounded-md
+					w-full
+					h-full
+					z-10
+					${!hasSignal && "bg-gray-800"}
+					${hasSignal && `
+						transition-opacity
+						duration-500
+						opacity-0
+						hover:opacity-100
+					`}
+				`}
+			>
+
+				{/*Opaque background*/}
+				<div
+					onDoubleClick={() => videoRef.current?.requestFullscreen()}
+					className="absolute w-full bg-gray-950 opacity-40 h-full"/>
+
+				{/*Buttons */}
+				{videoRef.current !== null && (
+					<div className="absolute h-full w-full flex place-items-end">
+						<div className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 rounded-b-md p-1 max-h-8 min-h-8">
+
+							<PlayPauseComponent videoRef={videoRef}/>
+
+							<VolumeComponent
+								isMuted={videoRef.current?.muted ?? false}
+								onVolumeChanged={(newValue) => videoRef.current!.volume = newValue}
+								onStateChanged={(newState) => videoRef.current!.muted = newState}
+							/>
+
+							<div className="w-full"></div>
+
+							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current}/>
+							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()}/>
+							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()}/>
+
+						</div>
+					</div>)}
+
+				{!!props.onCloseStream && (
+					<button
+						onClick={props.onCloseStream}
+						className="absolute top-2 right-2 p-2 rounded-full bg-red-400 hover:bg-red-500 pointer-events-auto">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							className="h-6 w-6 text-gray-700"
+							viewBox="0 0 24 24"
+							fill="black"
+						>
+							<path
+								fillRule="evenodd"
+								d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
+								clipRule="evenodd"
+							/>
+						</svg>
+					</button>
+				)}
+
+				{videoLayers.length === 0 && !hasSignal && (
+					<h2
+						className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+						{props.streamKey} is not currently streaming
+					</h2>
+				)}
+				{
+					videoLayers.length > 0 && !hasSignal && (
+					<h2 className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+						Loading video
+					</h2>) 
+				}
+
+			</div>
+
 			<video
 				ref={videoRef}
 				autoPlay
 				muted
-				controls
 				playsInline
-				className={`bg-black w-full ${cinemaMode && "h-full"}`}
-				style={cinemaMode ? {
-					maxHeight: '100vh',
-					maxWidth: '100vw'
-				} : {}}
+				className="bg-transparent rounded-md w-full h-full relative"
 			/>
-
-			{videoLayers.length >= 2 &&
-        <select
-          defaultValue="disabled"
-          onChange={onLayerChange}
-          className="appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
-
-          <option value="disabled" disabled={true}>Choose Quality Level</option>
-					{videoLayers.map(layer => <option key={layer} value={layer}>{layer}</option>)}
-        </select>
-			}
-		</>
+		</div>
 	)
 }
 

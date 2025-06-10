@@ -47,9 +47,13 @@ const AvailableStreams = () =>  {
 
         return result.json()
       })
-      .then(result => {
-          setStreams(result.map((resultEntry: StatusResult) => ({
+      .then((result: StatusResult[]) => {
+          setStreams(() => 
+            result
+              .filter((resultEntry) => resultEntry.videoStreams.length > 0)
+              .map((resultEntry: StatusResult) => ({
               streamKey: resultEntry.streamKey,
+              videoStreams: resultEntry.videoStreams
             })));
       })
       .catch(() => {

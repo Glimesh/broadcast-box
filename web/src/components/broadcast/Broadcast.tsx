@@ -1,6 +1,7 @@
 ﻿import React, {useEffect, useRef, useState} from 'react'
 import {useLocation} from 'react-router-dom'
-import ErrorHeader from '../error-header/errorHeader'
+import ErrorHeader from '../error-header/ErrorHeader'
+import {useNavigate} from 'react-router-dom'
 
 const mediaOptions = {
 	audio: true,
@@ -28,24 +29,36 @@ function getMediaErrorMessage(value: ErrorMessageEnum): string {
 
 function BrowserBroadcaster() {
 	const videoRef = useRef<HTMLVideoElement>(null)
+	
+	//TODO: Use prop instead of location
 	const location = useLocation()
+	const navigate = useNavigate();
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
-	const [useDisplayMedia, setUseDisplayMedia] = useState(false)
+	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
+	const [peerConnection, _] = useState<RTCPeerConnection>(new RTCPeerConnection());
 	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState(false)
 
 	const apiPath = import.meta.env.VITE_API_PATH;
 
+	const endStream = () => {
+		navigate('/')
+	}
+
 	useEffect(() => {
-		const peerConnection = new RTCPeerConnection()
+		if (useDisplayMedia === "None" || !peerConnection) {
+			return;
+		}
+
 		let stream: MediaStream | undefined = undefined;
 
 		if (!navigator.mediaDevices) {
-			setMediaAccessError(ErrorMessageEnum.NoMediaDevices);
+			setMediaAccessError(() => ErrorMessageEnum.NoMediaDevices);
+			setUseDisplayMedia(() => "None")
 			return
 		}
 
-		const mediaPromise = useDisplayMedia ?
+		const mediaPromise = useDisplayMedia == "Screen" ?
 			navigator.mediaDevices.getDisplayMedia(mediaOptions) :
 			navigator.mediaDevices.getUserMedia(mediaOptions)
 
@@ -91,6 +104,7 @@ function BrowserBroadcaster() {
 			peerConnection.oniceconnectionstatechange = () => {
 				if (peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed') {
 					setPublishSuccess(true)
+					setMediaAccessError(() => null)
 					setPeerConnectionDisconnected(false)
 				} else if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
 					setPublishSuccess(false)
@@ -102,7 +116,7 @@ function BrowserBroadcaster() {
 				.createOffer()
 				.then(offer => {
 					peerConnection.setLocalDescription(offer)
-						.catch((err) => console.error(err));
+						.catch((err) => console.error("SetLocalDescription", err));
 
 					fetch(`${apiPath}/whip`, {
 						method: 'POST',
@@ -117,10 +131,13 @@ function BrowserBroadcaster() {
 								sdp: answer,
 								type: 'answer'
 							})
-							.catch((err) => console.error(err))
+								.catch((err) => console.error("SetRemoveDescription",err))
 						})
 				})
-		}, setMediaAccessError)
+		}, (reason: ErrorMessageEnum) => {
+			setMediaAccessError(() => reason)
+			setUseDisplayMedia("None");
+		})
 
 		return function cleanup() {
 			peerConnection.close()
@@ -147,12 +164,28 @@ function BrowserBroadcaster() {
 				className='w-full h-full'
 			/>
 
-			<button
-				onClick={() => setUseDisplayMedia(!useDisplayMedia)}
-				className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
-				{!useDisplayMedia && <> Publish Screen/Window/Tab instead </>}
-				{useDisplayMedia && <> Publish Webcam instead </>}
-			</button>
+			<div className="flex flex-row gap-2">
+				<button
+					onClick={() => setUseDisplayMedia("Screen")}
+					className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-blue-900 hover:bg-blue-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
+					Publish Screen/Window/Tab
+				</button>
+				<button
+					onClick={() => setUseDisplayMedia("Webcam")}
+					className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-blue-900 hover:bg-blue-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
+					Publish Webcam
+				</button>
+			</div>
+
+			{publishSuccess && (
+				<div>
+					<button
+						onClick={endStream}
+						className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-red-900 hover:bg-red-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
+						End stream
+					</button>
+				</div>
+			)}
 		</div>
 	)
 }
