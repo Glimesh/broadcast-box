@@ -41,7 +41,7 @@
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.1",
     "postcss": "^8.5.3",
-    "react-router-dom": "^7.3.0",
+    "react-router-dom": "^7.6.2",
     "tailwindcss": "^4.0.7",
     "typescript": "^5.8.3",
     "vite": "^6.2.1"
