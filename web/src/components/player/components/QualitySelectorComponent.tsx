@@ -4,6 +4,7 @@ import {ChartBarIcon} from "@heroicons/react/16/solid";
 interface QualityComponentProps {
 	layers: string[];
 	layerEndpoint: string;
+	hasPacketLoss: boolean;
 }
 
 const QualitySelectorComponent = (props: QualityComponentProps) => {
@@ -16,7 +17,7 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 			headers: {
 				'Content-Type': 'application/json'
 			}
-		}).catch((err) => console.error(err))
+		}).catch((err) => console.error("onLayerChange", err))
 		
 		setIsOpen(() => false)
 	}
@@ -27,7 +28,9 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 
 	return (
 		<div className="h-full flex">
-			<ChartBarIcon onClick={() => setIsOpen((prev) => !prev)}/>
+			<ChartBarIcon
+				className={props.hasPacketLoss ? "text-orange-600" :""}
+				onClick={() => setIsOpen((prev) => !prev)}/>
 
 			{isOpen && (
 				

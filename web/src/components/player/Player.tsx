@@ -14,11 +14,13 @@ interface PlayerProps {
 const Player = (props: PlayerProps) => {
 	const apiPath = import.meta.env.VITE_API_PATH;
 	const {streamKey, cinemaMode} = props;
-	
+
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [videoLayers, setVideoLayers] = useState([]);
 	const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
+	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
+	
 	const layerEndpointRef = useRef<string>('');
 	const hasSignalRef = useRef<boolean>(false);
 	const peerRef = useRef(peerConnection);
@@ -28,21 +30,33 @@ const Player = (props: PlayerProps) => {
 		hasSignalRef.current = hasSignal;
 
 		const intervalHandler = () => {
-			peerRef.current?.getStats()
-				.then((stats) => {
-					stats.forEach(e => {
-						if (e.type === "candidate-pair") {
-							const signalIsValid = e.availableIncomingBitrate !== undefined;
-							badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
+			let receiversHasPacketLoss = false;
+			peerRef.current?.getReceivers().forEach(receiver => {
+				if (receiver) {
+					receiver.getStats()
+						.then(stats => {
+							stats.forEach(report => {
+									if (report.type === "inbound-rtp") {
+										const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
+										receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
+									}
+									if (report.type === "candidate-pair") {
+										const signalIsValid = report.availableIncomingBitrate !== undefined;
+										badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
 
-							if (badSignalCountRef.current > 2) {
-								setHasSignal(() => false);
-							} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
-								setHasSignal(() => true);
-							}
-						}
-					})
-				})
+										if (badSignalCountRef.current > 2) {
+											setHasSignal(() => false);
+										} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
+											setHasSignal(() => true);
+										}
+									}
+								}
+							)
+						})
+				}
+			})
+			
+			setHasPacketLoss(() => receiversHasPacketLoss);
 		}
 
 		const interval = setInterval(intervalHandler, hasSignal ? 15_000 : 2_500)
@@ -67,7 +81,7 @@ const Player = (props: PlayerProps) => {
 		peerConnection.ontrack = (event: RTCTrackEvent) => {
 			if (videoRef.current) {
 				videoRef.current.srcObject = event.streams[0];
-			} 
+			}
 		}
 
 		peerConnection.addTransceiver('audio', {direction: 'recvonly'})
@@ -79,7 +93,7 @@ const Player = (props: PlayerProps) => {
 				offer["sdp"] = offer["sdp"]!.replace("useinbandfec=1", "useinbandfec=1;stereo=1")
 
 				peerConnection.setLocalDescription(offer)
-					.catch((err) => console.error(err));
+					.catch((err) => console.error("SetLocalDescription", err));
 
 				fetch(`${apiPath}/whep`, {
 					method: 'POST',
@@ -99,7 +113,7 @@ const Player = (props: PlayerProps) => {
 
 					const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 					evtSource.onerror = _ => evtSource.close();
-					
+
 					evtSource.addEventListener("layers", event => {
 						const parsed = JSON.parse(event.data)
 						setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
@@ -112,7 +126,7 @@ const Player = (props: PlayerProps) => {
 						type: 'answer'
 					}).catch((err) => console.error("RemoteDescription", err))
 				}).catch((err) => {
-						console.error("PeerConnectionError", err)
+					console.error("PeerConnectionError", err)
 				})
 			})
 
@@ -165,7 +179,7 @@ const Player = (props: PlayerProps) => {
 
 							<div className="w-full"></div>
 
-							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current}/>
+							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss}/>
 							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()}/>
 							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()}/>
 
@@ -199,9 +213,10 @@ const Player = (props: PlayerProps) => {
 				)}
 				{
 					videoLayers.length > 0 && !hasSignal && (
-					<h2 className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-						Loading video
-					</h2>) 
+						<h2
+							className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+							Loading video
+						</h2>)
 				}
 
 			</div>
