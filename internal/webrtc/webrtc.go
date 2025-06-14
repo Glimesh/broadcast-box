@@ -65,6 +65,8 @@ type (
 var (
 	streamMap        map[string]*stream
 	streamMapLock    sync.Mutex
+	peerConnectionMap        map[string]*webrtc.PeerConnection
+	peerConnectionMapLock    sync.Mutex
 	apiWhip, apiWhep *webrtc.API
 
 	// nolint
@@ -125,7 +127,7 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 	if !ok {
 		return
 	}
-
+	
 	stream.whepSessionsLock.Lock()
 	defer stream.whepSessionsLock.Unlock()
 
@@ -136,9 +138,10 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 		stream.videoTracks = nil
 	}
 
-	// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
-	if len(stream.whepSessions) != 0 || stream.hasWHIPClient.Load() {
-		return
+	// Only delete stream if WHIP Session is gone
+	//if len(stream.whepSessions) != 0 || stream.hasWHIPClient.Load() {
+	if stream.hasWHIPClient.Load() {
+			return
 	}
 
 	stream.whipActiveContextCancel()
@@ -166,11 +169,7 @@ func getPublicIP() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		if closeErr := req.Body.Close(); closeErr != nil {
-			log.Fatal(err)
-		}
-	}()
+	defer req.Body.Close()
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -393,6 +392,7 @@ func maybePrintOfferAnswer(sdp string, isOffer bool) string {
 
 func Configure() {
 	streamMap = map[string]*stream{}
+	peerConnectionMap = map[string]*webrtc.PeerConnection{}
 
 	mediaEngine := &webrtc.MediaEngine{}
 	if err := PopulateMediaEngine(mediaEngine); err != nil {

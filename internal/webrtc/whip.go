@@ -65,7 +65,7 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
-	codec := getVideoTrackCodec(remoteTrack.Codec().MimeType)
+	codec := getVideoTrackCodec(remoteTrack.Codec().RTPCodecCapability.MimeType)
 
 	var depacketizer rtp.Depacketizer
 	switch codec {
@@ -142,10 +142,32 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 func WHIP(offer, streamKey string) (string, error) {
 	maybePrintOfferAnswer(offer, true)
 
+	
+	//if a stream reconnects too quick, e.g obs stop->start
+	//the ice disconnect->failure event will be *after*
+	//the stream gets added regularly
+	//which results in the replaced stream getting deleted by the oniceconnectionstatechange
+	//that's why we disable and delete the old streams
+	//peerconnection if its being replaced
+	peerConnectionMapLock.Lock()
+	defer peerConnectionMapLock.Unlock()
+	_, ok := streamMap[streamKey]
+	if (ok){
+		//peerConnectionDisconnected(streamKey, "")
+		peerConnectionMap[streamKey].OnICEConnectionStateChange(func(i webrtc.ICEConnectionState) {})
+		peerConnectionMap[streamKey].Close();
+		delete(peerConnectionMap, streamKey)
+	}
+
 	peerConnection, err := newPeerConnection(apiWhip)
 	if err != nil {
 		return "", err
 	}
+
+	//replacing the existing peerconnection for an existing stream
+	//results in dropped connections resuming as well
+	// (although visuals might be impaired until next keyframe)
+	peerConnectionMap[streamKey] = peerConnection
 
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
@@ -155,7 +177,7 @@ func WHIP(offer, streamKey string) (string, error) {
 	}
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
-		if strings.HasPrefix(remoteTrack.Codec().MimeType, "audio") {
+		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
 			audioWriter(remoteTrack, stream)
 		} else {
 			videoWriter(remoteTrack, stream, peerConnection, stream)
@@ -164,6 +186,7 @@ func WHIP(offer, streamKey string) (string, error) {
 	})
 
 	peerConnection.OnICEConnectionStateChange(func(i webrtc.ICEConnectionState) {
+		//on network fail: disconnect -> failed
 		if i == webrtc.ICEConnectionStateFailed || i == webrtc.ICEConnectionStateClosed {
 			if err := peerConnection.Close(); err != nil {
 				log.Println(err)
