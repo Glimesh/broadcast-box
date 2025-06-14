@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useRef, useState} from 'react'
 import {useLocation} from 'react-router-dom'
-import ErrorHeader from '../error-header/ErrorHeader'
 import {useNavigate} from 'react-router-dom'
+import PlayerHeader from '../playerHeader/PlayerHeader';
 
 const mediaOptions = {
 	audio: true,
@@ -28,9 +28,6 @@ function getMediaErrorMessage(value: ErrorMessageEnum): string {
 }
 
 function BrowserBroadcaster() {
-	const videoRef = useRef<HTMLVideoElement>(null)
-	
-	//TODO: Use prop instead of location
 	const location = useLocation()
 	const navigate = useNavigate();
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
@@ -38,6 +35,12 @@ function BrowserBroadcaster() {
 	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
 	const [peerConnection, _] = useState<RTCPeerConnection>(new RTCPeerConnection());
 	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState(false)
+	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
+	const [hasSignal, setHasSignal] = useState<boolean>(false);
+	const videoRef = useRef<HTMLVideoElement>(null)
+	const hasSignalRef = useRef<boolean>(false);
+	const peerRef = useRef(peerConnection);
+	const badSignalCountRef = useRef<number>(10);
 
 	const apiPath = import.meta.env.VITE_API_PATH;
 
@@ -131,7 +134,7 @@ function BrowserBroadcaster() {
 								sdp: answer,
 								type: 'answer'
 							})
-								.catch((err) => console.error("SetRemoveDescription",err))
+								.catch((err) => console.error("SetRemoveDescription", err))
 						})
 				})
 		}, (reason: ErrorMessageEnum) => {
@@ -149,11 +152,51 @@ function BrowserBroadcaster() {
 		}
 	}, [videoRef, useDisplayMedia, location.pathname])
 
+	useEffect(() => {
+		hasSignalRef.current = hasSignal;
+
+		const intervalHandler = () => {
+			let senderHasPacketLoss = false;
+			peerRef.current?.getSenders().forEach(sender => {
+				if (sender) {
+					sender.getStats()
+						.then(stats => {
+							stats.forEach(report => {
+									if (report.type === "outbound-rtp") {
+										senderHasPacketLoss = report.totalPacketSendDelay > 10;
+									}
+									if (report.type === "candidate-pair") {
+										const signalIsValid = report.availableIncomingBitrate !== undefined;
+										badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
+
+										if (badSignalCountRef.current > 2) {
+											setHasSignal(() => false);
+										} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
+											setHasSignal(() => true);
+										}
+									}
+								}
+							)
+						})
+				}
+			})
+
+			setHasPacketLoss(() => senderHasPacketLoss);
+		}
+
+		const interval = setInterval(intervalHandler, hasSignal ? 15_000 : 2_500)
+
+		return () => {
+			clearInterval(interval);
+		}
+	}, [hasSignal]);
+
 	return (
 		<div className='container mx-auto'>
-			{mediaAccessError != null && <ErrorHeader> {getMediaErrorMessage(mediaAccessError)} </ErrorHeader>}
-			{peerConnectionDisconnected && <ErrorHeader> WebRTC has disconnected or failed to connect at all 😭 </ErrorHeader>}
-			{publishSuccess && <PublishSuccess/>}
+			{mediaAccessError != null && <PlayerHeader headerType={"Error"}> {getMediaErrorMessage(mediaAccessError)} </PlayerHeader>}
+			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}> WebRTC has disconnected or failed to connect at all 😭 </PlayerHeader>}
+			{hasPacketLoss && <PlayerHeader headerType={"Warning"}> WebRTC is experiencing packet loss</PlayerHeader>}
+			{publishSuccess && <PlayerHeader headerType={"Success"}> Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a> </PlayerHeader>}
 
 			<video
 				ref={videoRef}
@@ -187,16 +230,6 @@ function BrowserBroadcaster() {
 				</div>
 			)}
 		</div>
-	)
-}
-
-function PublishSuccess() {
-	const subscribeUrl = window.location.href.replace('publish/', '')
-
-	return (
-		<p className={'bg-green-800 text-white text-lg text-center p-5 rounded-t-lg whitespace-pre-wrap'}>
-			Live: Currently streaming to <a href={subscribeUrl} target="_blank" rel="noreferrer" className="hover:underline">{subscribeUrl}</a>
-		</p>
 	)
 }
 
