@@ -20,11 +20,10 @@ const Player = (props: PlayerProps) => {
 	const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
-	
+
 	const layerEndpointRef = useRef<string>('');
 	const hasSignalRef = useRef<boolean>(false);
 	const peerRef = useRef(peerConnection);
-	const badSignalCountRef = useRef<number>(10);
 
 	useEffect(() => {
 		hasSignalRef.current = hasSignal;
@@ -36,26 +35,17 @@ const Player = (props: PlayerProps) => {
 					receiver.getStats()
 						.then(stats => {
 							stats.forEach(report => {
+								console.log(report)
 									if (report.type === "inbound-rtp") {
 										const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
 										receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
-									}
-									if (report.type === "candidate-pair") {
-										const signalIsValid = report.availableIncomingBitrate !== undefined;
-										badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
-
-										if (badSignalCountRef.current > 2) {
-											setHasSignal(() => false);
-										} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
-											setHasSignal(() => true);
-										}
 									}
 								}
 							)
 						})
 				}
 			})
-			
+
 			setHasPacketLoss(() => receiversHasPacketLoss);
 		}
 
@@ -94,6 +84,8 @@ const Player = (props: PlayerProps) => {
 
 				peerConnection.setLocalDescription(offer)
 					.catch((err) => console.error("SetLocalDescription", err));
+
+				peerConnection.oniceconnectionstatechange = () => setHasSignal(peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed');
 
 				fetch(`${apiPath}/whep`, {
 					method: 'POST',
