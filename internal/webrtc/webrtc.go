@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,6 +37,7 @@ type (
 		// Does this stream have a publisher?
 		// If stream was created by a WHEP request hasWHIPClient == false
 		hasWHIPClient atomic.Bool
+		sessionId     string
 
 		firstSeenEpoch uint64
 
@@ -54,6 +56,7 @@ type (
 	}
 
 	videoTrack struct {
+		sessionId        string
 		rid              string
 		packetsReceived  atomic.Uint64
 		lastKeyFrameSeen atomic.Value
@@ -89,7 +92,7 @@ func getVideoTrackCodec(in string) videoTrackCodec {
 	return 0
 }
 
-func getStream(streamKey string, forWHIP bool) (*stream, error) {
+func getStream(streamKey string, whipSessionId string) (*stream, error) {
 	foundStream, ok := streamMap[streamKey]
 	if !ok {
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
@@ -110,14 +113,15 @@ func getStream(streamKey string, forWHIP bool) (*stream, error) {
 		streamMap[streamKey] = foundStream
 	}
 
-	if forWHIP {
+	if whipSessionId != "" {
 		foundStream.hasWHIPClient.Store(true)
+		foundStream.sessionId = whipSessionId
 	}
 
 	return foundStream, nil
 }
 
-func peerConnectionDisconnected(streamKey string, whepSessionId string) {
+func peerConnectionDisconnected(forWHIP bool, streamKey string, sessionId string) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
@@ -129,11 +133,20 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 	stream.whepSessionsLock.Lock()
 	defer stream.whepSessionsLock.Unlock()
 
-	if whepSessionId != "" {
-		delete(stream.whepSessions, whepSessionId)
+	if !forWHIP {
+		delete(stream.whepSessions, sessionId)
 	} else {
+		stream.videoTracks = slices.DeleteFunc(stream.videoTracks, func(v *videoTrack) bool {
+			return v.sessionId == sessionId
+		})
+
+		// A PeerConnection for a old WHIP session has gone to disconnected
+		// closed. Cleanup the state associated with that session, but
+		// don't modify the current session
+		if stream.sessionId != sessionId {
+			return
+		}
 		stream.hasWHIPClient.Store(false)
-		stream.videoTracks = nil
 	}
 
 	// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
@@ -145,7 +158,7 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 	delete(streamMap, streamKey)
 }
 
-func addTrack(stream *stream, rid string) (*videoTrack, error) {
+func addTrack(stream *stream, rid, sessionId string) (*videoTrack, error) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
@@ -155,7 +168,7 @@ func addTrack(stream *stream, rid string) (*videoTrack, error) {
 		}
 	}
 
-	t := &videoTrack{rid: rid}
+	t := &videoTrack{rid: rid, sessionId: sessionId}
 	t.lastKeyFrameSeen.Store(time.Time{})
 	stream.videoTracks = append(stream.videoTracks, t)
 	return t, nil

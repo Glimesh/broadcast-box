@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
@@ -34,13 +35,13 @@ func audioWriter(remoteTrack *webrtc.TrackRemote, stream *stream) {
 	}
 }
 
-func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection *webrtc.PeerConnection, s *stream) {
+func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection *webrtc.PeerConnection, s *stream, sessionId string) {
 	id := remoteTrack.RID()
 	if id == "" {
 		id = videoTrackLabelDefault
 	}
 
-	videoTrack, err := addTrack(s, id)
+	videoTrack, err := addTrack(s, id, sessionId)
 	if err != nil {
 		log.Println(err)
 		return
@@ -142,6 +143,8 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 func WHIP(offer, streamKey string) (string, error) {
 	maybePrintOfferAnswer(offer, true)
 
+	whipSessionId := uuid.New().String()
+
 	peerConnection, err := newPeerConnection(apiWhip)
 	if err != nil {
 		return "", err
@@ -149,7 +152,7 @@ func WHIP(offer, streamKey string) (string, error) {
 
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
-	stream, err := getStream(streamKey, true)
+	stream, err := getStream(streamKey, whipSessionId)
 	if err != nil {
 		return "", err
 	}
@@ -158,7 +161,7 @@ func WHIP(offer, streamKey string) (string, error) {
 		if strings.HasPrefix(remoteTrack.Codec().MimeType, "audio") {
 			audioWriter(remoteTrack, stream)
 		} else {
-			videoWriter(remoteTrack, stream, peerConnection, stream)
+			videoWriter(remoteTrack, stream, peerConnection, stream, whipSessionId)
 
 		}
 	})
@@ -168,7 +171,7 @@ func WHIP(offer, streamKey string) (string, error) {
 			if err := peerConnection.Close(); err != nil {
 				log.Println(err)
 			}
-			peerConnectionDisconnected(streamKey, "")
+			peerConnectionDisconnected(true, streamKey, whipSessionId)
 		}
 	})
 
