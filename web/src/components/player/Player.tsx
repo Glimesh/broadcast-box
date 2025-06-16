@@ -35,7 +35,6 @@ const Player = (props: PlayerProps) => {
 					receiver.getStats()
 						.then(stats => {
 							stats.forEach(report => {
-								console.log(report)
 									if (report.type === "inbound-rtp") {
 										const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
 										receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
