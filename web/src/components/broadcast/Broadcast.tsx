@@ -1,7 +1,9 @@
-﻿import React, {useEffect, useRef, useState} from 'react'
+﻿import React, {useContext, useEffect, useRef, useState} from 'react'
 import {useLocation} from 'react-router-dom'
 import {useNavigate} from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
+import {UsersIcon} from "@heroicons/react/20/solid";
+import {StatusContext} from "../../providers/StatusProvider";
 
 const mediaOptions = {
 	audio: true,
@@ -30,6 +32,9 @@ function getMediaErrorMessage(value: ErrorMessageEnum): string {
 function BrowserBroadcaster() {
 	const location = useLocation()
 	const navigate = useNavigate();
+	const streamKey = location.pathname.split('/').pop()
+	const { streamStatus } = useContext(StatusContext);
+	
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
 	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
@@ -37,6 +42,7 @@ function BrowserBroadcaster() {
 	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState(false)
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
+	const [currentViewerCount, setCurrentViewerCount] = useState<number>(0);
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const hasSignalRef = useRef<boolean>(false);
 	const peerRef = useRef(peerConnection);
@@ -47,6 +53,18 @@ function BrowserBroadcaster() {
 	const endStream = () => {
 		navigate('/')
 	}
+
+	useEffect(() => {
+		if(!streamKey || !streamStatus){
+			return;
+		}
+		
+		const sessions = streamStatus.filter((session) => session.streamKey === streamKey);
+		
+		if(sessions.length !== 0){
+			setCurrentViewerCount(() => sessions[0].whepSessions.length)
+		}
+	}, [streamStatus]);
 
 	useEffect(() => {
 		if (useDisplayMedia === "None" || !peerConnection) {
@@ -142,7 +160,7 @@ function BrowserBroadcaster() {
 			setUseDisplayMedia("None");
 		})
 
-		return function cleanup() {
+		return () => {
 			peerConnection.close()
 			if (stream) {
 				stream
@@ -180,7 +198,7 @@ function BrowserBroadcaster() {
 						})
 				}
 			})
-
+			
 			setHasPacketLoss(() => senderHasPacketLoss);
 		}
 
@@ -206,8 +224,16 @@ function BrowserBroadcaster() {
 				playsInline
 				className='w-full h-full'
 			/>
+			
+			<div className={"justify-items-end"} >
+				<div className={"flex flex-row items-center"}>
+					<UsersIcon className={"size-4"}/>
+					{currentViewerCount}
+				</div>
+			</div>
 
 			<div className="flex flex-row gap-2">
+				
 				<button
 					onClick={() => setUseDisplayMedia("Screen")}
 					className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-blue-900 hover:bg-blue-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
