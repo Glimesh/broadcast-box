@@ -22,7 +22,6 @@ const Player = (props: PlayerProps) => {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
 	const hasSignalRef = useRef<boolean>(false);
-	const peerRef = useRef(peerConnection);
 	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 	
 	const setHasSignalHandler = (ev: Event) => {
@@ -36,6 +35,7 @@ const Player = (props: PlayerProps) => {
 			peerConnectionRef.current?.close()
 			peerConnectionRef.current = null
 			
+			videoRef.current?.removeEventListener("playing", setHasSignalHandler)
 		} 
 	}, [])
 
@@ -81,6 +81,7 @@ const Player = (props: PlayerProps) => {
 		peerConnectionRef.current.ontrack = (event: RTCTrackEvent) => {
 			if (videoRef.current) {
 				videoRef.current.srcObject = event.streams[0];
+				videoRef.current.addEventListener("playing", setHasSignalHandler)
 			}
 		}
 
