@@ -33,13 +33,13 @@ function BrowserBroadcaster() {
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
 	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
-	const [peerConnection, _] = useState<RTCPeerConnection>(new RTCPeerConnection());
 	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState(false)
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
+	
+	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const hasSignalRef = useRef<boolean>(false);
-	const peerRef = useRef(peerConnection);
 	const badSignalCountRef = useRef<number>(10);
 
 	const apiPath = import.meta.env.VITE_API_PATH;
@@ -47,9 +47,15 @@ function BrowserBroadcaster() {
 	const endStream = () => {
 		navigate('/')
 	}
+	
+	useEffect(() => {
+		peerConnectionRef.current = new RTCPeerConnection();
+		
+		return () => peerConnectionRef.current?.close()
+	}, [])
 
 	useEffect(() => {
-		if (useDisplayMedia === "None" || !peerConnection) {
+		if (useDisplayMedia === "None" || !peerConnectionRef.current) {
 			return;
 		}
 
@@ -66,7 +72,7 @@ function BrowserBroadcaster() {
 			navigator.mediaDevices.getUserMedia(mediaOptions)
 
 		mediaPromise.then(mediaStream => {
-			if (peerConnection.connectionState === "closed") {
+			if (peerConnectionRef.current!.connectionState === "closed") {
 				mediaStream
 					.getTracks()
 					.forEach(mediaStreamTrack => mediaStreamTrack.stop())
@@ -81,11 +87,11 @@ function BrowserBroadcaster() {
 				.getTracks()
 				.forEach(mediaStreamTrack => {
 					if (mediaStreamTrack.kind === 'audio') {
-						peerConnection.addTransceiver(mediaStreamTrack, {
+						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
 							direction: 'sendonly'
 						})
 					} else {
-						peerConnection.addTransceiver(mediaStreamTrack, {
+						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
 							direction: 'sendonly',
 							sendEncodings: [
 								{
@@ -104,21 +110,22 @@ function BrowserBroadcaster() {
 					}
 				})
 
-			peerConnection.oniceconnectionstatechange = () => {
-				if (peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed') {
-					setPublishSuccess(true)
+			peerConnectionRef.current!.oniceconnectionstatechange = () => {
+				if (peerConnectionRef.current!.iceConnectionState === 'connected' || peerConnectionRef.current!.iceConnectionState === 'completed') {
+					setPublishSuccess(() => true)
 					setMediaAccessError(() => null)
-					setPeerConnectionDisconnected(false)
-				} else if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
-					setPublishSuccess(false)
-					setPeerConnectionDisconnected(true)
+					setPeerConnectionDisconnected(() => false)
+				} else if (peerConnectionRef.current!.iceConnectionState === 'disconnected' || peerConnectionRef.current!.iceConnectionState === 'failed') {
+					setPublishSuccess(() => false)
+					setPeerConnectionDisconnected(() => true)
 				}
 			}
 
-			peerConnection
+			peerConnectionRef
+				.current!
 				.createOffer()
 				.then(offer => {
-					peerConnection.setLocalDescription(offer)
+					peerConnectionRef.current!.setLocalDescription(offer)
 						.catch((err) => console.error("SetLocalDescription", err));
 
 					fetch(`${apiPath}/whip`, {
@@ -130,7 +137,7 @@ function BrowserBroadcaster() {
 						}
 					}).then(r => r.text())
 						.then(answer => {
-							peerConnection.setRemoteDescription({
+							peerConnectionRef.current!.setRemoteDescription({
 								sdp: answer,
 								type: 'answer'
 							})
@@ -142,8 +149,8 @@ function BrowserBroadcaster() {
 			setUseDisplayMedia("None");
 		})
 
-		return function cleanup() {
-			peerConnection.close()
+		return () => {
+			peerConnectionRef.current?.close()
 			if (stream) {
 				stream
 					.getTracks()
@@ -157,7 +164,7 @@ function BrowserBroadcaster() {
 
 		const intervalHandler = () => {
 			let senderHasPacketLoss = false;
-			peerRef.current?.getSenders().forEach(sender => {
+			peerConnectionRef.current?.getSenders().forEach(sender => {
 				if (sender) {
 					sender.getStats()
 						.then(stats => {
