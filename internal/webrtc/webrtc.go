@@ -163,7 +163,7 @@ func addTrack(stream *stream, rid, sessionId string) (*videoTrack, error) {
 	defer streamMapLock.Unlock()
 
 	for i := range stream.videoTracks {
-		if rid == stream.videoTracks[i].rid {
+		if rid == stream.videoTracks[i].rid && sessionId == stream.videoTracks[i].sessionId {
 			return stream.videoTracks[i], nil
 		}
 	}
