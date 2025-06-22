@@ -5,7 +5,10 @@ import PlayerHeader from '../playerHeader/PlayerHeader';
 
 const mediaOptions = {
 	audio: true,
-	video: true
+	video: {
+		width: { ideal: 1920 },
+		height: { ideal: 1080 },
+	},
 }
 
 enum ErrorMessageEnum {
@@ -89,7 +92,7 @@ function BrowserBroadcaster() {
 							direction: 'sendonly',
 							sendEncodings: [
 								{
-									rid: 'high'
+									rid: 'high',
 								},
 								{
 									rid: 'med',

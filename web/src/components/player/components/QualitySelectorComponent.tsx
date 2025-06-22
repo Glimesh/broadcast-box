@@ -23,10 +23,6 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 		setCurrentLayer(event.target.value)
 	}
 
-	if(props.layers.length === 0){
-		return <></>
-	}
-
 	let layerList = [
 		currentLayer,
 		...props.layers.filter(layer => layer !== currentLayer)
@@ -39,7 +35,7 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 		<div className="h-full flex">
 			<ChartBarIcon
 				className={props.hasPacketLoss ? "text-orange-600" :""}
-				onClick={() => setIsOpen((prev) => !prev)}/>
+				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)}/>
 
 			{isOpen && (
 				
