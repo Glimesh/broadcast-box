@@ -9,7 +9,8 @@ interface QualityComponentProps {
 
 const QualitySelectorComponent = (props: QualityComponentProps) => {
 	const [isOpen, setIsOpen] = useState<boolean>(false);
-	
+	const [currentLayer, setCurrentLayer] = useState<string>('');
+
 	const onLayerChange = (event: ChangeEvent<HTMLSelectElement>) => {
 		fetch(props.layerEndpoint, {
 			method: 'POST',
@@ -18,25 +19,29 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 				'Content-Type': 'application/json'
 			}
 		}).catch((err) => console.error("onLayerChange", err))
-		
-		setIsOpen(() => false)
+		setIsOpen(false)
+		setCurrentLayer(event.target.value)
 	}
-	
-	if(props.layers.length === 0){
-		return <></>
+
+	let layerList = [
+		currentLayer,
+		...props.layers.filter(layer => layer !== currentLayer)
+	].map(layer => <option key={`layerEncodingId_${layer}`} value={layer}>{layer}</option>)
+	if (layerList[0].props.value === '') {
+		layerList[0] = <option key="disabled" value="disabled">No Layer Selected</option>
 	}
 
 	return (
 		<div className="h-full flex">
 			<ChartBarIcon
 				className={props.hasPacketLoss ? "text-orange-600" :""}
-				onClick={() => setIsOpen((prev) => !prev)}/>
+				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)}/>
 
 			{isOpen && (
 				
 			<select
-				defaultValue="disabled"
 				onChange={onLayerChange}
+				value={currentLayer}
 				className="
 				absolute 
 				right-0
@@ -56,8 +61,7 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 				shadow-md
 				placeholder-gray-200">
 				{
-					props.layers.map(layer => 
-					<option key={`layerEncodingId_${layer}`} value={layer}>{layer}</option>)
+					layerList
 				}
 			</select>
 			)}
