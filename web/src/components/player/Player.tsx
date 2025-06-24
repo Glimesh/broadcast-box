@@ -15,76 +15,87 @@ const Player = (props: PlayerProps) => {
 	const apiPath = import.meta.env.VITE_API_PATH;
 	const {streamKey, cinemaMode} = props;
 
-	const videoRef = useRef<HTMLVideoElement>(null);
 	const [videoLayers, setVideoLayers] = useState([]);
-	const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 
+	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
 	const hasSignalRef = useRef<boolean>(false);
-	const peerRef = useRef(peerConnection);
+	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+	
+	const setHasSignalHandler = (ev: Event) => {
+		setHasSignal(() => true);
+	}
+	
+	useEffect(() => {
+		peerConnectionRef.current = new RTCPeerConnection();
+
+		return () =>{
+			peerConnectionRef.current?.close()
+			peerConnectionRef.current = null
+			
+			videoRef.current?.removeEventListener("playing", setHasSignalHandler)
+		} 
+	}, [])
 
 	useEffect(() => {
 		hasSignalRef.current = hasSignal;
 
 		const intervalHandler = () => {
+			if (!peerConnectionRef.current) {
+				return
+			}
+
 			let receiversHasPacketLoss = false;
-			peerRef.current?.getReceivers().forEach(receiver => {
-				if (receiver) {
-					receiver.getStats()
-						.then(stats => {
-							stats.forEach(report => {
-									if (report.type === "inbound-rtp") {
-										const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
-										receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
+			peerConnectionRef.current
+				.getReceivers()
+				.forEach(receiver => {
+					if (receiver) {
+						receiver.getStats()
+							.then(stats => {
+								stats.forEach(report => {
+										if (report.type === "inbound-rtp") {
+											const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
+											receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
+										}
 									}
-								}
-							)
-						})
-				}
-			})
+								)
+							})
+					}
+				})
 
 			setHasPacketLoss(() => receiversHasPacketLoss);
 		}
 
 		const interval = setInterval(intervalHandler, hasSignal ? 15_000 : 2_500)
 
-		return () => {
-			clearInterval(interval);
-		}
+		return () => clearInterval(interval);
 	}, [hasSignal]);
 
 	useEffect(() => {
-		if (!peerConnection && !!videoRef.current) {
-			setPeerConnection(() => new RTCPeerConnection());
-		}
-	}, [videoRef])
-
-	useEffect(() => {
-		if (!peerConnection) {
+		if (!peerConnectionRef.current) {
 			return;
 		}
-
-		peerRef.current = peerConnection;
-		peerConnection.ontrack = (event: RTCTrackEvent) => {
+		
+		peerConnectionRef.current.ontrack = (event: RTCTrackEvent) => {
 			if (videoRef.current) {
 				videoRef.current.srcObject = event.streams[0];
+				videoRef.current.addEventListener("playing", setHasSignalHandler)
 			}
 		}
 
-		peerConnection.addTransceiver('audio', {direction: 'recvonly'})
-		peerConnection.addTransceiver('video', {direction: 'recvonly'})
+		peerConnectionRef.current.addTransceiver('audio', {direction: 'recvonly'})
+		peerConnectionRef.current.addTransceiver('video', {direction: 'recvonly'})
 
-		peerConnection
+		peerConnectionRef.current
 			.createOffer()
 			.then(offer => {
 				offer["sdp"] = offer["sdp"]!.replace("useinbandfec=1", "useinbandfec=1;stereo=1")
 
-				peerConnection.setLocalDescription(offer)
+				peerConnectionRef.current!
+					.setLocalDescription(offer)
 					.catch((err) => console.error("SetLocalDescription", err));
-
-				peerConnection.oniceconnectionstatechange = () => setHasSignal(peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed');
 
 				fetch(`${apiPath}/whep`, {
 					method: 'POST',
@@ -112,19 +123,13 @@ const Player = (props: PlayerProps) => {
 
 					return r.text()
 				}).then(answer => {
-					peerConnection.setRemoteDescription({
+					peerConnectionRef.current!.setRemoteDescription({
 						sdp: answer,
 						type: 'answer'
 					}).catch((err) => console.error("RemoteDescription", err))
-				}).catch((err) => {
-					console.error("PeerConnectionError", err)
-				})
+				}).catch((err) => console.error("PeerConnectionError", err))
 			})
-
-		return function cleanup() {
-			peerConnection.close()
-		}
-	}, [peerConnection])
+	}, [peerConnectionRef])
 
 	return (
 		<div
@@ -202,13 +207,12 @@ const Player = (props: PlayerProps) => {
 						{props.streamKey} is not currently streaming
 					</h2>
 				)}
-				{
-					videoLayers.length > 0 && !hasSignal && (
+				{videoLayers.length > 0 && !hasSignal && (
 						<h2
 							className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
 							Loading video
-						</h2>)
-				}
+						</h2>
+				)}
 
 			</div>
 

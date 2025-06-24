@@ -40,13 +40,9 @@ const PlayerPage = () => {
 							cinemaMode={cinemaMode}
 							onCloseStream={
 								streamKeys.length === 1
-									? () => {
-										navigate('/')
-									}
-									:
-									() => {
-										setStreamKeys((prev) => prev.filter((key) => key !== streamKey))
-									}}
+									? () => navigate('/')
+									: () => setStreamKeys((prev) => prev.filter((key) => key !== streamKey))
+							}
 						/>
 					)}
 				</div>

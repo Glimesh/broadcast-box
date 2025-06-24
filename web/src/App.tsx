@@ -12,8 +12,7 @@ function App() {
       <Route path='/' element={<RootWrapper />}>
         <Route index element={<Frontpage/>} />
         <Route path='/publish/*' element={<BrowserBroadcaster />} />
-        <Route path='/*' element={<PlayerPage/>} 
-      />
+        <Route path='/*' element={<PlayerPage/>} />
       </Route>
     </Routes>
   )
