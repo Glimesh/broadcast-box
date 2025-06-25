@@ -1,7 +1,9 @@
-﻿import React, {useEffect, useRef, useState} from 'react'
+﻿import React, {useContext, useEffect, useRef, useState} from 'react'
 import {useLocation} from 'react-router-dom'
 import {useNavigate} from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
+import {StatusContext} from "../../providers/StatusProvider";
+import {UsersIcon} from "@heroicons/react/20/solid";
 
 const mediaOptions = {
 	audio: true,
@@ -33,10 +35,13 @@ function getMediaErrorMessage(value: ErrorMessageEnum): string {
 function BrowserBroadcaster() {
 	const location = useLocation()
 	const navigate = useNavigate();
+	const streamKey = location.pathname.split('/').pop()
+	const { streamStatus } = useContext(StatusContext);
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
 	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
 	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState(false)
+	const [currentViewersCount, setCurrentViewersCount] = useState<number>(0)
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	
@@ -56,6 +61,21 @@ function BrowserBroadcaster() {
 		
 		return () => peerConnectionRef.current?.close()
 	}, [])
+
+	useEffect(() => {
+		if(!streamKey || !streamStatus){
+			return;
+		}
+
+		const sessions = streamStatus.filter((session) => session.streamKey === streamKey);
+
+		if(sessions.length !== 0){
+			setCurrentViewersCount(() => 
+				sessions.length !== 0 
+					? sessions[0].whepSessions.length
+					: 0)
+		}
+	}, [streamStatus]);
 
 	useEffect(() => {
 		if (useDisplayMedia === "None" || !peerConnectionRef.current) {
@@ -135,7 +155,7 @@ function BrowserBroadcaster() {
 						method: 'POST',
 						body: offer.sdp,
 						headers: {
-							Authorization: `Bearer ${location.pathname.split('/').pop()}`,
+							Authorization: `Bearer ${streamKey}`,
 							'Content-Type': 'application/sdp'
 						}
 					}).then(r => r.text())
@@ -216,7 +236,13 @@ function BrowserBroadcaster() {
 				playsInline
 				className='w-full h-full'
 			/>
-
+			
+			<div className={"justify-items-end"} >
+				<div className={"flex flex-row items-center"}>
+					<UsersIcon className={"size-4"}/>
+					{currentViewersCount}
+				</div>
+			</div>
 			<div className="flex flex-row gap-2">
 				<button
 					onClick={() => setUseDisplayMedia("Screen")}
