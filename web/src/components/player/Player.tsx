@@ -4,6 +4,7 @@ import {ArrowsPointingOutIcon, Square2StackIcon} from "@heroicons/react/16/solid
 import VolumeComponent from "./components/VolumeComponent";
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import QualitySelectorComponent from "./components/QualitySelectorComponent";
+import CurrentViewersComponent from "./components/CurrentViewersComponent";
 
 interface PlayerProps {
 	streamKey: string;
@@ -31,7 +32,7 @@ const Player = (props: PlayerProps) => {
 	useEffect(() => {
 		peerConnectionRef.current = new RTCPeerConnection();
 
-		return () =>{
+		return () => {
 			peerConnectionRef.current?.close()
 			peerConnectionRef.current = null
 			
@@ -175,6 +176,7 @@ const Player = (props: PlayerProps) => {
 
 							<div className="w-full"></div>
 
+							{hasSignal && <CurrentViewersComponent streamKey={streamKey}/>}
 							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss}/>
 							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()}/>
 							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()}/>
