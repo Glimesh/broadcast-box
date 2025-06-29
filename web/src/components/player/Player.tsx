@@ -32,12 +32,14 @@ const Player = (props: PlayerProps) => {
 	useEffect(() => {
 		peerConnectionRef.current = new RTCPeerConnection();
 
-		return () => {
+		const cleanup = () => {
 			peerConnectionRef.current?.close()
 			peerConnectionRef.current = null
 			
 			videoRef.current?.removeEventListener("playing", setHasSignalHandler)
-		} 
+		}
+		window.onbeforeunload = cleanup
+		return cleanup
 	}, [])
 
 	useEffect(() => {
