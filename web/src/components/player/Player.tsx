@@ -140,6 +140,7 @@ const Player = (props: PlayerProps) => {
 				maxWidth: '100vw'
 			} : {}}>
 			<div
+				onDoubleClick={() => videoRef.current?.requestFullscreen()}
 				className={`
 					absolute
 					rounded-md
@@ -158,7 +159,6 @@ const Player = (props: PlayerProps) => {
 
 				{/*Opaque background*/}
 				<div
-					onDoubleClick={() => videoRef.current?.requestFullscreen()}
 					className="absolute w-full bg-gray-950 opacity-40 h-full"/>
 
 				{/*Buttons */}
