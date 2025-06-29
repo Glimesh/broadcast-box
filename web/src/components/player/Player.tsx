@@ -65,6 +65,11 @@ const Player = (props: PlayerProps) => {
 	};
 	
 	useEffect(() => {
+		const handleWindowBeforeUnload = () => {
+			peerConnectionRef.current?.close();
+			peerConnectionRef.current = null;
+		}
+
 		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible);
 		const player = document.getElementById("videoPlayer")
 		
@@ -72,7 +77,9 @@ const Player = (props: PlayerProps) => {
 		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
 		player?.addEventListener('mouseup', () => handleOverlayTimer(true))
-		
+
+		window.addEventListener("beforeunload", handleWindowBeforeUnload)
+
 		peerConnectionRef.current = new RTCPeerConnection();
 
 		return () => {
@@ -85,9 +92,11 @@ const Player = (props: PlayerProps) => {
 			player?.removeEventListener('mouseleave', () => handleOverlayTimer)
 			player?.removeEventListener('mousemove', () => handleOverlayTimer)
 			player?.removeEventListener('mouseup', () => handleOverlayTimer)
+
+			window.removeEventListener("beforeunload", handleWindowBeforeUnload)
 			
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
-		} 
+		}
 	}, [])
 
 	useEffect(() => {
