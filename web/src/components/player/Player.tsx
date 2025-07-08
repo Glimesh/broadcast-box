@@ -19,17 +19,61 @@ const Player = (props: PlayerProps) => {
 	const [videoLayers, setVideoLayers] = useState([]);
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
+	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
 	const hasSignalRef = useRef<boolean>(false);
 	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
-	
-	const setHasSignalHandler = (ev: Event) => {
+	const videoOverlayVisibleTimeoutRef = useRef<number | undefined>(undefined);
+	const clickDelay = 250;
+	const lastClickTimeRef = useRef(0);
+	const clickTimeoutRef = useRef<number | undefined>(undefined);
+
+	const setHasSignalHandler = (_: Event) => {
 		setHasSignal(() => true);
 	}
+	const resetTimer = (isVisible: boolean) => {
+		setVideoOverlayVisible(() => isVisible);
+		
+		if(videoOverlayVisibleTimeoutRef){
+			clearTimeout(videoOverlayVisibleTimeoutRef.current)
+		}
+		
+		videoOverlayVisibleTimeoutRef.current = setTimeout(() => {
+			setVideoOverlayVisible(() => false)
+		}, 2500)
+	}
+
+	const handleVideoPlayerClick = () => {
+		const now = Date.now();
+		lastClickTimeRef.current = now;
+
+		clickTimeoutRef.current = setTimeout(() => {
+			const timeSinceLastClick = Date.now() - lastClickTimeRef.current;
+			if (timeSinceLastClick >= clickDelay && (timeSinceLastClick - clickDelay) < 5000) {
+				videoRef.current?.paused
+					? videoRef.current?.play()
+					: videoRef.current?.pause();
+			}
+		}, clickDelay);
+	};
+	const handleVideoPlayerDoubleClick = () => {
+		clearTimeout(clickTimeoutRef.current);
+		lastClickTimeRef.current = 0;
+		videoRef.current?.requestFullscreen()
+			.catch(err => console.error("VideoPlayer_RequestFullscreen", err));
+	};
 	
 	useEffect(() => {
+		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible);
+		const player = document.getElementById("videoPlayer")
+		
+		player?.addEventListener('mousemove', () => handleOverlayTimer(true))
+		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
+		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
+		player?.addEventListener('mouseup', () => handleOverlayTimer(true))
+		
 		peerConnectionRef.current = new RTCPeerConnection();
 
 		return () => {
@@ -37,6 +81,13 @@ const Player = (props: PlayerProps) => {
 			peerConnectionRef.current = null
 			
 			videoRef.current?.removeEventListener("playing", setHasSignalHandler)
+
+			player?.removeEventListener('mouseenter', () => handleOverlayTimer)
+			player?.removeEventListener('mouseleave', () => handleOverlayTimer)
+			player?.removeEventListener('mousemove', () => handleOverlayTimer)
+			player?.removeEventListener('mouseup', () => handleOverlayTimer)
+			
+			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		} 
 	}, [])
 
@@ -134,7 +185,10 @@ const Player = (props: PlayerProps) => {
 
 	return (
 		<div
+			id={"videoPlayer"}
 			className="inline-block w-full relative"
+			onClick={handleVideoPlayerClick}
+			onDoubleClick={handleVideoPlayerDoubleClick}
 			style={cinemaMode ? {
 				maxHeight: '100vh',
 				maxWidth: '100vw'
@@ -150,16 +204,16 @@ const Player = (props: PlayerProps) => {
 					${hasSignal && `
 						transition-opacity
 						duration-500
-						opacity-0
-						hover:opacity-100
+						hover: ${videoOverlayVisible ? 'opacity-100' : 'opacity-0'}
+						${!videoOverlayVisible ? 'cursor-none' : 'cursor-default'}
 					`}
 				`}
 			>
 
 				{/*Opaque background*/}
 				<div
-					onDoubleClick={() => videoRef.current?.requestFullscreen()}
-					className="absolute w-full bg-gray-950 opacity-40 h-full"/>
+					className={`absolute w-full bg-gray-950 ${!hasSignal ? 'opacity-40' : 'opacity-0'} h-full`}
+				/>
 
 				{/*Buttons */}
 				{videoRef.current !== null && (
