@@ -46,8 +46,7 @@ const Player = (props: PlayerProps) => {
 	}
 
 	const handleVideoPlayerClick = () => {
-		const now = Date.now();
-		lastClickTimeRef.current = now;
+		lastClickTimeRef.current = Date.now();
 
 		clickTimeoutRef.current = setTimeout(() => {
 			const timeSinceLastClick = Date.now() - lastClickTimeRef.current;
@@ -186,14 +185,14 @@ const Player = (props: PlayerProps) => {
 	return (
 		<div
 			id={"videoPlayer"}
-			className="inline-block w-full relative"
-			onClick={handleVideoPlayerClick}
-			onDoubleClick={handleVideoPlayerDoubleClick}
+			className="inline-block w-full relative z-0"
 			style={cinemaMode ? {
 				maxHeight: '100vh',
-				maxWidth: '100vw'
+				maxWidth: '100vw',
 			} : {}}>
 			<div
+				onClick={handleVideoPlayerClick}
+				onDoubleClick={handleVideoPlayerDoubleClick}
 				className={`
 					absolute
 					rounded-md
@@ -211,14 +210,14 @@ const Player = (props: PlayerProps) => {
 			>
 
 				{/*Opaque background*/}
-				<div
-					className={`absolute w-full bg-gray-950 ${!hasSignal ? 'opacity-40' : 'opacity-0'} h-full`}
-				/>
+				<div className={`absolute w-full bg-gray-950 ${!hasSignal ? 'opacity-40' : 'opacity-0'} h-full bg-red-100`} />
 
 				{/*Buttons */}
 				{videoRef.current !== null && (
-					<div className="absolute h-full w-full flex place-items-end">
-						<div className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 rounded-b-md p-1 max-h-8 min-h-8">
+					<div className="absolute bottom-0 h-8 w-full flex place-items-end z-20">
+						<div
+							onClick={(e) => e.stopPropagation()}
+							className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 rounded-b-md p-1 max-h-8 min-h-8">
 
 							<PlayPauseComponent videoRef={videoRef}/>
 
