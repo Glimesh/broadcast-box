@@ -1,8 +1,11 @@
 ﻿import React, {useEffect, useMemo, useRef, useState} from "react";
 
 interface WhepSession {
-	currentLayer: string;
 	id: string;
+	currentLayer: string;
+	sequenceNumber: number;
+	timestamp: number;
+	packetsWritten: number;
 }
 
 interface StatusResult {
@@ -12,6 +15,8 @@ interface StatusResult {
 }
 
 interface VideoStream {
+	rid: string;
+	packetsReceived: number;
 	lastKeyFrameSeen: string;
 }
 
