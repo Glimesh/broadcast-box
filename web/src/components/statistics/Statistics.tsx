@@ -1,19 +1,21 @@
 ﻿import React, {useContext, useEffect} from "react";
 import {StatusContext} from "../../providers/StatusProvider";
+import {useNavigate} from "react-router-dom";
 
 const Statistics = () => {
   const {streamStatus, refreshStatus} = useContext(StatusContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     refreshStatus();
   }, []);
-
+  
   return (
     <div className="p-6 min-h-screen">
       <h2 className="text-4xl font-semibold mb-4">📊 Statistics</h2>
 
-      {!streamStatus && (
-        <p className="text-center text-gray-500 mt-10">No statistics currently available</p>
+      {!streamStatus || streamStatus?.length === 0 && (
+        <p className="text-center text-gray-500 mt-10 text-3xl">No statistics currently available</p>
       )}
 
       <div className="space-y-6">
@@ -25,7 +27,8 @@ const Statistics = () => {
                 Stream Key: {status.streamKey}
               </div>
               <button
-                className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg ">
+                onClick={() => navigate(`/${status.streamKey}`)}
+                className="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded-lg text-white">
                 Watch stream
               </button>
             </div>
@@ -54,7 +57,7 @@ const Statistics = () => {
                 {status.whepSessions.map((session, index) => (
                   <div
                     key={index}
-                    className="bg-green-50 rounded-md p-3 border border-green-100"
+                    className="rounded-md p-3 border border-indigo-100"
                   >
                     <div><strong>ID:</strong> {session.id}</div>
                     <div><strong>Layer:</strong> {session.currentLayer}</div>
