@@ -175,6 +175,26 @@ func WHIP(offer, streamKey string) (string, error) {
 		}
 	})
 
+	stream.dataChannelsLock.Lock()
+	stream.publisherConnection = peerConnection
+
+	for whepSessionId := range stream.subscriberConnections {
+		for label := range stream.subscriberDataChannels[whepSessionId] {
+			if err := ensureDataChannelPair(label, stream, nil, &whepSessionId); err != nil {
+				return "", err
+			}
+		}
+	}
+	stream.dataChannelsLock.Unlock()
+
+	peerConnection.OnDataChannel(func(channel *webrtc.DataChannel) {
+		stream.dataChannelsLock.Lock()
+		if err := ensureDataChannelPair(channel.Label(), stream, channel, nil); err != nil {
+			log.Println(err)
+		}
+		stream.dataChannelsLock.Unlock()
+	})
+
 	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		SDP:  string(offer),
 		Type: webrtc.SDPTypeOffer,
