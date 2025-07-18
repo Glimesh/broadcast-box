@@ -29,6 +29,7 @@ const Player = (props: PlayerProps) => {
 	const clickDelay = 250;
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
+	const streamVideoPlayerId = streamKey + "_videoPlayer";
 
 	const setHasSignalHandler = (_: Event) => {
 		setHasSignal(() => true);
@@ -71,7 +72,7 @@ const Player = (props: PlayerProps) => {
 		}
 
 		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible);
-		const player = document.getElementById("videoPlayer")
+		const player = document.getElementById(streamVideoPlayerId)
 		
 		player?.addEventListener('mousemove', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
@@ -193,7 +194,7 @@ const Player = (props: PlayerProps) => {
 
 	return (
 		<div
-			id={"videoPlayer"}
+			id={streamVideoPlayerId}
 			className="inline-block w-full relative z-0"
 			style={cinemaMode ? {
 				maxHeight: '100vh',
