@@ -24,7 +24,15 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 		return err
 	}
 
-	peerConnection, err := webrtc.NewAPI(webrtc.WithMediaEngine(m)).NewPeerConnection(webrtc.Configuration{})
+       s := webrtc.SettingEngine{}
+       s.SetNetworkTypes([]webrtc.NetworkType{
+               webrtc.NetworkTypeUDP4,
+               webrtc.NetworkTypeUDP6,
+               webrtc.NetworkTypeTCP4,
+               webrtc.NetworkTypeTCP6,
+       })
+
+       peerConnection, err := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(s)).NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		return err
 	}
