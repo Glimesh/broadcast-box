@@ -17,7 +17,7 @@ func TestCallWebhook(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(webhookResponse{StreamKey: "dummy_stream_key"})
 		case "/timeout":
-			time.Sleep(2 * time.Second)
+			time.Sleep(7 * time.Second)
 		case "/error":
 			w.WriteHeader(http.StatusInternalServerError)
 		case "/badjson":
@@ -32,15 +32,14 @@ func TestCallWebhook(t *testing.T) {
 	tests := []struct {
 		name        string
 		url         string
-		timeout     int
 		expectedErr bool
 		expectedKey string
 	}{
-		{"Success Case", "/ok", 1000, false, "dummy_stream_key"},
-		{"Server Timeout", "/timeout", 1000, true, ""},
-		{"Server Error", "/error", 1000, true, ""},
-		{"Malformed JSON", "/badjson", 1000, true, ""},
-		{"Not Found", "/notfound", 1000, true, ""},
+		{"Success Case", "/ok", false, "dummy_stream_key"},
+		{"Server Timeout", "/timeout", true, ""},
+		{"Server Error", "/error", true, ""},
+		{"Malformed JSON", "/badjson", true, ""},
+		{"Not Found", "/notfound", true, ""},
 	}
 
 	for _, tt := range tests {
@@ -50,7 +49,7 @@ func TestCallWebhook(t *testing.T) {
 			req.Header.Set("User-Agent", "test-agent")
 
 			// call the function with test layers
-			result, err := CallWebhook(fmt.Sprintf("%s%s", mockServer.URL, tt.url), "action", "bearerToken", tt.timeout, req)
+			result, err := CallWebhook(fmt.Sprintf("%s%s", mockServer.URL, tt.url), "action", "bearerToken", req)
 
 			if tt.expectedErr && err == nil {
 				t.Fatalf("expected an error but got none")
