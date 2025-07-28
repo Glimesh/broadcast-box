@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const defaultTimeout = time.Second * 5
+
 type webhookPayload struct {
 	Action      string            `json:"action"`
 	IP          string            `json:"ip"`
@@ -20,7 +22,7 @@ type webhookResponse struct {
 	StreamKey string `json:"streamKey"`
 }
 
-func CallWebhook(url, action, bearerToken string, timeout int, r *http.Request) (string, error) {
+func CallWebhook(url, action, bearerToken string, r *http.Request) (string, error) {
 	start := time.Now()
 
 	queryParams := make(map[string]string)
@@ -41,17 +43,15 @@ func CallWebhook(url, action, bearerToken string, timeout int, r *http.Request) 
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	client := &http.Client{
-		Timeout: time.Duration(timeout) * time.Millisecond,
-	}
-
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := (&http.Client{
+		Timeout: defaultTimeout,
+	}).Do(req)
 	if err != nil {
 		return "", fmt.Errorf("webhook request failed after %v: %w", time.Since(start), err)
 	}

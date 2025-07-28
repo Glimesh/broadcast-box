@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/networktest"
+	"github.com/glimesh/broadcast-box/internal/webhook"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
 	"github.com/joho/godotenv"
 )
@@ -44,7 +45,7 @@ type (
 	}
 )
 
-func getStreamKey(r *http.Request) (string, error) {
+func getStreamKey(action string, r *http.Request) (streamKey string, err error) {
 	authorizationHeader := r.Header.Get("Authorization")
 	if authorizationHeader == "" {
 		return "", errAuthorizationNotSet
@@ -55,13 +56,19 @@ func getStreamKey(r *http.Request) (string, error) {
 		return "", errInvalidStreamKey
 	}
 
-	bearerToken := strings.TrimPrefix(authorizationHeader, bearerPrefix)
-	if !streamKeyRegex.MatchString(bearerToken) {
+	streamKey = strings.TrimPrefix(authorizationHeader, bearerPrefix)
+	if webhookUrl := os.Getenv("WEBHOOK_URL"); webhookUrl != "" {
+		streamKey, err = webhook.CallWebhook(webhookUrl, action, streamKey, r)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if !streamKeyRegex.MatchString(streamKey) {
 		return "", errInvalidStreamKey
 	}
 
-	return bearerToken, nil
-
+	return streamKey, nil
 }
 
 func logHTTPError(w http.ResponseWriter, err string, code int) {
@@ -74,9 +81,10 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	streamKey, err := getStreamKey(r)
+	streamKey, err := getStreamKey("whip-connect", r)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	offer, err := io.ReadAll(r.Body)
@@ -104,9 +112,10 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	streamKey, err := getStreamKey(req)
+	streamKey, err := getStreamKey("whep-connect", req)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	offer, err := io.ReadAll(req.Body)
@@ -207,25 +216,25 @@ func corsHandler(next func(w http.ResponseWriter, r *http.Request)) http.Handler
 	}
 }
 
-func main() {
-	loadConfigs := func() error {
-		if os.Getenv("APP_ENV") == "development" {
-			log.Println("Loading `" + envFileDev + "`")
-			return godotenv.Load(envFileDev)
-		} else {
-			log.Println("Loading `" + envFileProd + "`")
-			if err := godotenv.Load(envFileProd); err != nil {
-				return err
-			}
-
-			if _, err := os.Stat("./web/build"); os.IsNotExist(err) && os.Getenv("DISABLE_FRONTEND") == "" {
-				return errNoBuildDirectoryErr
-			}
-
-			return nil
+func loadConfigs() error {
+	if os.Getenv("APP_ENV") == "development" {
+		log.Println("Loading `" + envFileDev + "`")
+		return godotenv.Load(envFileDev)
+	} else {
+		log.Println("Loading `" + envFileProd + "`")
+		if err := godotenv.Load(envFileProd); err != nil {
+			return err
 		}
-	}
 
+		if _, err := os.Stat("./web/build"); os.IsNotExist(err) && os.Getenv("DISABLE_FRONTEND") == "" {
+			return errNoBuildDirectoryErr
+		}
+
+		return nil
+	}
+}
+
+func main() {
 	if err := loadConfigs(); err != nil {
 		log.Println("Failed to find config in CWD, changing CWD to executable path")
 
