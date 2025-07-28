@@ -20,6 +20,7 @@ const Player = (props: PlayerProps) => {
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
+	const [connectFailed, setConnectFailed] = useState<boolean>(false)
 
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
@@ -166,6 +167,11 @@ const Player = (props: PlayerProps) => {
 						'Content-Type': 'application/sdp'
 					}
 				}).then(r => {
+					setConnectFailed(r.status !== 201)
+					if (connectFailed) {
+						throw new DOMException("WHEP endpoint did not return 201");
+					}
+
 					const parsedLinkHeader = parseLinkHeader(r.headers.get('Link'))
 
 					if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
@@ -200,6 +206,7 @@ const Player = (props: PlayerProps) => {
 				maxHeight: '100vh',
 				maxWidth: '100vw',
 			} : {}}>
+			{connectFailed && <p className='bg-red-700 text-white text-lg text-center p-4 rounded-t-lg whitespace-pre-wrap'>Failed to start Broadcast Box session 👮 </p>}
 			<div
 				onClick={handleVideoPlayerClick}
 				onDoubleClick={handleVideoPlayerDoubleClick}
