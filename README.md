@@ -16,6 +16,7 @@
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
   - [Environment variables](#environment-variables)
+  - [Authentication and Logging](#authentication-and-logging)
   - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
