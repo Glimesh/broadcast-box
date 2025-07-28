@@ -44,7 +44,8 @@ function BrowserBroadcaster() {
 	const [currentViewersCount, setCurrentViewersCount] = useState<number>(0)
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
-	
+	const [connectFailed, setConnectFailed] = useState<boolean>(false)
+
 	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const hasSignalRef = useRef<boolean>(false);
@@ -159,14 +160,21 @@ function BrowserBroadcaster() {
 							Authorization: `Bearer ${streamKey}`,
 							'Content-Type': 'application/sdp'
 						}
-					}).then(r => r.text())
-						.then(answer => {
-							peerConnectionRef.current!.setRemoteDescription({
-								sdp: answer,
-								type: 'answer'
-							})
-								.catch((err) => console.error("SetRemoveDescription", err))
+					}).then(r => {
+						setConnectFailed(r.status !== 201)
+						if (connectFailed) {
+							throw new DOMException("WHIP endpoint did not return 201");
+						}
+
+						return r.text()
+					})
+					.then(answer => {
+						peerConnectionRef.current!.setRemoteDescription({
+							sdp: answer,
+							type: 'answer'
 						})
+						.catch((err) => console.error("SetRemoveDescription", err))
+					})
 				})
 		}, (reason: ErrorMessageEnum) => {
 			setMediaAccessError(() => reason)
@@ -226,6 +234,7 @@ function BrowserBroadcaster() {
 		<div className='container mx-auto'>
 			{mediaAccessError != null && <PlayerHeader headerType={"Error"}> {getMediaErrorMessage(mediaAccessError)} </PlayerHeader>}
 			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}> WebRTC has disconnected or failed to connect at all 😭 </PlayerHeader>}
+			{connectFailed && <PlayerHeader headerType={"Error"}> Failed to start Broadcast Box session 👮 </PlayerHeader>}
 			{hasPacketLoss && <PlayerHeader headerType={"Warning"}> WebRTC is experiencing packet loss</PlayerHeader>}
 			{publishSuccess && <PlayerHeader headerType={"Success"}> Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a> </PlayerHeader>}
 
