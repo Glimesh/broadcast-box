@@ -24,3 +24,7 @@ yarn-error.log*
 
 # rider
 /.idea
+
+# media files
+*.ogg
+*.h264
