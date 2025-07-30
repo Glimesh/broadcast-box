@@ -11,7 +11,7 @@ import (
 const defaultTimeout = time.Second * 5
 
 type webhookPayload struct {
-	Action      string            `json:"action"`
+	Action      Action            `json:"action"`
 	IP          string            `json:"ip"`
 	BearerToken string            `json:"bearerToken"`
 	QueryParams map[string]string `json:"queryParams"`
@@ -22,11 +22,18 @@ type webhookResponse struct {
 	StreamKey string `json:"streamKey"`
 }
 
-func CallWebhook(url, action, bearerToken string, r *http.Request) (string, error) {
+type Action string
+
+const (
+	WhipConnect Action = "whip-connect"
+	WhepConnect Action = "whep-connect"
+)
+
+func CallWebhook(url string, action Action, bearerToken string, request *http.Request) (string, error) {
 	start := time.Now()
 
 	queryParams := make(map[string]string)
-	for k, v := range r.URL.Query() {
+	for k, v := range request.URL.Query() {
 		if len(v) > 0 {
 			queryParams[k] = v[0]
 		}
@@ -34,28 +41,31 @@ func CallWebhook(url, action, bearerToken string, r *http.Request) (string, erro
 
 	jsonPayload, err := json.Marshal(webhookPayload{
 		Action:      action,
-		IP:          getIPAddress(r),
+		IP:          getIPAddress(request),
 		BearerToken: bearerToken,
 		QueryParams: queryParams,
-		UserAgent:   r.UserAgent(),
+		UserAgent:   request.UserAgent(),
 	})
+
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	webhookRequest, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	webhookRequest.Header.Set("Content-Type", "application/json")
 
 	resp, err := (&http.Client{
 		Timeout: defaultTimeout,
-	}).Do(req)
+	}).Do(webhookRequest)
+
 	if err != nil {
 		return "", fmt.Errorf("webhook request failed after %v: %w", time.Since(start), err)
 	}
-	defer resp.Body.Close() //nolint
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("webhook returned non-200 Status: %v", resp.StatusCode)
