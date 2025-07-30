@@ -39,11 +39,12 @@
     "@tailwindcss/vite": "^4.1.11",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "@vitejs/plugin-react": "^4.5.2",
     "postcss": "^8.5.6",
-    "react-router-dom": "^7.7.1",
+    "react-router-dom": "^7.6.2",
     "tailwindcss": "^4.1.10",
     "typescript": "^5.8.3",
-    "vite": "^7.0.6"
+    "vite": "^6.2.1"
   }
 }
