@@ -1,15 +1,6 @@
-﻿import React, {useContext, useEffect, useState} from "react";
-import {useNavigate} from "react-router-dom";
-import {StatusContext} from "../../providers/StatusProvider";
-
-interface StatusResult {
-  streamKey: string;
-  videoStreams: VideoStream[];
-}
-
-interface VideoStream {
-  lastKeyFrameSeen: string;
-}
+﻿import React, { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { StatusContext, StatusResult } from "../../providers/StatusProvider";
 
 interface StreamEntry {
   streamKey: string;
@@ -18,8 +9,10 @@ interface StreamEntry {
 const AvailableStreams = () => {
   const navigate = useNavigate();
 
-  const {streamStatus, refreshStatus} = useContext(StatusContext)
+  const { streamStatus, refreshStatus } = useContext(StatusContext)
   const [streams, setStreams] = useState<StreamEntry[] | undefined>(undefined);
+
+  const sortByStreamKey = (a: StatusResult, b: StatusResult) => a.streamKey.localeCompare(b.streamKey)
 
   useEffect(() => {
     refreshStatus()
@@ -27,10 +20,11 @@ const AvailableStreams = () => {
 
   useEffect(() => {
     setStreams(() =>
-      streamStatus?.filter((resultEntry) => resultEntry.videoStreams.length > 0)
+      streamStatus?.filter((resultEntry) => resultEntry.videoTracks.length > 0)
+        .sort(sortByStreamKey)
         .map((resultEntry: StatusResult) => ({
           streamKey: resultEntry.streamKey,
-          videoStreams: resultEntry.videoStreams
+          videoStreams: resultEntry.videoTracks
         })));
   }, [streamStatus])
 
@@ -50,7 +44,7 @@ const AvailableStreams = () => {
       {streams.length === 0 && <p className='flex justify-center mt-6'>No streams currently available</p>}
       {streams.length !== 0 && <p>Click a stream to join it</p>}
 
-      <div className="m-2"/>
+      <div className="m-2" />
 
       <div className='flex flex-col'>
         {streams.map((e, i) => (
