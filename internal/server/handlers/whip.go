@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
@@ -57,7 +58,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	// Stream requires profile
-	if requiresStreamProfile := os.Getenv("STREAM_PROFILE_ACTIVE"); requiresStreamProfile != "" {
+	if requiresStreamProfile := os.Getenv("STREAM_PROFILE_ACTIVE"); strings.EqualFold(requiresStreamProfile, "TRUE") {
 		profile, err := authorization.GetProfile(token)
 		if err != nil {
 			log.Println("Unauthorized login attempt with bearer", token)
