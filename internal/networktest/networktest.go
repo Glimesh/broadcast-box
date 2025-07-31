@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -108,6 +109,8 @@ func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 		return err
 	}
 
+	httpAddress := os.Getenv("HTTP_ADDRESS")
+
 	firstMediaSection := answerParsed.MediaDescriptions[0]
 	filteredAttributes := []sdp.Attribute{}
 	for i := range firstMediaSection.Attributes {
@@ -124,14 +127,32 @@ func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 				return fmt.Errorf("candidate with invalid IP %s", c.Address())
 			}
 
+			if httpAddress != "" && httpAddress == ip.String() {
+				log.Println("Found match for HTTP_ADDRESS", ip)
+				filteredAttributes = append(filteredAttributes, a)
+				break
+			}
+
 			if !ip.IsPrivate() {
 				filteredAttributes = append(filteredAttributes, a)
 			}
+
 		} else {
 			filteredAttributes = append(filteredAttributes, a)
 		}
+
 	}
+
 	firstMediaSection.Attributes = filteredAttributes
+	candidateString, candidateExists := firstMediaSection.Attribute("candidate")
+	if candidateExists {
+		candidate, err := ice.UnmarshalCandidate(candidateString)
+		if err != nil {
+			log.Println("Error unmarshalling candidate")
+		}
+
+		log.Println("Using test address:", candidate.Address())
+	}
 
 	answer, err := answerParsed.Marshal()
 	if err != nil {
