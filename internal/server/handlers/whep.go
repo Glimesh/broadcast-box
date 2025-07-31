@@ -10,7 +10,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc"
 )
 
-func whepHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	log.Println("WhepHandler called")
 	if request.Method == "DELETE" {
 		return

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"time"
 
@@ -15,11 +16,32 @@ import (
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
 
+	"github.com/glimesh/broadcast-box/internal/server/handlers"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 )
 
-func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
+const (
+	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
+	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
+	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
+)
+
+func RunNetworkTest() {
+
+	fmt.Println(networkTestIntroMessage)
+
+	err := run(handlers.WhepHandler)
+	if err != nil {
+		fmt.Printf(networkTestFailedMessage, err)
+		os.Exit(1)
+	}
+
+	fmt.Println(networkTestSuccessMessage)
+}
+
+func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 	m := &webrtc.MediaEngine{}
+
 	codecs.RegisterCodecs(m)
 
 	s := webrtc.SettingEngine{}

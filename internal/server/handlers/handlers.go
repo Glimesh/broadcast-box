@@ -18,7 +18,7 @@ func GetServeMuxHandler() http.HandlerFunc {
 	}
 
 	serverMux.HandleFunc("/api/whip", corsHandler(whipHandler))
-	serverMux.HandleFunc("/api/whep", corsHandler(whepHandler))
+	serverMux.HandleFunc("/api/whep", corsHandler(WhepHandler))
 	serverMux.HandleFunc("/api/sse/", corsHandler(sseHandler))
 	serverMux.HandleFunc("/api/layer/", corsHandler(layerChangeHandler))
 	serverMux.HandleFunc("/api/status", corsHandler(statusHandler))
