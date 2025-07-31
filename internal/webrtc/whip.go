@@ -61,5 +61,5 @@ func WHIP(offer string, profile authorization.Profile) (string, error) {
 	}
 
 	<-gatheringCompleteResult
-	return appendAnswer(peerConnection.LocalDescription().SDP), nil
+	return debugOutputAnswer(appendAnswer(peerConnection.LocalDescription().SDP)), nil
 }

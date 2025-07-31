@@ -10,6 +10,8 @@ import (
 )
 
 func WHEP(offer string, streamKey string) (string, string, error) {
+	debugOutputOffer(offer)
+
 	WhipSessionsLock.Lock()
 	defer WhipSessionsLock.Unlock()
 
@@ -108,6 +110,5 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	session.WhepSessions[whepSessionId].AudioLayerCurrent.Store("")
 	session.WhepSessions[whepSessionId].IsWaitingForKeyframe.Store(false)
 
-	return appendAnswer(whepPeerConnection.LocalDescription().SDP), whepSessionId, nil
-
+	return debugOutputAnswer(appendAnswer(whepPeerConnection.LocalDescription().SDP)), whepSessionId, nil
 }
