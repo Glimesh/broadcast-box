@@ -35,7 +35,7 @@ func loadEnvironmentFile(filePath string) {
 	path := filepath.Join(currentWorkingDirectory, filePath)
 
 	if _, err := os.Stat(path); err == nil {
-		err := godotenv.Load(path)
+		err := godotenv.Overload(path)
 
 		if err != nil {
 			log.Println("Error occurred loading environment file", path)
