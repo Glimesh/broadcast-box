@@ -70,12 +70,14 @@ func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), bearerToken) {
+		fileToken := strings.SplitAfter(file.Name(), "_")
+
+		if !file.IsDir() && strings.EqualFold(bearerToken, fileToken[len(fileToken)-1]) {
 			return file.Name(), nil
 		}
 	}
 
-	return "", fmt.Errorf("Could not find file")
+	return "", fmt.Errorf("could not find profile file")
 }
 
 func generateToken() string {
