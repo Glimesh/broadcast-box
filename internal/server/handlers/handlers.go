@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 )
 
 func GetServeMuxHandler() http.HandlerFunc {
 	serverMux := http.NewServeMux()
 
 	frontendPath := os.Getenv("FRONTEND_PATH")
-	if os.Getenv("FRONTEND_ENABLED") != "" {
+	if strings.EqualFold(os.Getenv("FRONTEND_ENABLED"), "TRUE") {
 		serverMux.Handle("/", serveFrontend(http.Dir(frontendPath)))
 	}
 
@@ -25,7 +26,7 @@ func GetServeMuxHandler() http.HandlerFunc {
 	// Path middleware
 	debugOutputWebRequests := os.Getenv("DEBUG_INCOMING_API_REQUEST")
 	handler := http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
-		if debugOutputWebRequests != "" {
+		if strings.EqualFold(debugOutputWebRequests, "TRUE") {
 			log.Println("Calling path", request.URL.Path)
 			_, pattern := serverMux.Handler(request)
 
