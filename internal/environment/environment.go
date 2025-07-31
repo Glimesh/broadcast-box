@@ -10,8 +10,9 @@ import (
 
 func LoadEnvironmentVariables() {
 	files := []string{
-		".env",
 		".env.development",
+		".env.production",
+		".env",
 	}
 
 	currentWorkingDirectory, err := os.Getwd()
