@@ -36,7 +36,7 @@ func getHttpPort() string {
 		return httpPort
 	}
 
-	return "80"
+	return "8080"
 }
 
 func setupHttpRedirect() {
