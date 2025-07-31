@@ -4,23 +4,32 @@ import react from '@vitejs/plugin-react';
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import dotenv from 'dotenv'
 import path from 'path'
+import fs from 'fs'
 
-// Use the Go environment file to load variables
-dotenv.config(
-	{
-		// First found .env file is selected
-		path: [
-			path.resolve(__dirname, '../.env')
-			path.resolve(__dirname, '../.env.production')
-			path.resolve(__dirname, '../.env.development')
-		]
-	})
+const environmentFiles = [
+	"../.env.development",
+	"../.env.production"
+]
+
+for (const fileName in environmentFiles) {
+	const filePath = path.resolve(__dirname, environmentFiles[fileName])
+	console.log("Looking up", filePath)
+	if (fs.existsSync(filePath)) {
+		dotenv.config({
+			path: [
+				filePath,
+				"../.env"
+			]
+		})
+		break;
+	}
+}
 
 let targetHostAddress = process.env.HTTP_ADDRESS || 'localhost';
 let targetHostPort = process.env.HTTP_PORT || '8080';
 let targetProtocol = "http://"
 
-if(process.env.USE_SSL == "TRUE"){
+if (process.env.USE_SSL == "TRUE") {
 	targetHostPort = process.env.HTTPS_PORT || '443';
 	targetProtocol = "https://"
 }
