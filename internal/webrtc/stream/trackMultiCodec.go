@@ -35,7 +35,6 @@ func NewTrackMultiCodec(id string, rid string, streamId string, kind webrtc.RTPC
 }
 
 func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecParameters, error) {
-	log.Println("Binding", track.streamId)
 	track.ssrc = ctx.SSRC()
 	track.writeStream = ctx.WriteStream()
 
