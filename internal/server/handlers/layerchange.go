@@ -57,11 +57,6 @@ func whepChangeAudioLayer(sessionId string, encodingId string) error {
 		defer webrtc.WhipSessions[streamKey].WhepSessionsLock.Unlock()
 
 		if _, ok := webrtc.WhipSessions[streamKey].WhepSessions[sessionId]; ok {
-			var names []string
-			for _, value := range webrtc.WhipSessions[streamKey].AudioTracks {
-				names = append(names, value.Rid)
-			}
-
 			webrtc.WhipSessions[streamKey].WhepSessions[sessionId].AudioLayerCurrent.Store(encodingId)
 			webrtc.WhipSessions[streamKey].PliChan <- true
 		}
@@ -82,11 +77,6 @@ func whepChangeVideoLayer(sessionId string, encodingId string) error {
 		defer webrtc.WhipSessions[streamKey].WhepSessionsLock.Unlock()
 
 		if _, ok := webrtc.WhipSessions[streamKey].WhepSessions[sessionId]; ok {
-			var names []string
-			for _, value := range webrtc.WhipSessions[streamKey].VideoTracks {
-				names = append(names, value.Rid)
-			}
-
 			webrtc.WhipSessions[streamKey].WhepSessions[sessionId].VideoLayerCurrent.Store(encodingId)
 			webrtc.WhipSessions[streamKey].PliChan <- true
 		}

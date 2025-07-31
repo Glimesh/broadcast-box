@@ -61,7 +61,7 @@ func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCode
 			}, nil
 		}
 
-		switch codecs.GetVideoTrackCodec(codecParameters[parameters].RTPCodecCapability.MimeType) {
+		switch codecs.GetVideoTrackCodec(codecParameters[parameters].MimeType) {
 		case codecs.VideoTrackCodecH264:
 			track.payloadTypeH264 = uint8(codecParameters[parameters].PayloadType)
 			videoCodecParameters = codecParameters[parameters]

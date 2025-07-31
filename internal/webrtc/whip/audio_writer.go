@@ -77,7 +77,6 @@ func AudioWriter(remoteTrack *webrtc.TrackRemote, session *stream.WhipSession, p
 		switch {
 		case !lastSequenceNumberSet:
 			lastSequenceNumberSet = true
-			lastSequenceNumber = 0
 		case sequenceDiff < -(math.MaxUint16 / 10):
 			sequenceDiff += (math.MaxUint32 + 1)
 		}

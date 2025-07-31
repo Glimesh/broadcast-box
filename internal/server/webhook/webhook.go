@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -65,7 +66,13 @@ func CallWebhook(url string, action Action, bearerToken string, request *http.Re
 	if err != nil {
 		return "", fmt.Errorf("webhook request failed after %v: %w", time.Since(start), err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			log.Println("webhook request failed closing response body")
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("webhook returned non-200 Status: %v", resp.StatusCode)

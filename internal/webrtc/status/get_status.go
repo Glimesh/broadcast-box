@@ -23,7 +23,7 @@ func GetStreamStates() []StreamState {
 	out := []StreamState{}
 
 	for streamKey, session := range sessions {
-		if session.IsPublic == false {
+		if !session.IsPublic {
 			continue
 		}
 

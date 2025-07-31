@@ -182,7 +182,7 @@ func GetVideoTrackCodecParameters(codec int) (webrtc.RTPCodecParameters, error) 
 		}
 	}
 
-	return webrtc.RTPCodecParameters{}, fmt.Errorf("Could not find a matching codec")
+	return webrtc.RTPCodecParameters{}, fmt.Errorf("could not find a matching codec")
 }
 
 func GetAudioTrackCodec(codec string) int {
