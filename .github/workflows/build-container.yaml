@@ -8,6 +8,8 @@ on:
       - 'CONTRIBUTING.md'
       - 'LICENSE'
       - '.github/**'
+    tags:
+      - v*
 
 jobs:
   docker:
@@ -44,6 +46,8 @@ jobs:
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
+            type=ref,event=tag
+            type=sha
 
       - name: Build and push
         uses: docker/build-push-action@v6
