@@ -5,34 +5,55 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"time"
 
-	"github.com/pion/ice/v3"
+	"github.com/pion/ice/v4"
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
 
-	internalwebrtc "github.com/glimesh/broadcast-box/internal/webrtc"
+	"github.com/glimesh/broadcast-box/internal/server/handlers"
+	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 )
 
-func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
-	m := &webrtc.MediaEngine{}
-	if err := internalwebrtc.PopulateMediaEngine(m); err != nil {
-		return err
+const (
+	networkTestIntroMessage   = "\033[0;33mNETWORK_TEST_ON_START is enabled. If the test fails Broadcast Box will exit.\nSee the README for how to debug or disable NETWORK_TEST_ON_START\033[0m"
+	networkTestSuccessMessage = "\033[0;32mNetwork Test passed.\nHave fun using Broadcast Box.\033[0m"
+	networkTestFailedMessage  = "\033[0;31mNetwork Test failed.\n%s\nPlease see the README and join Discord for help\033[0m"
+)
+
+func RunNetworkTest() {
+
+	fmt.Println(networkTestIntroMessage)
+
+	err := run(handlers.WhepHandler)
+	if err != nil {
+		fmt.Printf(networkTestFailedMessage, err)
+		os.Exit(1)
 	}
 
-       s := webrtc.SettingEngine{}
-       s.SetNetworkTypes([]webrtc.NetworkType{
-               webrtc.NetworkTypeUDP4,
-               webrtc.NetworkTypeUDP6,
-               webrtc.NetworkTypeTCP4,
-               webrtc.NetworkTypeTCP6,
-       })
+	fmt.Println(networkTestSuccessMessage)
+}
 
-       peerConnection, err := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(s)).NewPeerConnection(webrtc.Configuration{})
+func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
+	m := &webrtc.MediaEngine{}
+
+	codecs.RegisterCodecs(m)
+
+	s := webrtc.SettingEngine{}
+	s.SetNetworkTypes([]webrtc.NetworkType{
+		webrtc.NetworkTypeUDP4,
+		webrtc.NetworkTypeUDP6,
+		webrtc.NetworkTypeTCP4,
+		webrtc.NetworkTypeTCP6,
+	})
+
+	peerConnection, err := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(s)).NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		return err
 	}
@@ -88,6 +109,8 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 		return err
 	}
 
+	httpAddress := os.Getenv("HTTP_ADDRESS")
+
 	firstMediaSection := answerParsed.MediaDescriptions[0]
 	filteredAttributes := []sdp.Attribute{}
 	for i := range firstMediaSection.Attributes {
@@ -104,14 +127,32 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 				return fmt.Errorf("candidate with invalid IP %s", c.Address())
 			}
 
+			if httpAddress != "" && httpAddress == ip.String() {
+				log.Println("Found match for HTTP_ADDRESS", ip)
+				filteredAttributes = append(filteredAttributes, a)
+				break
+			}
+
 			if !ip.IsPrivate() {
 				filteredAttributes = append(filteredAttributes, a)
 			}
+
 		} else {
 			filteredAttributes = append(filteredAttributes, a)
 		}
+
 	}
+
 	firstMediaSection.Attributes = filteredAttributes
+	candidateString, candidateExists := firstMediaSection.Attribute("candidate")
+	if candidateExists {
+		candidate, err := ice.UnmarshalCandidate(candidateString)
+		if err != nil {
+			log.Println("Error unmarshalling candidate")
+		}
+
+		log.Println("Using test address:", candidate.Address())
+	}
 
 	answer, err := answerParsed.Marshal()
 	if err != nil {
