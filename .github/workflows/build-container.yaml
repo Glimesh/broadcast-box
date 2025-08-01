@@ -8,6 +8,8 @@ on:
       - 'CONTRIBUTING.md'
       - 'LICENSE'
       - '.github/**'
+    tags:
+      - 'v*'
 
 jobs:
   docker:
