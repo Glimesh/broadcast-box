@@ -1,40 +1,23 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, {useEffect, useMemo, useRef, useState} from "react";
 
-export interface WhepSession {
+interface WhepSession {
 	id: string;
-
-	audioLayerCurrent: string;
-	audioTimestamp: string;
-	audioPacketsWritten: number;
-	audioSequenceNumber: number;
-
-	videoLayerCurrent: string;
-	videoTimestamp: string;
-	videoPacketsWritten: number;
-	videoSequenceNumber: number;
-
+	currentLayer: string;
 	sequenceNumber: number;
 	timestamp: number;
+	packetsWritten: number;
 }
 
-export interface StatusResult {
+interface StatusResult {
 	streamKey: string;
-
-	videoTracks: VideoTrack[];
-	audioTracks: AudioTrack[];
-
-	sessions: WhepSession[];
+	whepSessions: WhepSession[];
+	videoStreams: VideoStream[];
 }
 
-interface VideoTrack {
+interface VideoStream {
 	rid: string;
 	packetsReceived: number;
-	lastKeyframe: string;
-}
-
-interface AudioTrack {
-	rid: string;
-	packetsReceived: number;
+	lastKeyFrameSeen: string;
 }
 
 interface StatusProviderProps {
@@ -50,11 +33,12 @@ class FetchError extends Error {
 	}
 }
 
+const apiPath = import.meta.env.VITE_API_PATH;
 const fetchStatus = (
 	onSuccess?: (statusResults: StatusResult[]) => void,
 	onError?: (error: FetchError) => void
 ) =>
-	fetch(`/api/status`, {
+	fetch(`${apiPath}/status`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
@@ -86,12 +70,13 @@ export function StatusProvider(props: StatusProviderProps) {
 	const [isStatusActive, setIsStatusActive] = useState<boolean>(false)
 	const [streamStatus, setStreamStatus] = useState<StatusResult[] | undefined>(undefined)
 	const intervalCountRef = useRef<number>(5000);
-	const intervalRef = useRef<number>(0)
-
+	
 	const fetchStatusResultHandler = (result: StatusResult[]) => {
 		setStreamStatus(_ => result);
 	}
 	const fetchStatusErrorHandler = (error: FetchError) => {
+		console.error("StatusProviderError", error.status, error.message)
+
 		if (error.status === 503) {
 			setIsStatusActive(() => false)
 			setStreamStatus(() => undefined);
@@ -109,14 +94,10 @@ export function StatusProvider(props: StatusProviderProps) {
 					setIsStatusActive(() => false)
 					setStreamStatus(() => undefined);
 				}
-
+				
 				console.error("StatusProviderError", error.status, error.message)
 			})
 			.catch((err) => console.error("StatusProviderError", err))
-
-		return () => {
-			clearInterval(intervalRef.current)
-		}
 	}, []);
 
 	useEffect(() => {
@@ -130,8 +111,8 @@ export function StatusProvider(props: StatusProviderProps) {
 				fetchStatusErrorHandler)
 		}
 
-		intervalRef.current = setInterval(intervalHandler, intervalCountRef.current)
-		return () => clearInterval(intervalRef.current)
+		const interval = setInterval(intervalHandler, intervalCountRef.current)
+		return () => clearInterval(interval)
 	}, [isStatusActive]);
 
 	const state = useMemo<StatusProviderContextProps>(() => ({

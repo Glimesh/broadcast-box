@@ -206,12 +206,10 @@ The frontend can be configured by passing these URL Parameters.
 ## Environment Variables
 
 The backend can be configured with the following environment variables.
-- `STREAM_PROFILE_ACTIVE` - Enables streaming profiles and requires new whep sessions to have a valid token associated with their stream key
-- `STREAM_PROFILE_PATH` - The path to store all the profile configurations
 
 - `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging
-- `API_STATUS_DISABLED` - Disable the status API
-- `FRONTEND_ENABLED` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
+- `DISABLE_STATUS` - Disable the status API
+- `DISABLE_FRONTEND` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `HTTP_ADDRESS` - HTTP Server Address
 - `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity
 
@@ -238,7 +236,6 @@ The backend can be configured with the following environment variables.
 
 - `DEBUG_PRINT_OFFER` - Print WebRTC Offers from client to Broadcast Box. Debug things like accepted codecs.
 - `DEBUG_PRINT_ANSWER` - Print WebRTC Answers from Broadcast Box to Browser. Debug things like IP/Ports returned to client.
-- `DEBUG_INCOMING_API_REQUEST` - Print API request paths made to the backend
 
 ## Authentication and Logging
 

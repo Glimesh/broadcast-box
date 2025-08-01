@@ -1,9 +1,9 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
+﻿import React, {useContext, useEffect, useRef, useState} from 'react'
+import {useLocation} from 'react-router-dom'
+import {useNavigate} from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
-import { StatusContext } from "../../providers/StatusProvider";
-import { UsersIcon } from "@heroicons/react/20/solid";
+import {StatusContext} from "../../providers/StatusProvider";
+import {UsersIcon} from "@heroicons/react/20/solid";
 
 const mediaOptions = {
 	audio: true,
@@ -24,9 +24,9 @@ function getMediaErrorMessage(value: ErrorMessageEnum): string {
 		case ErrorMessageEnum.NoMediaDevices:
 			return `MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS 👮`;
 		case ErrorMessageEnum.NotFoundError:
-			return `Seems like you don't have camera. Or the access to it is blocked\nCheck camera settings, browser permissions and system permissions.`;
+			return `Seems like you don't have camera 😭 Or you just blocked access to it...\nCheck camera settings, browser permissions and system permissions.`;
 		case ErrorMessageEnum.NotAllowedError:
-			return `You can't publish stream using your camera, access has been disabled.`;
+			return `You can't publish stream using your camera, because you have blocked access to it 😞`;
 		default:
 			return "Could not access your media device";
 	}
@@ -44,35 +44,36 @@ function BrowserBroadcaster() {
 	const [currentViewersCount, setCurrentViewersCount] = useState<number>(0)
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
-	const [connectFailed, setConnectFailed] = useState<boolean>(false);
+	const [connectFailed, setConnectFailed] = useState<boolean>(false)
 
 	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const hasSignalRef = useRef<boolean>(false);
 	const badSignalCountRef = useRef<number>(10);
 
+	const apiPath = import.meta.env.VITE_API_PATH;
+
 	const endStream = () => {
 		navigate('/')
 	}
-
+	
 	useEffect(() => {
 		peerConnectionRef.current = new RTCPeerConnection();
-
+		
 		return () => peerConnectionRef.current?.close()
 	}, [])
 
 	useEffect(() => {
-		if (!streamKey || !streamStatus) {
+		if(!streamKey || !streamStatus){
 			return;
 		}
 
 		const sessions = streamStatus.filter((session) => session.streamKey === streamKey);
 
-		if (sessions.length !== 0) {
-			console.log(sessions)
-			setCurrentViewersCount(() =>
-				sessions.length !== 0
-					? sessions[0].sessions.length
+		if(sessions.length !== 0){
+			setCurrentViewersCount(() => 
+				sessions.length !== 0 
+					? sessions[0].whepSessions.length
 					: 0)
 		}
 	}, [streamStatus]);
@@ -90,7 +91,8 @@ function BrowserBroadcaster() {
 			return
 		}
 
-		const mediaPromise = useDisplayMedia == "Screen" ?
+		const isScreenShare = useDisplayMedia === "Screen"
+		const mediaPromise = isScreenShare ?
 			navigator.mediaDevices.getDisplayMedia(mediaOptions) :
 			navigator.mediaDevices.getUserMedia(mediaOptions)
 
@@ -106,27 +108,26 @@ function BrowserBroadcaster() {
 			stream = mediaStream
 			videoRef.current!.srcObject = mediaStream
 
-			const encodingPrefix = "Web"
 			mediaStream
 				.getTracks()
 				.forEach(mediaStreamTrack => {
 					if (mediaStreamTrack.kind === 'audio') {
 						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
-							direction: 'sendonly',
+							direction: 'sendonly'
 						})
 					} else {
 						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
 							direction: 'sendonly',
-							sendEncodings: [
+							sendEncodings: isScreenShare ? [] : [
 								{
-									rid: encodingPrefix + 'High',
+									rid: 'high',
 								},
 								{
-									rid: encodingPrefix + 'Mid',
+									rid: 'med',
 									scaleResolutionDownBy: 2.0
 								},
 								{
-									rid: encodingPrefix + 'Low',
+									rid: 'low',
 									scaleResolutionDownBy: 4.0
 								}
 							]
@@ -152,7 +153,7 @@ function BrowserBroadcaster() {
 					peerConnectionRef.current!.setLocalDescription(offer)
 						.catch((err) => console.error("SetLocalDescription", err));
 
-					fetch(`/api/whip`, {
+					fetch(`${apiPath}/whip`, {
 						method: 'POST',
 						body: offer.sdp,
 						headers: {
@@ -160,18 +161,19 @@ function BrowserBroadcaster() {
 							'Content-Type': 'application/sdp'
 						}
 					}).then(r => {
-
-						if (r.status !== 201) {
-							setConnectFailed(() => true)
-							console.error("WHIP Endpoint did not return 201")
+						setConnectFailed(r.status !== 201)
+						if (connectFailed) {
+							throw new DOMException("WHIP endpoint did not return 201");
 						}
 
 						return r.text()
-					}).then(answer => {
+					})
+					.then(answer => {
 						peerConnectionRef.current!.setRemoteDescription({
 							sdp: answer,
 							type: 'answer'
-						}).catch((err) => console.error("SetRemoveDescription", err))
+						})
+						.catch((err) => console.error("SetRemoveDescription", err))
 					})
 				})
 		}, (reason: ErrorMessageEnum) => {
@@ -199,20 +201,20 @@ function BrowserBroadcaster() {
 					sender.getStats()
 						.then(stats => {
 							stats.forEach(report => {
-								if (report.type === "outbound-rtp") {
-									senderHasPacketLoss = report.totalPacketSendDelay > 10;
-								}
-								if (report.type === "candidate-pair") {
-									const signalIsValid = report.availableIncomingBitrate !== undefined;
-									badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
+									if (report.type === "outbound-rtp") {
+										senderHasPacketLoss = report.totalPacketSendDelay > 10;
+									}
+									if (report.type === "candidate-pair") {
+										const signalIsValid = report.availableIncomingBitrate !== undefined;
+										badSignalCountRef.current = signalIsValid ? 0 : badSignalCountRef.current + 1;
 
-									if (badSignalCountRef.current > 2) {
-										setHasSignal(() => false);
-									} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
-										setHasSignal(() => true);
+										if (badSignalCountRef.current > 2) {
+											setHasSignal(() => false);
+										} else if (badSignalCountRef.current === 0 && !hasSignalRef.current) {
+											setHasSignal(() => true);
+										}
 									}
 								}
-							}
 							)
 						})
 				}
@@ -232,7 +234,7 @@ function BrowserBroadcaster() {
 		<div className='container mx-auto'>
 			{mediaAccessError != null && <PlayerHeader headerType={"Error"}> {getMediaErrorMessage(mediaAccessError)} </PlayerHeader>}
 			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}> WebRTC has disconnected or failed to connect at all 😭 </PlayerHeader>}
-			{connectFailed && <PlayerHeader headerType={"Error"}> Failed to start Broadcast Box session 👮</PlayerHeader>}
+			{connectFailed && <PlayerHeader headerType={"Error"}> Failed to start Broadcast Box session 👮 </PlayerHeader>}
 			{hasPacketLoss && <PlayerHeader headerType={"Warning"}> WebRTC is experiencing packet loss</PlayerHeader>}
 			{publishSuccess && <PlayerHeader headerType={"Success"}> Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a> </PlayerHeader>}
 
@@ -244,10 +246,10 @@ function BrowserBroadcaster() {
 				playsInline
 				className='w-full h-full'
 			/>
-
+			
 			<div className={"justify-items-end"} >
 				<div className={"flex flex-row items-center"}>
-					<UsersIcon className={"size-4"} />
+					<UsersIcon className={"size-4"}/>
 					{currentViewersCount}
 				</div>
 			</div>

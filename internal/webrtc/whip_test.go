@@ -5,32 +5,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/pion/webrtc/v4"
 	"github.com/stretchr/testify/require"
 )
 
 const testStreamKey = "test"
 
-var (
-	testProfile = authorization.Profile{
-		StreamKey: "test",
-	}
-)
-
 func doesWHIPSessionExist() (ok bool) {
-	WhipSessionsLock.Lock()
-	defer WhipSessionsLock.Unlock()
+	streamMapLock.Lock()
+	defer streamMapLock.Unlock()
 
-	_, ok = WhipSessions[testStreamKey]
+	_, ok = streamMap[testStreamKey]
 	return
 }
 
 // Asserts that a old PeerConnection doesn't destroy the new one
 // when it disconnects
 func TestReconnect(t *testing.T) {
-	Setup()
-
+	Configure()
 	localTrack, err := webrtc.NewTrackLocalStaticSample(
 		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "pion",
 	)
@@ -56,8 +48,7 @@ func TestReconnect(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, firstPublisher.SetLocalDescription(offer))
 
-	answer, err := WHIP(offer.SDP, testProfile)
-
+	answer, err := WHIP(offer.SDP, testStreamKey)
 	require.NoError(t, err)
 
 	require.NoError(t, firstPublisher.SetRemoteDescription(webrtc.SessionDescription{
@@ -88,7 +79,7 @@ func TestReconnect(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, secondPublisher.SetLocalDescription(offer))
 
-	answer, err = WHIP(offer.SDP, testProfile)
+	answer, err = WHIP(offer.SDP, testStreamKey)
 	require.NoError(t, err)
 
 	require.NoError(t, secondPublisher.SetRemoteDescription(webrtc.SessionDescription{

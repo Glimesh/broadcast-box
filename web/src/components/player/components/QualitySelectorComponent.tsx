@@ -1,5 +1,5 @@
-﻿import React, { ChangeEvent, useState } from "react";
-import { MusicalNoteIcon } from "@heroicons/react/20/solid";
+﻿import React, {ChangeEvent, useState} from "react";
+import {ChartBarIcon} from "@heroicons/react/16/solid";
 
 interface QualityComponentProps {
 	layers: string[];
@@ -7,15 +7,14 @@ interface QualityComponentProps {
 	hasPacketLoss: boolean;
 }
 
-const AudioLayerSelectorComponent = (props: QualityComponentProps) => {
-	const audioMediaId = "2"
+const QualitySelectorComponent = (props: QualityComponentProps) => {
 	const [isOpen, setIsOpen] = useState<boolean>(false);
 	const [currentLayer, setCurrentLayer] = useState<string>('');
 
 	const onLayerChange = (event: ChangeEvent<HTMLSelectElement>) => {
 		fetch(props.layerEndpoint, {
 			method: 'POST',
-			body: JSON.stringify({ mediaId: audioMediaId, encodingId: event.target.value }),
+			body: JSON.stringify({mediaId: '1', encodingId: event.target.value}),
 			headers: {
 				'Content-Type': 'application/json'
 			}
@@ -29,21 +28,21 @@ const AudioLayerSelectorComponent = (props: QualityComponentProps) => {
 		...props.layers.filter(layer => layer !== currentLayer)
 	].map(layer => <option key={`layerEncodingId_${layer}`} value={layer}>{layer}</option>)
 	if (layerList[0].props.value === '') {
-		layerList[0] = <option key="disabled">Auto</option>
+		layerList[0] = <option key="disabled" value="disabled">No Layer Selected</option>
 	}
 
 	return (
 		<div className="h-full flex">
-			<MusicalNoteIcon
-				className={props.hasPacketLoss ? "text-orange-600" : ""}
-				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)} />
+			<ChartBarIcon
+				className={props.hasPacketLoss ? "text-orange-600" :""}
+				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)}/>
 
 			{isOpen && (
-
-				<select
-					onChange={onLayerChange}
-					value={currentLayer}
-					className="
+				
+			<select
+				onChange={onLayerChange}
+				value={currentLayer}
+				className="
 				absolute 
 				right-0
 				bottom-8
@@ -61,13 +60,13 @@ const AudioLayerSelectorComponent = (props: QualityComponentProps) => {
 				rounded-sm
 				shadow-md
 				placeholder-gray-200">
-					{
-						layerList
-					}
-				</select>
+				{
+					layerList
+				}
+			</select>
 			)}
 		</div>
 	)
 }
 
-export default AudioLayerSelectorComponent
+export default QualitySelectorComponent

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 )
@@ -12,7 +11,7 @@ import (
 const defaultTimeout = time.Second * 5
 
 type webhookPayload struct {
-	Action      Action            `json:"action"`
+	Action      string            `json:"action"`
 	IP          string            `json:"ip"`
 	BearerToken string            `json:"bearerToken"`
 	QueryParams map[string]string `json:"queryParams"`
@@ -23,18 +22,11 @@ type webhookResponse struct {
 	StreamKey string `json:"streamKey"`
 }
 
-type Action string
-
-const (
-	WhipConnect Action = "whip-connect"
-	WhepConnect Action = "whep-connect"
-)
-
-func CallWebhook(url string, action Action, bearerToken string, request *http.Request) (string, error) {
+func CallWebhook(url, action, bearerToken string, r *http.Request) (string, error) {
 	start := time.Now()
 
 	queryParams := make(map[string]string)
-	for k, v := range request.URL.Query() {
+	for k, v := range r.URL.Query() {
 		if len(v) > 0 {
 			queryParams[k] = v[0]
 		}
@@ -42,37 +34,28 @@ func CallWebhook(url string, action Action, bearerToken string, request *http.Re
 
 	jsonPayload, err := json.Marshal(webhookPayload{
 		Action:      action,
-		IP:          getIPAddress(request),
+		IP:          getIPAddress(r),
 		BearerToken: bearerToken,
 		QueryParams: queryParams,
-		UserAgent:   request.UserAgent(),
+		UserAgent:   r.UserAgent(),
 	})
-
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	webhookRequest, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
-
-	webhookRequest.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := (&http.Client{
 		Timeout: defaultTimeout,
-	}).Do(webhookRequest)
-
+	}).Do(req)
 	if err != nil {
 		return "", fmt.Errorf("webhook request failed after %v: %w", time.Since(start), err)
 	}
-
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Println("webhook request failed closing response body")
-		}
-	}()
+	defer resp.Body.Close() //nolint
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("webhook returned non-200 Status: %v", resp.StatusCode)
