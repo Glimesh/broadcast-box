@@ -192,7 +192,7 @@ func setupNAT(settingEngine webrtc.SettingEngine) {
 		natIps = append(natIps, strings.Split(os.Getenv("NAT_1_TO_1_IP"), "|")...)
 	}
 
-	if os.Getenv("NAT_ICE_CANDIDATE_TYPE") != "srflx" {
+	if os.Getenv("NAT_ICE_CANDIDATE_TYPE") == "srflx" {
 		natICECandidateType = webrtc.ICECandidateTypeSrflx
 	}
 
