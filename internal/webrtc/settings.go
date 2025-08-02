@@ -21,10 +21,10 @@ func GetSettingEngine(isWhip bool, tcpMuxCache map[string]ice.TCPMux, udpMuxCach
 	)
 
 	setupNetworkTypes()
-	setupNAT(settingEngine)
-	setupInterfaceFilter(settingEngine, &udpMuxOpts)
-	setupUDPMux(settingEngine, isWhip, udpMuxCache, udpMuxOpts)
-	setupTCPMux(settingEngine, tcpMuxCache)
+	setupNAT(&settingEngine)
+	setupInterfaceFilter(&settingEngine, &udpMuxOpts)
+	setupUDPMux(&settingEngine, isWhip, udpMuxCache, udpMuxOpts)
+	setupTCPMux(&settingEngine, tcpMuxCache)
 
 	settingEngine.SetDTLSEllipticCurves(elliptic.X25519, elliptic.P384, elliptic.P256)
 	settingEngine.SetNetworkTypes(setupNetworkTypes())
@@ -63,7 +63,7 @@ func setupNetworkTypes() []webrtc.NetworkType {
 	return networkTypes
 }
 
-func setupTCPMux(settingEngine webrtc.SettingEngine, tcpMuxCache map[string]ice.TCPMux) {
+func setupTCPMux(settingEngine *webrtc.SettingEngine, tcpMuxCache map[string]ice.TCPMux) {
 	// Use TCP Mux port if set
 	if tcpAddr := getTCPMuxAddress(); tcpAddr != nil {
 		address := os.Getenv("TCP_MUX_ADDRESS")
@@ -83,14 +83,14 @@ func setupTCPMux(settingEngine webrtc.SettingEngine, tcpMuxCache map[string]ice.
 	}
 }
 
-func setupUDPMux(settingEngine webrtc.SettingEngine, isWhip bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption) {
+func setupUDPMux(settingEngine *webrtc.SettingEngine, isWhip bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption) {
 	// Use UDP Mux port if set
 	if udpMuxPort := getUDPMuxPort(isWhip); udpMuxPort != 0 {
 		setUDPMuxPort(isWhip, udpMuxPort, udpMuxCache, udpMuxOpts, settingEngine)
 	}
 }
 
-func setupInterfaceFilter(settingEngine webrtc.SettingEngine, muxOpts *[]ice.UDPMuxFromPortOption) {
+func setupInterfaceFilter(settingEngine *webrtc.SettingEngine, muxOpts *[]ice.UDPMuxFromPortOption) {
 	interfaceFilter := func(i string) bool {
 		return i == os.Getenv("INTERFACE_FILTER")
 	}
@@ -154,7 +154,7 @@ func getUDPMuxPort(isWhip bool) int {
 	return 0
 }
 
-func setUDPMuxPort(isWhip bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption, settingEngine webrtc.SettingEngine) {
+func setUDPMuxPort(isWhip bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption, settingEngine *webrtc.SettingEngine) {
 	if isWhip {
 		log.Println("Setting up WHIP UDP Mux to", udpMuxPort)
 	} else {
@@ -177,7 +177,7 @@ func setUDPMuxPort(isWhip bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUD
 	settingEngine.SetICEUDPMux(udpMux)
 }
 
-func setupNAT(settingEngine webrtc.SettingEngine) {
+func setupNAT(settingEngine *webrtc.SettingEngine) {
 	var (
 		natIps []string
 	)
