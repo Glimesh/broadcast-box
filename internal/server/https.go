@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+var (
+	defaultHttpsAddress string = ":443"
+)
+
 func startHttpsServer(serverMux http.HandlerFunc) {
 	sslKey := os.Getenv("SSL_KEY")
 	sslCert := os.Getenv("SSL_CERT")
@@ -37,19 +41,11 @@ func startHttpsServer(serverMux http.HandlerFunc) {
 	log.Fatal(server.ListenAndServeTLS(sslCert, sslKey))
 }
 
-func getHttpsPort() string {
-	if httpsPort := os.Getenv("HTTPS_PORT"); httpsPort != "" {
-		return httpsPort
-	}
-
-	return "443"
-}
-
 func getHttpsAddress() string {
 
-	if httpsAddress := os.Getenv("HTTPS_ADDRESS"); httpsAddress != "" {
+	if httpsAddress := os.Getenv("HTTP_ADDRESS"); httpsAddress != "" {
 		return httpsAddress
 	}
 
-	return ":" + getHttpsPort()
+	return defaultHttpsAddress
 }

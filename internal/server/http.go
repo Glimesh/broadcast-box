@@ -4,9 +4,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/server/handlers"
+)
+
+var (
+	defaultHttpAddress         string = ":80"
+	defaultHttpRedirectAddress string = ":80"
 )
 
 func startHttpServer(serverMux http.HandlerFunc) {
@@ -23,31 +27,26 @@ func startHttpServer(serverMux http.HandlerFunc) {
 }
 
 func getHttpAddress() string {
-
 	if httpAddress := os.Getenv("HTTP_ADDRESS"); httpAddress != "" {
-		return httpAddress + ":" + getHttpPort()
+		return httpAddress
 	}
 
-	return ":" + getHttpPort()
-}
-
-func getHttpPort() string {
-	if httpPort := os.Getenv("HTTP_PORT"); httpPort != "" {
-		return httpPort
-	}
-
-	return "8080"
+	return defaultHttpAddress
 }
 
 func setupHttpRedirect() {
-	if shouldRedirectToHttps := os.Getenv("HTTP_ENABLE_REDIRECT"); strings.EqualFold(shouldRedirectToHttps, "TRUE") {
+	if shouldRedirectToHttps := os.Getenv("ENABLE_HTTP_REDIRECT"); shouldRedirectToHttps != "" {
+		httpRedirectPort := defaultHttpRedirectAddress
+
+		if httpRedirectPortEnvVar := os.Getenv("HTTPS_REDIRECT_PORT"); httpRedirectPortEnvVar != "" {
+			httpRedirectPort = httpRedirectPortEnvVar
+		}
+
 		go func() {
 			log.Println("Setting up HTTP Redirecting")
 
-			httpPort := getHttpPort()
-
 			redirectServer := &http.Server{
-				Addr:    ":" + httpPort,
+				Addr:    ":" + httpRedirectPort,
 				Handler: http.HandlerFunc(handlers.RedirectToHttpsHandler),
 			}
 
