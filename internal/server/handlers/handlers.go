@@ -12,9 +12,8 @@ import (
 func GetServeMuxHandler() http.HandlerFunc {
 	serverMux := http.NewServeMux()
 
-	frontendPath := os.Getenv("FRONTEND_PATH")
-	if strings.EqualFold(os.Getenv("FRONTEND_ENABLED"), "TRUE") {
-		serverMux.Handle("/", serveFrontend(http.Dir(frontendPath)))
+	if os.Getenv("DISABLE_FRONTEND") == "" {
+		serverMux.HandleFunc("/", frontendHandler)
 	}
 
 	serverMux.HandleFunc("/api/whip", corsHandler(whipHandler))
@@ -60,18 +59,15 @@ func corsHandler(next func(responseWriter http.ResponseWriter, request *http.Req
 	}
 }
 
-func serveFrontend(fs http.FileSystem) http.Handler {
-	fileServer := http.FileServer(fs)
+func frontendHandler(response http.ResponseWriter, request *http.Request) {
+	frontendFilePath := "./web/build"
+	fileSystem := http.Dir(frontendFilePath)
+	fileServer := http.FileServer(fileSystem)
+	_, err := fileSystem.Open(path.Clean(request.URL.Path))
 
-	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		_, err := fs.Open(path.Clean(request.URL.Path))
-
-		if errors.Is(err, os.ErrNotExist) {
-			http.ServeFile(response, request, "./web/build/index.html")
-
-			return
-		}
-
+	if errors.Is(err, os.ErrNotExist) {
+		http.ServeFile(response, request, "./web/build/index.html")
+	} else {
 		fileServer.ServeHTTP(response, request)
-	})
+	}
 }
