@@ -13,7 +13,6 @@ const environmentFiles = [
 
 for (const fileName in environmentFiles) {
 	const filePath = path.resolve(__dirname, environmentFiles[fileName])
-	console.log("Looking up", filePath)
 	if (fs.existsSync(filePath)) {
 		dotenv.config({
 			path: [
@@ -25,13 +24,19 @@ for (const fileName in environmentFiles) {
 	}
 }
 
-let targetHostAddress = process.env.HTTP_ADDRESS || 'localhost';
-let targetHostPort = process.env.HTTP_PORT || '8080';
+let targetHostAddress = process.env.HTTP_ADDRESS || 'localhost:8080';
 let targetProtocol = "http://"
 
 if (process.env.USE_SSL == "TRUE") {
-	targetHostPort = process.env.HTTPS_PORT || '443';
+	const httpsPort = '443';
 	targetProtocol = "https://"
+
+	const currentTarget = targetHostAddress.split(":")
+	if (currentTarget.length === 1) {
+		targetHostAddress += httpsPort
+	} else {
+		targetHostAddress = targetHostAddress.replace(currentTarget[1], httpsPort)
+	}
 }
 
 export default defineConfig({
@@ -42,7 +47,7 @@ export default defineConfig({
 		open: true,
 		proxy: {
 			'/api': {
-				target: `${targetProtocol}${targetHostAddress}:${targetHostPort}`,
+				target: `${targetProtocol}${targetHostAddress}`,
 				changeOrigin: true,
 				secure: false,
 
