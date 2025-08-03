@@ -90,7 +90,8 @@ function BrowserBroadcaster() {
 			return
 		}
 
-		const mediaPromise = useDisplayMedia == "Screen" ?
+		const isScreenShare = useDisplayMedia == "Screen"
+		const mediaPromise = isScreenShare ?
 			navigator.mediaDevices.getDisplayMedia(mediaOptions) :
 			navigator.mediaDevices.getUserMedia(mediaOptions)
 
@@ -117,7 +118,7 @@ function BrowserBroadcaster() {
 					} else {
 						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
 							direction: 'sendonly',
-							sendEncodings: [
+							sendEncodings: isScreenShare ? [] : [
 								{
 									rid: encodingPrefix + 'High',
 								},
