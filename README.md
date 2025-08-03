@@ -210,7 +210,7 @@ The backend can be configured with the following environment variables.
 - `STREAM_PROFILE_PATH` - The path to store all the profile configurations
 
 - `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging
-- `API_STATUS_DISABLED` - Disable the status API
+- `DISABLE_STATUS` - Disable the status API
 - `FRONTEND_ENABLED` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `HTTP_ADDRESS` - HTTP Server Address
 - `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity

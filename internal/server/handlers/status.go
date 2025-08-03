@@ -15,7 +15,7 @@ func statusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if status := os.Getenv("API_STATUS_DISABLED"); status != "" {
+	if status := os.Getenv("DISABLE_STATUS"); status != "" {
 		helpers.LogHttpError(
 			responseWriter,
 			"Status Service Unavailable",
