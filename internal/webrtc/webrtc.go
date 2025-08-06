@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -28,6 +29,7 @@ const (
 	videoTrackCodecVP8
 	videoTrackCodecVP9
 	videoTrackCodecAV1
+	videoTrackCodecH265
 
 	playoutDelayURI = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
 )
@@ -37,6 +39,7 @@ type (
 		// Does this stream have a publisher?
 		// If stream was created by a WHEP request hasWHIPClient == false
 		hasWHIPClient atomic.Bool
+		sessionId     string
 
 		firstSeenEpoch uint64
 
@@ -55,6 +58,7 @@ type (
 	}
 
 	videoTrack struct {
+		sessionId        string
 		rid              string
 		packetsReceived  atomic.Uint64
 		lastKeyFrameSeen atomic.Value
@@ -83,12 +87,14 @@ func getVideoTrackCodec(in string) videoTrackCodec {
 		return videoTrackCodecVP9
 	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeAV1)):
 		return videoTrackCodecAV1
+	case strings.Contains(downcased, strings.ToLower(webrtc.MimeTypeH265)):
+		return videoTrackCodecH265
 	}
 
 	return 0
 }
 
-func getStream(streamKey string, forWHIP bool) (*stream, error) {
+func getStream(streamKey string, whipSessionId string) (*stream, error) {
 	foundStream, ok := streamMap[streamKey]
 	if !ok {
 		audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "pion")
@@ -109,14 +115,15 @@ func getStream(streamKey string, forWHIP bool) (*stream, error) {
 		streamMap[streamKey] = foundStream
 	}
 
-	if forWHIP {
+	if whipSessionId != "" {
 		foundStream.hasWHIPClient.Store(true)
+		foundStream.sessionId = whipSessionId
 	}
 
 	return foundStream, nil
 }
 
-func peerConnectionDisconnected(streamKey string, whepSessionId string) {
+func peerConnectionDisconnected(forWHIP bool, streamKey string, sessionId string) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
@@ -128,11 +135,20 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 	stream.whepSessionsLock.Lock()
 	defer stream.whepSessionsLock.Unlock()
 
-	if whepSessionId != "" {
-		delete(stream.whepSessions, whepSessionId)
+	if !forWHIP {
+		delete(stream.whepSessions, sessionId)
 	} else {
+		stream.videoTracks = slices.DeleteFunc(stream.videoTracks, func(v *videoTrack) bool {
+			return v.sessionId == sessionId
+		})
+
+		// A PeerConnection for a old WHIP session has gone to disconnected
+		// closed. Cleanup the state associated with that session, but
+		// don't modify the current session
+		if stream.sessionId != sessionId {
+			return
+		}
 		stream.hasWHIPClient.Store(false)
-		stream.videoTracks = nil
 	}
 
 	// Only delete stream if all WHEP Sessions are gone and have no WHIP Client
@@ -144,17 +160,17 @@ func peerConnectionDisconnected(streamKey string, whepSessionId string) {
 	delete(streamMap, streamKey)
 }
 
-func addTrack(stream *stream, rid string) (*videoTrack, error) {
+func addTrack(stream *stream, rid, sessionId string) (*videoTrack, error) {
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 
 	for i := range stream.videoTracks {
-		if rid == stream.videoTracks[i].rid {
+		if rid == stream.videoTracks[i].rid && sessionId == stream.videoTracks[i].sessionId {
 			return stream.videoTracks[i], nil
 		}
 	}
 
-	t := &videoTrack{rid: rid}
+	t := &videoTrack{rid: rid, sessionId: sessionId}
 	t.lastKeyFrameSeen.Store(time.Time{})
 	stream.videoTracks = append(stream.videoTracks, t)
 	return t, nil
@@ -165,7 +181,11 @@ func getPublicIP() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer req.Body.Close()
+	defer func() {
+		if closeErr := req.Body.Close(); closeErr != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -188,12 +208,24 @@ func getPublicIP() string {
 
 func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, tcpMuxCache map[string]ice.TCPMux) (settingEngine webrtc.SettingEngine) {
 	var (
-		NAT1To1IPs []string
-		udpMuxPort int
-		udpMuxOpts []ice.UDPMuxFromPortOption
-		err        error
+		NAT1To1IPs   []string
+		networkTypes []webrtc.NetworkType
+		udpMuxPort   int
+		udpMuxOpts   []ice.UDPMuxFromPortOption
+		err          error
 	)
-	networkTypes := []webrtc.NetworkType{webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6}
+
+	if os.Getenv("NETWORK_TYPES") != "" {
+		for _, networkTypeStr := range strings.Split(os.Getenv("NETWORK_TYPES"), "|") {
+			networkType, err := webrtc.NewNetworkType(networkTypeStr)
+			if err != nil {
+				log.Fatal(err)
+			}
+			networkTypes = append(networkTypes, networkType)
+		}
+	} else {
+		networkTypes = append(networkTypes, webrtc.NetworkTypeUDP4, webrtc.NetworkTypeUDP6)
+	}
 
 	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
 		NAT1To1IPs = append(NAT1To1IPs, getPublicIP())
@@ -307,6 +339,7 @@ func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 		{45, webrtc.MimeTypeAV1, ""},
 		{98, webrtc.MimeTypeVP9, "profile-id=0"},
 		{100, webrtc.MimeTypeVP9, "profile-id=2"},
+		{113, webrtc.MimeTypeH265, "level-id=93;profile-id=1;tier-flag=0;tx-mode=SRST"},
 	} {
 		if err := m.RegisterCodec(webrtc.RTPCodecParameters{
 			RTPCodecCapability: webrtc.RTPCodecCapability{

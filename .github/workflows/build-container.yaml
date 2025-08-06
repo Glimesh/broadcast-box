@@ -8,6 +8,8 @@ on:
       - 'CONTRIBUTING.md'
       - 'LICENSE'
       - '.github/**'
+    tags:
+      - v*
 
 jobs:
   docker:
@@ -44,12 +46,13 @@ jobs:
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
+            type=ref,event=tag
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64, linux/arm64, linux/arm/v7
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

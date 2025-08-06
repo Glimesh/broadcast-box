@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	"github.com/pion/rtp/codecs"
@@ -34,13 +35,13 @@ func audioWriter(remoteTrack *webrtc.TrackRemote, stream *stream) {
 	}
 }
 
-func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection *webrtc.PeerConnection, s *stream) {
+func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection *webrtc.PeerConnection, s *stream, sessionId string) {
 	id := remoteTrack.RID()
 	if id == "" {
 		id = videoTrackLabelDefault
 	}
 
-	videoTrack, err := addTrack(s, id)
+	videoTrack, err := addTrack(s, id, sessionId)
 	if err != nil {
 		log.Println(err)
 		return
@@ -65,7 +66,7 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
-	codec := getVideoTrackCodec(remoteTrack.Codec().RTPCodecCapability.MimeType)
+	codec := getVideoTrackCodec(remoteTrack.Codec().MimeType)
 
 	var depacketizer rtp.Depacketizer
 	switch codec {
@@ -142,6 +143,8 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 func WHIP(offer, streamKey string) (string, error) {
 	maybePrintOfferAnswer(offer, true)
 
+	whipSessionId := uuid.New().String()
+
 	peerConnection, err := newPeerConnection(apiWhip)
 	if err != nil {
 		return "", err
@@ -149,16 +152,16 @@ func WHIP(offer, streamKey string) (string, error) {
 
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
-	stream, err := getStream(streamKey, true)
+	stream, err := getStream(streamKey, whipSessionId)
 	if err != nil {
 		return "", err
 	}
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
-		if strings.HasPrefix(remoteTrack.Codec().RTPCodecCapability.MimeType, "audio") {
+		if strings.HasPrefix(remoteTrack.Codec().MimeType, "audio") {
 			audioWriter(remoteTrack, stream)
 		} else {
-			videoWriter(remoteTrack, stream, peerConnection, stream)
+			videoWriter(remoteTrack, stream, peerConnection, stream, whipSessionId)
 
 		}
 	})
@@ -168,7 +171,7 @@ func WHIP(offer, streamKey string) (string, error) {
 			if err := peerConnection.Close(); err != nil {
 				log.Println(err)
 			}
-			peerConnectionDisconnected(streamKey, "")
+			peerConnectionDisconnected(true, streamKey, whipSessionId)
 		}
 	})
 

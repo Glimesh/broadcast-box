@@ -24,7 +24,15 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 		return err
 	}
 
-	peerConnection, err := webrtc.NewAPI(webrtc.WithMediaEngine(m)).NewPeerConnection(webrtc.Configuration{})
+       s := webrtc.SettingEngine{}
+       s.SetNetworkTypes([]webrtc.NetworkType{
+               webrtc.NetworkTypeUDP4,
+               webrtc.NetworkTypeUDP6,
+               webrtc.NetworkTypeTCP4,
+               webrtc.NetworkTypeTCP6,
+       })
+
+       peerConnection, err := webrtc.NewAPI(webrtc.WithMediaEngine(m), webrtc.WithSettingEngine(s)).NewPeerConnection(webrtc.Configuration{})
 	if err != nil {
 		return err
 	}
@@ -50,9 +58,10 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 	iceFailed, iceFailedCancel := context.WithCancel(context.TODO())
 
 	peerConnection.OnICEConnectionStateChange(func(s webrtc.ICEConnectionState) {
-		if s == webrtc.ICEConnectionStateFailed {
+		switch s {
+		case webrtc.ICEConnectionStateFailed:
 			iceFailedCancel()
-		} else if s == webrtc.ICEConnectionStateConnected {
+		case webrtc.ICEConnectionStateConnected:
 			iceConnectedCancel()
 		}
 	})
@@ -65,11 +74,11 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 	res := recorder.Result()
 
 	if res.StatusCode != 201 {
-		return fmt.Errorf("Unexpected HTTP StatusCode %d", res.StatusCode)
+		return fmt.Errorf("unexpected HTTP StatusCode %d", res.StatusCode)
 	}
 
 	if contentType := res.Header.Get("Content-Type"); contentType != "application/sdp" {
-		return fmt.Errorf("Unexpected HTTP Content-Type %s", contentType)
+		return fmt.Errorf("unexpected HTTP Content-Type %s", contentType)
 	}
 
 	respBody, _ := io.ReadAll(res.Body)
@@ -92,7 +101,7 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 
 			ip := net.ParseIP(c.Address())
 			if ip == nil {
-				return fmt.Errorf("Candidate with invalid IP %s", c.Address())
+				return fmt.Errorf("candidate with invalid IP %s", c.Address())
 			}
 
 			if !ip.IsPrivate() {
@@ -123,10 +132,10 @@ func Run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 	case <-iceFailed.Done():
 		_ = peerConnection.Close()
 
-		return errors.New("Network Test client failed to connect to Broadcast Box")
+		return errors.New("network Test client failed to connect to Broadcast Box")
 	case <-time.After(time.Second * 30):
 		_ = peerConnection.Close()
 
-		return errors.New("Network Test client reported nothing in 30 seconds")
+		return errors.New("network Test client reported nothing in 30 seconds")
 	}
 }

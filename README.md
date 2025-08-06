@@ -16,6 +16,7 @@
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
   - [Environment variables](#environment-variables)
+  - [Authentication and Logging](#authentication-and-logging)
   - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
@@ -196,11 +197,17 @@ will be automatically updated every night. If you are running on a VPS/Cloud ser
 export URL=my-server.com
 docker-compose up -d
 ```
+## URL Parameters
+
+The frontend can be configured by passing these URL Parameters.
+
+- `cinemaMode=true` - Forces the player into cinema mode by adding to end of URL like https://b.siobud.com/myStream?cinemaMode=true
 
 ## Environment Variables
 
 The backend can be configured with the following environment variables.
 
+- `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging
 - `DISABLE_STATUS` - Disable the status API
 - `DISABLE_FRONTEND` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `HTTP_ADDRESS` - HTTP Server Address
@@ -215,6 +222,7 @@ The backend can be configured with the following environment variables.
 - `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
 - `NAT_ICE_CANDIDATE_TYPE` - By default setting a NAT_1_TO_1_IP overrides. Set this to `srflx` to instead append IPs
 - `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
+- `NETWORK_TYPES` - List of network types to use, delineated by '|'. Default is `udp4|udp6`.
 - `INCLUDE_LOOPBACK_CANDIDATE` - Also listen for WebRTC traffic on loopback, disabled by default
 
 - `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
@@ -228,6 +236,16 @@ The backend can be configured with the following environment variables.
 
 - `DEBUG_PRINT_OFFER` - Print WebRTC Offers from client to Broadcast Box. Debug things like accepted codecs.
 - `DEBUG_PRINT_ANSWER` - Print WebRTC Answers from Broadcast Box to Browser. Debug things like IP/Ports returned to client.
+
+## Authentication and Logging
+
+To prevent random users from streaming to your server, you can set the `WEBHOOK_URL` and validate/process requests in your code.
+
+If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given
+by the external server, otherwise the streaming request is dropped.
+
+See [here](examples/webhook-server.go). For an example Webhook Server that only allows the stream `broadcastBoxRulez`
+
 
 ## Network Test on Start
 

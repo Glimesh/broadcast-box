@@ -78,7 +78,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
-	stream, err := getStream(streamKey, false)
+	stream, err := getStream(streamKey, "")
 	if err != nil {
 		return "", "", err
 	}
@@ -98,7 +98,7 @@ func WHEP(offer, streamKey string) (string, string, error) {
 				log.Println(err)
 			}
 
-			peerConnectionDisconnected(streamKey, whepSessionId)
+			peerConnectionDisconnected(false, streamKey, whepSessionId)
 		}
 	})
 
