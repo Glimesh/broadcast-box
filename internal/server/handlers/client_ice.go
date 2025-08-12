@@ -54,7 +54,7 @@ func clientICEHandler(responseWriter http.ResponseWriter, request *http.Request)
 
 	}
 
-	if turnServers != "" {
+	if stunServers != "" {
 		stunServerNames := strings.Split(stunServers, "|")
 		for server := range stunServerNames {
 			servers = append(servers, ICEComponentServer{
