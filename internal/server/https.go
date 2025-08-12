@@ -38,7 +38,7 @@ func startHttpsServer(serverMux http.HandlerFunc) {
 
 	server.TLSConfig.Certificates = append(server.TLSConfig.Certificates, cert)
 	log.Println("Serving HTTPS server at", getHttpsAddress())
-	log.Fatal(server.ListenAndServeTLS(sslCert, sslKey))
+	log.Fatal(server.ListenAndServeTLS("", ""))
 }
 
 func getHttpsAddress() string {
