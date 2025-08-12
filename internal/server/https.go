@@ -36,7 +36,11 @@ func startHttpsServer(serverMux http.HandlerFunc) {
 		log.Fatal(err)
 	}
 
-	server.TLSConfig.Certificates = append(server.TLSConfig.Certificates, cert)
+	server.TLSConfig = &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		Certificates: []tls.Certificate{cert},
+	}
+
 	log.Println("Serving HTTPS server at", getHttpsAddress())
 	log.Fatal(server.ListenAndServeTLS("", ""))
 }
