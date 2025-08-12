@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	defaultHttpAddress         string = ":80"
-	defaultHttpRedirectAddress string = ":80"
+	defaultHttpAddress         string = "80"
+	defaultHttpRedirectAddress string = "80"
 )
 
 func startHttpServer(serverMux http.HandlerFunc) {
