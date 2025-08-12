@@ -32,29 +32,44 @@ func clientICEHandler(responseWriter http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	turnServerNames := strings.Split(turnServers, "|")
-	for server := range turnServerNames {
+	if turnServers != "" {
+		turnServerNames := strings.Split(turnServers, "|")
+		for server := range turnServerNames {
+			log.Println("Adding TURN server", server)
 
-		if turnAuthKey != "" {
-			username, credentials := authorization.GetTURNCredentials()
+			if turnAuthKey != "" {
+				username, credentials := authorization.GetTURNCredentials()
 
+				servers = append(servers, ICEComponentServer{
+					Urls:       "turn:" + turnServerNames[server],
+					Username:   username,
+					Credential: credentials,
+				})
+			} else {
+				servers = append(servers, ICEComponentServer{
+					Urls: "turn:" + turnServerNames[server],
+				})
+			}
+		}
+
+	}
+
+	if turnServers != "" {
+		stunServerNames := strings.Split(stunServers, "|")
+		for server := range stunServerNames {
 			servers = append(servers, ICEComponentServer{
-				Urls:       "turn:" + turnServerNames[server],
-				Username:   username,
-				Credential: credentials,
-			})
-		} else {
-			servers = append(servers, ICEComponentServer{
-				Urls: "turn:" + turnServerNames[server],
+				Urls: "stun:" + stunServerNames[server],
 			})
 		}
 	}
 
-	stunServerNames := strings.Split(stunServers, "|")
-	for server := range turnServerNames {
-		servers = append(servers, ICEComponentServer{
-			Urls: "stun:" + stunServerNames[server],
-		})
+	if len(servers) == 0 {
+		_, err := responseWriter.Write([]byte("[]"))
+		if err != nil {
+			log.Println("error writing empty TURN/STUN response", err)
+		}
+
+		return
 	}
 
 	if err := json.NewEncoder(responseWriter).Encode(servers); err != nil {
