@@ -2,9 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App'
-import {BrowserRouter} from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { CinemaModeProvider } from './providers/CinemaModeProvider';
-import {StatusProvider} from "./providers/StatusProvider";
+import { StatusProvider } from "./providers/StatusProvider";
+import { HeaderProvider } from './providers/HeaderProvider';
 
 // @ts-ignore
 const root = ReactDOM.createRoot(document.getElementById('root'))
@@ -15,7 +16,9 @@ root.render(
 		<BrowserRouter basename={path}>
 			<StatusProvider>
 				<CinemaModeProvider>
-					<App/>
+					<HeaderProvider>
+						<App />
+					</HeaderProvider>
 				</CinemaModeProvider>
 			</StatusProvider>
 		</BrowserRouter>

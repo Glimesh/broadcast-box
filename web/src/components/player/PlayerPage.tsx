@@ -1,14 +1,26 @@
-﻿import React, {useContext, useState} from "react";
+﻿import React, { useContext, useEffect, useState } from "react";
 import Player from "./Player";
-import {useNavigate} from "react-router-dom";
-import {CinemaModeContext} from "../../providers/CinemaModeProvider";
+import { useNavigate } from "react-router-dom";
+import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
+import { StatusContext, StreamStatus } from "../../providers/StatusProvider";
 
 const PlayerPage = () => {
   const navigate = useNavigate();
-  const {cinemaMode, toggleCinemaMode} = useContext(CinemaModeContext);
+  const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
+  const { currentStreamStatus } = useContext(StatusContext)
   const [streamKeys, setStreamKeys] = useState<string[]>([window.location.pathname.substring(1)]);
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
+  const [status, setStatus] = useState<StreamStatus>({ motd: "", viewers: 0, streamKey: "", isOnline: false })
+
+  useEffect(() => {
+    if (currentStreamStatus === undefined) {
+      setStatus(() => ({ motd: "", viewers: 0, streamKey: "", isOnline: false }))
+      return
+    }
+
+    setStatus(() => currentStreamStatus)
+  }, [currentStreamStatus])
 
   const addStream = (streamKey: string) => {
     if (streamKeys.some((key: string) => key.toLowerCase() === streamKey.toLowerCase())) {
@@ -47,8 +59,22 @@ const PlayerPage = () => {
           )}
         </div>
 
+        {!cinemaMode && (
+          <div className="w-full -mt-2 ml-8">
+            <div className="relative h-5">
+              <div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${status?.isOnline ? 'opacity-100' : 'opacity-0'}`} >
+                {status?.motd}
+              </div>
+
+              <div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!status?.isOnline ? 'opacity-100' : 'opacity-0'}`} >
+                Offline
+              </div>
+            </div>
+          </div>
+        )}
+
         {/*Implement footer menu*/}
-        <div className="flex flex-row p-2 gap-2">
+        <div className="flex flex-row gap-2">
           <button
             className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg mt-6"
             onClick={toggleCinemaMode}

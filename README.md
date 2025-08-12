@@ -206,10 +206,12 @@ The frontend can be configured by passing these URL Parameters.
 ## Environment Variables
 
 The backend can be configured with the following environment variables.
+- `STREAM_PROFILE_ACTIVE` - Enables streaming profiles and requires new whep sessions to have a valid token associated with their stream key
+- `STREAM_PROFILE_PATH` - The path to store all the profile configurations
 
 - `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging
 - `DISABLE_STATUS` - Disable the status API
-- `DISABLE_FRONTEND` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
+- `FRONTEND_ENABLED` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `HTTP_ADDRESS` - HTTP Server Address
 - `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity
 
@@ -220,8 +222,13 @@ The backend can be configured with the following environment variables.
 - `NAT_1_TO_1_IP` - Announce IPs that don't belong to local machine (like Public IP). delineated by '|'
 - `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
 - `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
-- `NAT_ICE_CANDIDATE_TYPE` - By default setting a NAT_1_TO_1_IP overrides. Set this to `srflx` to instead append IPs
+- `NAT_ICE_CANDIDATE_TYPE` - By default setting a `NAT_1_TO_1_IP` overrides. Set this to `srflx` to instead append IPs
 - `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
+- `STUN_SERVERS_INTERNAL` - List of internal STUN servers delineated by '|'. Useful if the server has issues connecting to the public STUN address
+- `TURN_SERVERS` - List of TURN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
+- `TURN_SERVERS_INTERNAL` - List of internal TURN servers delineated by '|'. Useful if the server has issues connecting to the public TURN address
+- `TURN_SERVER_AUTH_SECRET` - Secret used by the TURN server for new connections if any is set
+
 - `NETWORK_TYPES` - List of network types to use, delineated by '|'. Default is `udp4|udp6`.
 - `INCLUDE_LOOPBACK_CANDIDATE` - Also listen for WebRTC traffic on loopback, disabled by default
 
@@ -236,6 +243,7 @@ The backend can be configured with the following environment variables.
 
 - `DEBUG_PRINT_OFFER` - Print WebRTC Offers from client to Broadcast Box. Debug things like accepted codecs.
 - `DEBUG_PRINT_ANSWER` - Print WebRTC Answers from Broadcast Box to Browser. Debug things like IP/Ports returned to client.
+- `DEBUG_INCOMING_API_REQUEST` - Print API request paths made to the backend
 
 ## Authentication and Logging
 

@@ -1,10 +1,13 @@
-﻿import React, {useEffect, useRef, useState} from 'react'
-import {parseLinkHeader} from '@web3-storage/parse-link-header'
-import {ArrowsPointingOutIcon, Square2StackIcon} from "@heroicons/react/16/solid";
+﻿import React, { useContext, useEffect, useRef, useState } from 'react'
+import { parseLinkHeader } from '@web3-storage/parse-link-header'
+import { ArrowsPointingOutIcon, Square2StackIcon } from "@heroicons/react/16/solid";
 import VolumeComponent from "./components/VolumeComponent";
 import PlayPauseComponent from "./components/PlayPauseComponent";
-import QualitySelectorComponent from "./components/QualitySelectorComponent";
+import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
+import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
+import { HeaderContext } from '../../providers/HeaderProvider';
+import { StatusContext } from '../../providers/StatusProvider';
 
 interface PlayerProps {
 	streamKey: string;
@@ -13,14 +16,16 @@ interface PlayerProps {
 }
 
 const Player = (props: PlayerProps) => {
-	const apiPath = import.meta.env.VITE_API_PATH;
-	const {streamKey, cinemaMode} = props;
+	const { streamKey, cinemaMode } = props;
+	const { setTitle } = useContext(HeaderContext)
+	const { currentStreamStatus, setCurrentStreamStatus } = useContext(StatusContext)
 
+	const [audioLayers, setAudioLayers] = useState([]);
 	const [videoLayers, setVideoLayers] = useState([]);
+	const [hasPreparedPeerConnectionRef, setHasPreparedPeerConnectionRef] = useState<boolean>(false);
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
-	const [connectFailed, setConnectFailed] = useState<boolean>(false)
 
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
@@ -37,11 +42,11 @@ const Player = (props: PlayerProps) => {
 	}
 	const resetTimer = (isVisible: boolean) => {
 		setVideoOverlayVisible(() => isVisible);
-		
-		if(videoOverlayVisibleTimeoutRef){
+
+		if (videoOverlayVisibleTimeoutRef) {
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-		
+
 		videoOverlayVisibleTimeoutRef.current = setTimeout(() => {
 			setVideoOverlayVisible(() => false)
 		}, 2500)
@@ -65,16 +70,17 @@ const Player = (props: PlayerProps) => {
 		videoRef.current?.requestFullscreen()
 			.catch(err => console.error("VideoPlayer_RequestFullscreen", err));
 	};
-	
+
 	useEffect(() => {
 		const handleWindowBeforeUnload = () => {
 			peerConnectionRef.current?.close();
 			peerConnectionRef.current = null;
 		}
 
-		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible);
+		document.title = streamKey + " - Broadcast Box"
+		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible)
 		const player = document.getElementById(streamVideoPlayerId)
-		
+
 		player?.addEventListener('mousemove', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
@@ -82,12 +88,25 @@ const Player = (props: PlayerProps) => {
 
 		window.addEventListener("beforeunload", handleWindowBeforeUnload)
 
-		peerConnectionRef.current = new RTCPeerConnection();
+		fetch(`/api/ice-servers`, {
+			method: 'GET',
+		}).then(r => r.json())
+			.then((result) => {
+				peerConnectionRef.current = new RTCPeerConnection({
+					iceServers: result
+				});
+				setHasPreparedPeerConnectionRef(() => true)
+			}).catch(() => {
+				console.error("Error calling Ice-Servers endpoint. Ignoring STUN/TURN configuration")
+				peerConnectionRef.current = new RTCPeerConnection();
+
+				setHasPreparedPeerConnectionRef(() => true)
+			})
 
 		return () => {
 			peerConnectionRef.current?.close()
 			peerConnectionRef.current = null
-			
+
 			videoRef.current?.removeEventListener("playing", setHasSignalHandler)
 
 			player?.removeEventListener('mouseenter', () => handleOverlayTimer)
@@ -96,10 +115,14 @@ const Player = (props: PlayerProps) => {
 			player?.removeEventListener('mouseup', () => handleOverlayTimer)
 
 			window.removeEventListener("beforeunload", handleWindowBeforeUnload)
-			
+
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
 	}, [])
+
+	useEffect(() => {
+		setTitle(currentStreamStatus?.streamKey ?? "")
+	}, [currentStreamStatus])
 
 	useEffect(() => {
 		hasSignalRef.current = hasSignal;
@@ -117,11 +140,11 @@ const Player = (props: PlayerProps) => {
 						receiver.getStats()
 							.then(stats => {
 								stats.forEach(report => {
-										if (report.type === "inbound-rtp") {
-											const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
-											receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
-										}
+									if (report.type === "inbound-rtp") {
+										const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
+										receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
 									}
+								}
 								)
 							})
 					}
@@ -139,7 +162,7 @@ const Player = (props: PlayerProps) => {
 		if (!peerConnectionRef.current) {
 			return;
 		}
-		
+
 		peerConnectionRef.current.ontrack = (event: RTCTrackEvent) => {
 			if (videoRef.current) {
 				videoRef.current.srcObject = event.streams[0];
@@ -147,8 +170,8 @@ const Player = (props: PlayerProps) => {
 			}
 		}
 
-		peerConnectionRef.current.addTransceiver('audio', {direction: 'recvonly'})
-		peerConnectionRef.current.addTransceiver('video', {direction: 'recvonly'})
+		peerConnectionRef.current.addTransceiver('audio', { direction: 'recvonly' })
+		peerConnectionRef.current.addTransceiver('video', { direction: 'recvonly' })
 
 		peerConnectionRef.current
 			.createOffer()
@@ -159,7 +182,7 @@ const Player = (props: PlayerProps) => {
 					.setLocalDescription(offer)
 					.catch((err) => console.error("SetLocalDescription", err));
 
-				fetch(`${apiPath}/whep`, {
+				fetch(`/api/whep`, {
 					method: 'POST',
 					body: offer.sdp,
 					headers: {
@@ -167,25 +190,25 @@ const Player = (props: PlayerProps) => {
 						'Content-Type': 'application/sdp'
 					}
 				}).then(r => {
-					setConnectFailed(r.status !== 201)
-					if (connectFailed) {
-						throw new DOMException("WHEP endpoint did not return 201");
-					}
-
 					const parsedLinkHeader = parseLinkHeader(r.headers.get('Link'))
 
 					if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
 						throw new DOMException("Missing link header");
 					}
 
-					layerEndpointRef.current = `${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
+					layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
+					const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 
-					const evtSource = new EventSource(`${window.location.protocol}//${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 					evtSource.onerror = _ => evtSource.close();
 
+					// Receive current status of the stream
+					evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
+
+					// Receive layers
 					evtSource.addEventListener("layers", event => {
 						const parsed = JSON.parse(event.data)
 						setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
+						setAudioLayers(() => parsed['2']['layers'].map((layer: any) => layer.encodingId))
 					})
 
 					return r.text()
@@ -196,17 +219,16 @@ const Player = (props: PlayerProps) => {
 					}).catch((err) => console.error("RemoteDescription", err))
 				}).catch((err) => console.error("PeerConnectionError", err))
 			})
-	}, [peerConnectionRef])
+	}, [peerConnectionRef, hasPreparedPeerConnectionRef])
 
 	return (
 		<div
 			id={streamVideoPlayerId}
-			className="inline-block w-full relative z-0"
+			className="inline-block w-full relative z-0 aspect-video"
 			style={cinemaMode ? {
 				maxHeight: '100vh',
 				maxWidth: '100vw',
 			} : {}}>
-			{connectFailed && <p className='bg-red-700 text-white text-lg text-center p-4 rounded-t-lg whitespace-pre-wrap'>Failed to start Broadcast Box session 👮 </p>}
 			<div
 				onClick={handleVideoPlayerClick}
 				onDoubleClick={handleVideoPlayerDoubleClick}
@@ -234,9 +256,9 @@ const Player = (props: PlayerProps) => {
 					<div className="absolute bottom-0 h-8 w-full flex place-items-end z-20">
 						<div
 							onClick={(e) => e.stopPropagation()}
-							className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 rounded-b-md p-1 max-h-8 min-h-8">
+							className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8">
 
-							<PlayPauseComponent videoRef={videoRef}/>
+							<PlayPauseComponent videoRef={videoRef} />
 
 							<VolumeComponent
 								isMuted={videoRef.current?.muted ?? false}
@@ -246,10 +268,13 @@ const Player = (props: PlayerProps) => {
 
 							<div className="w-full"></div>
 
-							{hasSignal && <CurrentViewersComponent streamKey={streamKey}/>}
-							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss}/>
-							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()}/>
-							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()}/>
+							<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
+							<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} />
+							{audioLayers.length > 1 && (
+								<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} />
+							)}
+							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
+							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()} />
 
 						</div>
 					</div>)}
@@ -280,10 +305,10 @@ const Player = (props: PlayerProps) => {
 					</h2>
 				)}
 				{videoLayers.length > 0 && !hasSignal && (
-						<h2
-							className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-							Loading video
-						</h2>
+					<h2
+						className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+						Loading video
+					</h2>
 				)}
 
 			</div>
