@@ -28,3 +28,6 @@ yarn-error.log*
 # media files
 *.ogg
 *.h264
+
+# build files
+BroadcastBox.exe
