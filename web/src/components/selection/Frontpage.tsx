@@ -62,7 +62,7 @@ const Frontpage = () => {
 					<input
 						className='mb-2 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200'
 						id='streamKey'
-						placeholder={`Insert the key you of the stream you want to ${streamType === "Share" ? 'share' : 'join'}`}
+						placeholder={`Insert the key of the stream you want to ${streamType === "Share" ? 'share' : 'join'}`}
 						type='text'
 						onKeyUp={(e => {
 							if (e.key === "Enter") {
