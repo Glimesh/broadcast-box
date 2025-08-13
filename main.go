@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	environment.SetupLogger()
 	environment.LoadEnvironmentVariables()
 	environment.HandleFlags()
 
