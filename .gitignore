@@ -31,3 +31,6 @@ yarn-error.log*
 
 # build files
 BroadcastBox.exe
+
+# log files
+/logs
