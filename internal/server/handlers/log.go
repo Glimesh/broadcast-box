@@ -16,10 +16,22 @@ func logHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	logDir := "logs"
-	logFilePath := logDir + "/log"
+	if apiKey := os.Getenv(environment.LOGGING_API_KEY); apiKey != "" {
+		authHeader := request.Header.Get("Authorization")
+		token := helpers.ResolveBearerToken(authHeader)
 
-	file, err := os.Open(logFilePath)
+		if token == "" {
+			helpers.LogHttpError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
+
+			return
+		} else if token != apiKey {
+			helpers.LogHttpError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
+
+			return
+		}
+	}
+
+	file, err := environment.GetLogFileReader()
 	if err != nil {
 		log.Println("API.Log Error:", err)
 	}
@@ -28,6 +40,7 @@ func logHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.Header().Set("Content-Type", "text/plain")
 
 	if _, err := io.Copy(responseWriter, file); err != nil {
+		log.Println("API.Log: Error writing file to response", err)
 		helpers.LogHttpError(responseWriter, "Invalid request", http.StatusBadRequest)
 	}
 }

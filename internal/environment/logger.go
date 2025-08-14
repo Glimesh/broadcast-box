@@ -1,11 +1,21 @@
 package environment
 
 import (
+	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
+	"sync"
 	"time"
+)
+
+var (
+	currentDate string
+	logMutex    sync.Mutex
 )
 
 func SetupLogger() {
@@ -13,25 +23,56 @@ func SetupLogger() {
 		return
 	}
 
-	logDir := "logs"
-	if envLogDir := os.Getenv(LOGGING_DIRECTORY); envLogDir != "" {
-		logDir = envLogDir
+	startLogRotation()
+}
+
+func setupLoggerForDate(date string) {
+	logFile, err := getLogFileWriter()
+	if err != nil {
+		log.Printf("Failed to open log file: %v", err)
+		return
 	}
 
-	logFileName := time.Now().Format("log_20060102")
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(multiWriter)
+	currentDate = date
+}
 
-	if envLogFileIsSingleFile := strings.EqualFold(os.Getenv(LOGGING_SINGLEFILE), "true"); envLogFileIsSingleFile == true {
-		logFileName = "log"
+func startLogRotation() {
+	go func() {
+		for {
+			now := time.Now().Format("20060102")
+			logMutex.Lock()
+			if now != currentDate {
+				setupLoggerForDate(now)
+			}
+			logMutex.Unlock()
+			time.Sleep(1 * time.Minute)
+		}
+	}()
+}
+
+func GetLogFileReader() (logFile *os.File, err error) {
+	logDir, _, logFilePath := getLogfilePath()
+	logFilePath, err = getLatestLogFile(logDir)
+	if err != nil {
+		log.Println("Logger Error:", err)
 	}
 
-	logFilePath := logDir + "/" + logFileName
+	file, err := os.Open(logFilePath)
+	if err != nil {
+		log.Println("Logger Error:", err)
+	}
+
+	return file, err
+}
+
+func getLogFileWriter() (logFile *os.File, err error) {
+	logDir, _, logFilePath := getLogfilePath()
 
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
 		log.Fatalf("Failed to create log directory: %v", err)
 	}
-
-	var logFile *os.File
-	var err error
 
 	if envLogTruncateExistingFile := strings.EqualFold(os.Getenv(LOGGING_NEW_FILE_ON_STARTUP), "true"); envLogTruncateExistingFile == true {
 		logFile, err = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
@@ -40,10 +81,60 @@ func SetupLogger() {
 	}
 
 	if err != nil {
-		log.Fatalf("Could not open log file %v", err)
+		log.Println("Logger Error: FilePath", logFilePath)
+		log.Fatalf("Logger Error: %v", err)
+		return nil, err
 	}
 
-	// Setup output to be directed to both logfile and console
-	multiWriter := io.MultiWriter(os.Stdout, logFile)
-	log.SetOutput(multiWriter)
+	return logFile, nil
+}
+
+func getLogfilePath() (directory string, fileName string, logFilePath string) {
+	logDir := "logs"
+	if envLogDir := os.Getenv(LOGGING_DIRECTORY); envLogDir != "" {
+		logDir = envLogDir
+	}
+
+	logFileName := time.Now().Format("20060102")
+
+	if envLogFileIsSingleFile := strings.EqualFold(os.Getenv(LOGGING_SINGLEFILE), "true"); envLogFileIsSingleFile == true {
+		logFileName = "log"
+	}
+
+	return logDir, logFileName, logDir + "/" + logFileName
+}
+
+func getLatestLogFile(logDir string) (string, error) {
+	var dates []time.Time
+	var fileMap = make(map[time.Time]string)
+
+	err := filepath.WalkDir(logDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || strings.Contains(d.Name(), ".") {
+			return nil
+		}
+
+		t, err := time.Parse("20060102", d.Name())
+		if err != nil {
+			return nil
+		}
+
+		dates = append(dates, t)
+		fileMap[t] = path
+		return nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(dates) == 0 {
+		return "", fmt.Errorf("no log files found")
+	}
+
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i].After(dates[j])
+	})
+
+	latest := dates[0]
+	return fileMap[latest], nil
 }
