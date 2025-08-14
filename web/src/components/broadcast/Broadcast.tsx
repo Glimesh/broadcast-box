@@ -109,7 +109,6 @@ function BrowserBroadcaster() {
 					} else {
 						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
 							direction: 'sendonly',
-							sendEncodings: isScreenShare ? [] : [
 							sendEncodings: [
 								{
 									rid: encodingPrefix + 'High',
