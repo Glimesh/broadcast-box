@@ -12,7 +12,7 @@ import (
 )
 
 func logHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if strings.EqualFold(os.Getenv(environment.LOGGING_API_ENABLED), "true") == false {
+	if !strings.EqualFold(os.Getenv(environment.LOGGING_API_ENABLED), "true") {
 		return
 	}
 
@@ -35,12 +35,16 @@ func logHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		log.Println("API.Log Error:", err)
 	}
-	defer file.Close()
 
 	responseWriter.Header().Set("Content-Type", "text/plain")
 
 	if _, err := io.Copy(responseWriter, file); err != nil {
 		log.Println("API.Log: Error writing file to response", err)
 		helpers.LogHttpError(responseWriter, "Invalid request", http.StatusBadRequest)
+	}
+
+	err = file.Close()
+	if err != nil {
+		log.Println("API.Log Error:", err)
 	}
 }
