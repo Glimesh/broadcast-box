@@ -1,4 +1,4 @@
-package environment
+package console
 
 import (
 	"flag"
@@ -8,9 +8,9 @@ import (
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 )
 
-func HandleFlags() {
-	createNewProfile := flag.Bool("createNewProfile", false, "Create a new stream profile")
-	streamKey := flag.String("streamKey", "", "The stream key to assign to the user")
+func HandleConsoleFlags() {
+	createNewProfile := flag.Bool(createNewProfile, false, "Create a new stream profile from the -streamKey flag")
+	streamKey := flag.String(createNewProfile_StreamKey, "", "The stream key used to identify a streaming session")
 
 	flag.Parse()
 
