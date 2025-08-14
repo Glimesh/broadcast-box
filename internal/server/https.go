@@ -27,10 +27,6 @@ func startHttpsServer(serverMux http.HandlerFunc) {
 		Addr:    getHttpsAddress(),
 	}
 
-	server.TLSConfig = &tls.Config{
-		Certificates: []tls.Certificate{},
-	}
-
 	cert, err := tls.LoadX509KeyPair(sslCert, sslKey)
 	if err != nil {
 		log.Fatal(err)
