@@ -42,7 +42,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            seaduboi/broadcast-box
+            mrmalfunction/broadcast-box
             ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest
