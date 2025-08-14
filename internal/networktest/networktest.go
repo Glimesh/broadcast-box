@@ -17,6 +17,7 @@ import (
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/handlers"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 )
@@ -109,7 +110,7 @@ func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 		return err
 	}
 
-	httpAddress := os.Getenv("HTTP_ADDRESS")
+	httpAddress := os.Getenv(environment.HTTP_ADDRESS)
 
 	firstMediaSection := answerParsed.MediaDescriptions[0]
 	filteredAttributes := []sdp.Attribute{}

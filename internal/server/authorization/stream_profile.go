@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 type Profile struct {
@@ -15,7 +17,7 @@ type Profile struct {
 }
 
 func CreateProfile(streamKey string) (string, error) {
-	profilePath := os.Getenv("STREAM_PROFILE_PATH")
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 	assureProfilePath()
 
 	if hasExistingStreamKey(streamKey) {
@@ -49,7 +51,7 @@ func CreateProfile(streamKey string) (string, error) {
 }
 
 func GetProfile(bearerToken string) (*Profile, error) {
-	profilePath := os.Getenv("STREAM_PROFILE_PATH")
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 	assureProfilePath()
 
 	fileName, err := getProfileFileNameByBearerToken(bearerToken)

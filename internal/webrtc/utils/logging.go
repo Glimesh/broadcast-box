@@ -4,10 +4,12 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 func DebugOutputOffer(offer string) string {
-	if strings.EqualFold(os.Getenv("DEBUG_PRINT_OFFER"), "true") {
+	if strings.EqualFold(os.Getenv(environment.DEBUG_PRINT_OFFER), "true") {
 		log.Println(offer)
 	}
 
@@ -15,7 +17,7 @@ func DebugOutputOffer(offer string) string {
 }
 
 func DebugOutputAnswer(answer string) string {
-	if strings.EqualFold(os.Getenv("DEBUG_PRINT_ANSWER"), "true") {
+	if strings.EqualFold(os.Getenv(environment.DEBUG_PRINT_ANSWER), "true") {
 		log.Println(answer)
 	}
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 )
@@ -25,7 +26,7 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	values := strings.Split(request.URL.RequestURI(), "/")
 	sessionId := values[len(values)-1]
 
-	debugSseMessages := strings.EqualFold(os.Getenv("DEBUG_PRINT_SSE_MESSAGES"), "true")
+	debugSseMessages := strings.EqualFold(os.Getenv(environment.DEBUG_PRINT_SSE_MESSAGES), "true")
 
 	ctx := request.Context()
 

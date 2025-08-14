@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 )
@@ -18,9 +19,9 @@ type ICEComponentServer struct {
 }
 
 func clientICEHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	turnServers := os.Getenv("TURN_SERVERS")
-	turnAuthKey := os.Getenv("TURN_SERVER_AUTH_SECRET")
-	stunServers := os.Getenv("STUN_SERVERS")
+	turnServers := os.Getenv(environment.TURN_SERVERS)
+	turnAuthKey := os.Getenv(environment.TURN_SERVER_AUTH_SECRET)
+	stunServers := os.Getenv(environment.STUN_SERVERS)
 	var servers []ICEComponentServer
 
 	if turnServers == "" && stunServers == "" {

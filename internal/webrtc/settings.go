@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/ip"
 )
 
@@ -30,14 +31,14 @@ func GetSettingEngine(isWhip bool, tcpMuxCache map[string]ice.TCPMux, udpMuxCach
 	settingEngine.SetNetworkTypes(setupNetworkTypes())
 	settingEngine.DisableSRTCPReplayProtection(true)
 	settingEngine.DisableSRTPReplayProtection(true)
-	settingEngine.SetIncludeLoopbackCandidate(os.Getenv("INCLUDE_LOOPBACK_CANDIDATE") != "")
+	settingEngine.SetIncludeLoopbackCandidate(os.Getenv(environment.INCLUDE_LOOPBACK_CANDIDATE) != "")
 
 	return
 }
 
 func setupNetworkTypes() []webrtc.NetworkType {
-	networkTypesEnv := os.Getenv("NETWORK_TYPES")
-	tcpMuxForce := os.Getenv("TCP_MUX_FORCE")
+	networkTypesEnv := os.Getenv(environment.NETWORK_TYPES)
+	tcpMuxForce := os.Getenv(environment.TCP_MUX_FORCE)
 
 	networkTypes := []webrtc.NetworkType{}
 	// TCP Mux Force will enforce TCP4/6 instead of requested types
@@ -66,7 +67,7 @@ func setupNetworkTypes() []webrtc.NetworkType {
 func setupTCPMux(settingEngine *webrtc.SettingEngine, tcpMuxCache map[string]ice.TCPMux) {
 	// Use TCP Mux port if set
 	if tcpAddr := getTCPMuxAddress(); tcpAddr != nil {
-		address := os.Getenv("TCP_MUX_ADDRESS")
+		address := os.Getenv(environment.TCP_MUX_ADDRESS)
 		tcpMux, ok := tcpMuxCache[address]
 
 		if !ok {
@@ -91,7 +92,7 @@ func setupUDPMux(settingEngine *webrtc.SettingEngine, isWhip bool, udpMuxCache m
 }
 
 func setupInterfaceFilter(settingEngine *webrtc.SettingEngine, muxOpts *[]ice.UDPMuxFromPortOption) {
-	filter := os.Getenv("INTERFACE_FILTER")
+	filter := os.Getenv(environment.INTERFACE_FILTER)
 
 	if filter != "" {
 		interfaceFilter := func(i string) bool {
@@ -104,7 +105,7 @@ func setupInterfaceFilter(settingEngine *webrtc.SettingEngine, muxOpts *[]ice.UD
 }
 
 func getTCPMuxAddress() *net.TCPAddr {
-	sharedAddress := os.Getenv("TCP_MUX_ADDRESS")
+	sharedAddress := os.Getenv(environment.TCP_MUX_ADDRESS)
 
 	if sharedAddress != "" {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", sharedAddress)
@@ -120,9 +121,9 @@ func getTCPMuxAddress() *net.TCPAddr {
 }
 
 func getUDPMuxPort(isWhip bool) int {
-	sharedPort := os.Getenv("UDP_MUX_PORT")
-	whipPort := os.Getenv("UDP_MUX_PORT_WHIP")
-	whepPort := os.Getenv("UDP_MUX_PORT_WHEP")
+	sharedPort := os.Getenv(environment.UDP_MUX_PORT)
+	whipPort := os.Getenv(environment.UDP_MUX_PORT_WHIP)
+	whepPort := os.Getenv(environment.UDP_MUX_PORT_WHEP)
 
 	// Set for WHIP
 	if isWhip && whipPort != "" {
@@ -190,15 +191,15 @@ func setupNAT(settingEngine *webrtc.SettingEngine) {
 
 	natICECandidateType := webrtc.ICECandidateTypeHost
 
-	if os.Getenv("INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP") != "" {
+	if os.Getenv(environment.INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP) != "" {
 		natIps = append(natIps, ip.GetPublicIp())
 	}
 
-	if os.Getenv("NAT_1_TO_1_IP") != "" {
-		natIps = append(natIps, strings.Split(os.Getenv("NAT_1_TO_1_IP"), "|")...)
+	if os.Getenv(environment.NAT_1_TO_1_IP) != "" {
+		natIps = append(natIps, strings.Split(os.Getenv(environment.NAT_1_TO_1_IP), "|")...)
 	}
 
-	if os.Getenv("NAT_ICE_CANDIDATE_TYPE") == "srflx" {
+	if os.Getenv(environment.NAT_ICE_CANDIDATE_TYPE) == "srflx" {
 		natICECandidateType = webrtc.ICECandidateTypeSrflx
 	}
 

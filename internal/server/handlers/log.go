@@ -5,12 +5,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 )
 
 func logHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	// TODO: Setup envvar to allow getting logs
+	if strings.EqualFold(os.Getenv(environment.LOGGING_API_ENABLED), "true") == false {
+		return
+	}
 
 	logDir := "logs"
 	logFilePath := logDir + "/log"

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 	"github.com/glimesh/broadcast-box/internal/server/webhook"
@@ -43,7 +44,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	var userProfile authorization.Profile
 
 	// Stream requires webhook validation
-	if webhookUrl := os.Getenv("WEBHOOK_URL"); webhookUrl != "" {
+	if webhookUrl := os.Getenv(environment.WEBHOOK_URL); webhookUrl != "" {
 		streamKey, err := webhook.CallWebhook(webhookUrl, webhook.WhipConnect, token, request)
 		if err != nil {
 			responseWriter.WriteHeader(http.StatusUnauthorized)
@@ -58,7 +59,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	// Stream requires profile
-	if requiresStreamProfile := os.Getenv("STREAM_PROFILE_ACTIVE"); strings.EqualFold(requiresStreamProfile, "TRUE") {
+	if requiresStreamProfile := os.Getenv(environment.STREAM_PROFILE_ACTIVE); strings.EqualFold(requiresStreamProfile, "TRUE") {
 		profile, err := authorization.GetProfile(token)
 		if err != nil {
 			log.Println("Unauthorized login attempt with bearer", token)

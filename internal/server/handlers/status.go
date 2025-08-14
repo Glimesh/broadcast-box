@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 )
@@ -65,7 +66,7 @@ func sessionStatusesHandler(responseWriter http.ResponseWriter, request *http.Re
 		return
 	}
 
-	if status := os.Getenv("DISABLE_STATUS"); status != "" {
+	if status := os.Getenv(environment.DISABLE_STATUS); status != "" {
 		helpers.LogHttpError(
 			responseWriter,
 			"Status Service Unavailable",

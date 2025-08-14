@@ -3,6 +3,7 @@ package server
 import (
 	"os"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/handlers"
 )
 
@@ -12,7 +13,7 @@ func StartWebServer() {
 
 	serverMux := handlers.GetServeMuxHandler()
 
-	if os.Getenv("SSL_KEY") != "" && os.Getenv("SSL_CERT") != "" {
+	if os.Getenv(environment.SSL_KEY) != "" && os.Getenv(environment.SSL_CERT) != "" {
 		startHttpsServer(serverMux)
 	} else {
 		startHttpServer(serverMux)

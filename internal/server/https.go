@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 var (
@@ -12,8 +14,8 @@ var (
 )
 
 func startHttpsServer(serverMux http.HandlerFunc) {
-	sslKey := os.Getenv("SSL_KEY")
-	sslCert := os.Getenv("SSL_CERT")
+	sslKey := os.Getenv(environment.SSL_KEY)
+	sslCert := os.Getenv(environment.SSL_CERT)
 
 	if sslKey == "" {
 		log.Fatal("Missing SSL Key")
@@ -43,7 +45,7 @@ func startHttpsServer(serverMux http.HandlerFunc) {
 
 func getHttpsAddress() string {
 
-	if httpsAddress := os.Getenv("HTTP_ADDRESS"); httpsAddress != "" {
+	if httpsAddress := os.Getenv(environment.HTTP_ADDRESS); httpsAddress != "" {
 		return httpsAddress
 	}
 

@@ -6,11 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/google/uuid"
 )
 
 func assureProfilePath() {
-	profilePath := os.Getenv("STREAM_PROFILE_PATH")
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 
 	err := os.MkdirAll(profilePath, os.ModePerm)
 	if err != nil {
@@ -24,7 +25,7 @@ func IsValidStreamBearerToken(bearerToken string) bool {
 }
 
 func hasExistingStreamKey(streamKey string) bool {
-	profilePath := os.Getenv("STREAM_PROFILE_PATH")
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 	files, err := os.ReadDir(profilePath)
 
 	if err != nil {
@@ -43,7 +44,7 @@ func hasExistingStreamKey(streamKey string) bool {
 }
 
 func hasExistingBearerToken(bearerToken string) bool {
-	profilePath := os.Getenv("STREAM_PROFILE_PATH")
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
@@ -61,7 +62,7 @@ func hasExistingBearerToken(bearerToken string) bool {
 }
 
 func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
-	profilePath := os.Getenv("STREAM_PROFILE_PATH")
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {

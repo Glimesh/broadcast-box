@@ -7,10 +7,12 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 func GetTURNCredentials() (username string, credentials string) {
-	turnAuthKey := os.Getenv("TURN_SERVER_AUTH_SECRET")
+	turnAuthKey := os.Getenv(environment.TURN_SERVER_AUTH_SECRET)
 
 	if turnAuthKey == "" {
 		return "BroadcastBox", "BroadcastBox"

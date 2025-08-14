@@ -7,12 +7,14 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 func GetServeMuxHandler() http.HandlerFunc {
 	serverMux := http.NewServeMux()
 
-	if os.Getenv("DISABLE_FRONTEND") == "" {
+	if os.Getenv(environment.DISABLE_FRONTEND) == "" {
 		serverMux.HandleFunc("/", frontendHandler)
 	}
 
@@ -25,7 +27,7 @@ func GetServeMuxHandler() http.HandlerFunc {
 	serverMux.HandleFunc("/api/ice-servers", corsHandler(clientICEHandler))
 
 	// Path middleware
-	debugOutputWebRequests := os.Getenv("DEBUG_INCOMING_API_REQUEST")
+	debugOutputWebRequests := os.Getenv(environment.DEBUG_INCOMING_API_REQUEST)
 	handler := http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		if strings.EqualFold(debugOutputWebRequests, "TRUE") {
 			log.Println("Calling path", request.URL.Path)
