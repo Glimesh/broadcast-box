@@ -36,7 +36,7 @@ func GetPeerConfig() webrtc.Configuration {
 
 	username, credential := authorization.GetTURNCredentials()
 
-	if turnServers := os.Getenv("TURN_SERVERS"); turnServers != "" {
+	if turnServers := os.Getenv("TURN_SERVERS_INTERNAL"); turnServers != "" {
 		for turnServer := range strings.SplitSeq(turnServers, "|") {
 			config.ICEServers = append(config.ICEServers, webrtc.ICEServer{
 				URLs:       []string{"turn:" + turnServer},
@@ -44,7 +44,7 @@ func GetPeerConfig() webrtc.Configuration {
 				Credential: credential,
 			})
 		}
-	} else if turnServers := os.Getenv("TURN_SERVERS_INTERNAL"); turnServers != "" {
+	} else if turnServers := os.Getenv("TURN_SERVERS"); turnServers != "" {
 		for turnServer := range strings.SplitSeq(turnServers, "|") {
 			config.ICEServers = append(config.ICEServers, webrtc.ICEServer{
 				URLs:       []string{"turn:" + turnServer},
