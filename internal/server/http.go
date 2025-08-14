@@ -20,10 +20,7 @@ func startHttpServer(serverMux http.HandlerFunc) {
 	}
 
 	log.Println("Starting HTTP server at", getHttpAddress())
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Println("Error starting HTTP server", err)
-	}
+	log.Fatal(server.ListenAndServe())
 }
 
 func getHttpAddress() string {
