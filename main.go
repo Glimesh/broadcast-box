@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/console"
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/server"
@@ -14,12 +15,12 @@ import (
 func main() {
 	environment.SetupLogger()
 	environment.LoadEnvironmentVariables()
-	environment.HandleFlags()
+	console.HandleConsoleFlags()
 
 	log.Println("Booting up Broadcast")
 	webrtc.Setup()
 
-	if shouldNetworkTest := os.Getenv("NETWORK_TEST_ON_START"); strings.EqualFold(shouldNetworkTest, "true") {
+	if shouldNetworkTest := os.Getenv(environment.NETWORK_TEST_ON_START); strings.EqualFold(shouldNetworkTest, "true") {
 		networktest.RunNetworkTest()
 	}
 
