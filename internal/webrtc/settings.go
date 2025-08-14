@@ -166,6 +166,7 @@ func setUDPMuxPort(isWhip bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUD
 	}
 
 	udpMux, ok := udpMuxCache[udpMuxPort]
+
 	if !ok {
 		// No Mux for current port, create new
 		newUdpMux, err := ice.NewMultiUDPMuxFromPort(udpMuxPort, udpMuxOpts...)
@@ -175,6 +176,7 @@ func setUDPMuxPort(isWhip bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUD
 		}
 
 		udpMuxCache[udpMuxPort] = newUdpMux
+		udpMux = newUdpMux
 	}
 
 	// Set to Mux on existing port
