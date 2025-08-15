@@ -1,8 +1,6 @@
 package webrtc
 
 import (
-	"log"
-
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/peerconnection"
@@ -76,22 +74,32 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		VideoTrack:     videoTrack,
 		AudioTimestamp: 5000,
 		VideoTimestamp: 5000,
-		SSEChannel:     make(chan any, 10),
+		SSEChannel:     make(chan any, 100),
 	}
 
-	stream.WhepSessions[whepSessionId].VideoLayerCurrent.Store("")
-	stream.WhepSessions[whepSessionId].AudioLayerCurrent.Store("")
-	stream.WhepSessions[whepSessionId].IsWaitingForKeyframe.Store(false)
+	var defaultAudioTrack = ""
+	if len(stream.AudioTracks) != 0 {
+		defaultAudioTrack = stream.AudioTracks[0].Rid
+	}
+
+	var defaultVideoTrack = ""
+	if len(stream.VideoTracks) != 0 {
+		defaultVideoTrack = stream.VideoTracks[0].Rid
+	}
+
+	whepSession := stream.WhepSessions[whepSessionId]
+	whepSession.VideoLayerCurrent.Store(defaultVideoTrack)
+	whepSession.AudioLayerCurrent.Store(defaultAudioTrack)
+	whepSession.IsWaitingForKeyframe.Store(false)
 
 	session.WhipSessionsLock.Unlock()
 	stream.WhepSessionsLock.Unlock()
 
-	log.Println("WHEP: Added session", whepSessionId)
-
 	// When WHEP is established, send initial messages to client
 	go func() {
-		stream.WhepSessions[whepSessionId].SSEChannel <- session.GetSessionStatsJsonString(stream)
-		stream.WhepSessions[whepSessionId].SSEChannel <- session.GetAvailableLayersJsonString(stream)
+		whepSession.SSEChannel <- session.GetSessionStatsJsonString(stream)
+		whepSession.SSEChannel <- session.GetAvailableLayersJsonString(stream)
+		whepSession.SSEChannel <- session.GetWhepSessionStatus(whepSession)
 	}()
 
 	return utils.DebugOutputAnswer(utils.AppendAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
