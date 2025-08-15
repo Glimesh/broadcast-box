@@ -15,11 +15,25 @@ interface PlayerProps {
 	onCloseStream?: () => void;
 }
 
+interface CurrentLayersMessage {
+	id: string,
+	audioLayerCurrent: string
+	audioTimestamp: number
+	audioPacketsWritten: number
+	audioSequenceNumber: number
+
+	videoLayerCurrent: string
+	videoTimestamp: number
+	videoPacketsWritten: number
+	videoSequenceNumber: number
+}
+
 const Player = (props: PlayerProps) => {
 	const { streamKey, cinemaMode } = props;
 	const { setTitle } = useContext(HeaderContext)
 	const { currentStreamStatus, setCurrentStreamStatus } = useContext(StatusContext)
 
+	const [currentLayersStatus, setCurrentLayersStatus] = useState<CurrentLayersMessage | undefined>()
 	const [audioLayers, setAudioLayers] = useState([]);
 	const [videoLayers, setVideoLayers] = useState([]);
 	const [hasPreparedPeerConnectionRef, setHasPreparedPeerConnectionRef] = useState<boolean>(false);
@@ -201,8 +215,11 @@ const Player = (props: PlayerProps) => {
 
 					evtSource.onerror = _ => evtSource.close();
 
-					// Receive current status of the stream
+					// Receive current status of the whip stream
 					evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
+
+					// Receive current current layers of this whep stream
+					evtSource.addEventListener("currentLayers", (event: MessageEvent) => setCurrentLayersStatus(() => JSON.parse(event.data)))
 
 					// Receive layers
 					evtSource.addEventListener("layers", event => {
@@ -269,9 +286,9 @@ const Player = (props: PlayerProps) => {
 							<div className="w-full"></div>
 
 							<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
-							<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} />
+							<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
 							{audioLayers.length > 1 && (
-								<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} />
+								<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
 							)}
 							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
 							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()} />
