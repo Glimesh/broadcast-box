@@ -175,7 +175,7 @@ function BrowserBroadcaster() {
 						peerConnectionRef.current!.setRemoteDescription({
 							sdp: answer,
 							type: 'answer'
-						}).catch((err) => console.error("SetRemoveDescription", err))
+						}).catch((err) => console.error("SetRemoteDescription", err))
 					})
 				})
 		}, (reason: ErrorMessageEnum) => {
