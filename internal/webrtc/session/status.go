@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	simulcaseLayerResponse struct {
+	simulcastLayerResponse struct {
 		EncodingId string `json:"encodingId"`
 	}
 )
@@ -109,24 +109,24 @@ func GetAvailableLayersJsonString(whipSession *WhipSession) string {
 	whipSession.TracksLock.RLock()
 	defer whipSession.TracksLock.RUnlock()
 
-	videoLayers := []simulcaseLayerResponse{}
-	audioLayers := []simulcaseLayerResponse{}
+	videoLayers := []simulcastLayerResponse{}
+	audioLayers := []simulcastLayerResponse{}
 
 	// Add available video layers
 	for track := range whipSession.VideoTracks {
-		videoLayers = append(videoLayers, simulcaseLayerResponse{
+		videoLayers = append(videoLayers, simulcastLayerResponse{
 			EncodingId: whipSession.VideoTracks[track].Rid,
 		})
 	}
 
 	// Add available audio layers
 	for track := range whipSession.AudioTracks {
-		audioLayers = append(audioLayers, simulcaseLayerResponse{
+		audioLayers = append(audioLayers, simulcastLayerResponse{
 			EncodingId: whipSession.AudioTracks[track].Rid,
 		})
 	}
 
-	resp := map[string]map[string][]simulcaseLayerResponse{
+	resp := map[string]map[string][]simulcastLayerResponse{
 		"1": {
 			"layers": videoLayers,
 		},
