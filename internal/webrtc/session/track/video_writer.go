@@ -32,11 +32,12 @@ func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 
 	codec := broadcastCodecs.GetVideoTrackCodec(remoteTrack.Codec().MimeType)
 	track, err := AddVideoTrack(stream, id, codec, &stream.WhepSessionsLock)
-
 	if err != nil {
 		log.Println("VideoWriter.AddTrack.Error:", err)
 		return
 	}
+	track.Priority = getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
+
 	stream.OnTrackChan <- struct{}{}
 
 	go subscribeStreamChannels(remoteTrack, stream, peerConnection)

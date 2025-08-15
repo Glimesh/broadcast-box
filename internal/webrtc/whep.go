@@ -8,7 +8,6 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 
 	"github.com/google/uuid"
-	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -46,7 +45,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 
 	peerconnection.RegisterHandlers(peerConnection, stream, false, whepSessionId)
 
-	go rtcpPacketReaderLoop(stream, rtpSender)
+	go session.RtcpPacketReaderLoop(stream, rtpSender)
 
 	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		SDP:  offer,
@@ -77,15 +76,8 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		SSEChannel:     make(chan any, 100),
 	}
 
-	var defaultAudioTrack = ""
-	if len(stream.AudioTracks) != 0 {
-		defaultAudioTrack = stream.AudioTracks[0].Rid
-	}
-
-	var defaultVideoTrack = ""
-	if len(stream.VideoTracks) != 0 {
-		defaultVideoTrack = stream.VideoTracks[0].Rid
-	}
+	var defaultAudioTrack = stream.GetHighestPrioritizedAudioTrack()
+	var defaultVideoTrack = stream.GetHighestPrioritizedVideoTrack()
 
 	whepSession := stream.WhepSessions[whepSessionId]
 	whepSession.VideoLayerCurrent.Store(defaultVideoTrack)
@@ -103,22 +95,4 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	}()
 
 	return utils.DebugOutputAnswer(utils.AppendAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
-}
-
-func rtcpPacketReaderLoop(stream *session.WhipSession, rtpSender *webrtc.RTPSender) {
-	for {
-		rtcpPackets, _, rtcpErr := rtpSender.ReadRTCP()
-		if rtcpErr != nil {
-			return
-		}
-
-		for _, r := range rtcpPackets {
-			if _, isPli := r.(*rtcp.PictureLossIndication); isPli {
-				select {
-				case stream.PliChan <- true:
-				default:
-				}
-			}
-		}
-	}
 }

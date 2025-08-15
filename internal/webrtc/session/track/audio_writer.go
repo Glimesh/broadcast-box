@@ -14,28 +14,29 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 )
 
-func AudioWriter(remoteTrack *webrtc.TrackRemote, session *session.WhipSession, peerConnection *webrtc.PeerConnection) {
+func AudioWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, peerConnection *webrtc.PeerConnection) {
 	id := remoteTrack.RID()
 
 	if id == "" {
-		session.TracksLock.RLock()
+		stream.TracksLock.RLock()
 		var names []string
-		for _, track := range session.AudioTracks {
+		for _, track := range stream.AudioTracks {
 			names = append(names, track.Rid)
 		}
-		session.TracksLock.RUnlock()
+		stream.TracksLock.RUnlock()
 
 		id = utils.NextAvailableName(codecs.AudioTrackLabelDefault, names)
 	}
 
 	codec := codecs.GetAudioTrackCodec(remoteTrack.Codec().MimeType)
-	track, err := AddAudioTrack(session, id, codec, &session.WhepSessionsLock)
+	track, err := AddAudioTrack(stream, id, codec, &stream.WhepSessionsLock)
 	if err != nil {
 		log.Println("AudioWriter.AddTrack.Error:", err)
 		return
 	}
+	track.Priority = getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
-	session.OnTrackChan <- struct{}{}
+	stream.OnTrackChan <- struct{}{}
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
@@ -87,15 +88,15 @@ func AudioWriter(remoteTrack *webrtc.TrackRemote, session *session.WhipSession, 
 		lastTimestamp = rtpPkt.Timestamp
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
-		session.WhepSessionsLock.RLock()
-		for whepSession := range session.WhepSessions {
-			session.WhepSessions[whepSession].SendAudioPacket(
+		stream.WhepSessionsLock.RLock()
+		for whepSession := range stream.WhepSessions {
+			stream.WhepSessions[whepSession].SendAudioPacket(
 				rtpPkt,
 				id,
 				timeDiff,
 				sequenceDiff,
 				codec)
 		}
-		session.WhepSessionsLock.RUnlock()
+		stream.WhepSessionsLock.RUnlock()
 	}
 }

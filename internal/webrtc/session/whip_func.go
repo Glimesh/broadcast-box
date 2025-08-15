@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
+	"github.com/pion/rtcp"
+	"github.com/pion/webrtc/v4"
 )
 
 // TODO:
@@ -118,4 +120,60 @@ func StartWhipSessionLoop(stream *WhipSession) {
 			}
 		}
 	}
+}
+
+func RtcpPacketReaderLoop(stream *WhipSession, rtpSender *webrtc.RTPSender) {
+	for {
+		rtcpPackets, _, rtcpErr := rtpSender.ReadRTCP()
+		if rtcpErr != nil {
+			return
+		}
+
+		for _, r := range rtcpPackets {
+			if _, isPli := r.(*rtcp.PictureLossIndication); isPli {
+				select {
+				case stream.PliChan <- true:
+				default:
+				}
+			}
+		}
+	}
+}
+
+// Get highest prioritized audio track in the whip session
+// This only works if the priority has been set.
+// Currently this is only supported when being set through the simulcast
+// property in the offer made by the whip connection
+func (session *WhipSession) GetHighestPrioritizedAudioTrack() string {
+	if len(session.AudioTracks) != 0 {
+		highestPriorityAudioTrack := session.AudioTracks[0]
+		for _, trackPriority := range session.AudioTracks[1:] {
+			if trackPriority.Priority < highestPriorityAudioTrack.Priority {
+				highestPriorityAudioTrack = trackPriority
+			}
+		}
+
+		return highestPriorityAudioTrack.Rid
+	}
+
+	return ""
+}
+
+// Get highest prioritized video track in the whip session
+// This only works if the priority has been set.
+// Currently this is only supported when being set through the simulcast
+// property in the offer made by the whip connection
+func (session *WhipSession) GetHighestPrioritizedVideoTrack() string {
+	if len(session.VideoTracks) != 0 {
+		highestPriorityVideoTrack := session.VideoTracks[0]
+		for _, trackPriority := range session.VideoTracks[1:] {
+			if trackPriority.Priority < highestPriorityVideoTrack.Priority {
+				highestPriorityVideoTrack = trackPriority
+			}
+		}
+
+		return highestPriorityVideoTrack.Rid
+	}
+
+	return ""
 }

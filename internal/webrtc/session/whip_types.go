@@ -48,6 +48,7 @@ type (
 		Rid             string
 		SessionId       string
 		Codec           int
+		Priority        int
 		PacketsReceived atomic.Uint64
 		LastRecieved    atomic.Value
 		LastKeyFrame    atomic.Value
@@ -57,6 +58,7 @@ type (
 		Rid             string
 		SessionId       string
 		Codec           int
+		Priority        int
 		PacketsReceived atomic.Uint64
 		LastRecieved    atomic.Value
 		Track           *codecs.TrackMultiCodec
