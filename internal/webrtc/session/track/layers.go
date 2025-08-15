@@ -1,6 +1,7 @@
 package track
 
 import (
+	"log"
 	"strings"
 
 	"github.com/pion/sdp/v3"
@@ -11,7 +12,11 @@ import (
 // a=simulcast:send High,Mid,Low
 func getPrioritizedStreamingLayer(layer string, sdpDescription string) int {
 	var sessionDescription sdp.SessionDescription
-	sessionDescription.Unmarshal([]byte(sdpDescription))
+	err := sessionDescription.Unmarshal([]byte(sdpDescription))
+	if err != nil {
+		log.Println("Track.getPrioritizedStreamingLayer Error: (Layer "+layer+")", err)
+		return 100
+	}
 
 	var priority = 1
 	for _, description := range sessionDescription.MediaDescriptions {
