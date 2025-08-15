@@ -5,12 +5,13 @@ interface QualityComponentProps {
 	layers: string[];
 	layerEndpoint: string;
 	hasPacketLoss: boolean;
+	currentLayer: string;
 }
 
 const AudioLayerSelectorComponent = (props: QualityComponentProps) => {
 	const audioMediaId = "2"
 	const [isOpen, setIsOpen] = useState<boolean>(false);
-	const [currentLayer, setCurrentLayer] = useState<string>('');
+	const [currentLayer, setCurrentLayer] = useState<string>(props.currentLayer);
 
 	const onLayerChange = (event: ChangeEvent<HTMLSelectElement>) => {
 		fetch(props.layerEndpoint, {
@@ -28,7 +29,7 @@ const AudioLayerSelectorComponent = (props: QualityComponentProps) => {
 		currentLayer,
 		...props.layers.filter(layer => layer !== currentLayer)
 	].map(layer => <option key={`layerEncodingId_${layer}`} value={layer}>{layer}</option>)
-	if (layerList[0].props.value === '') {
+	if (currentLayer === '' || layerList[0].props.value === '') {
 		layerList[0] = <option key="disabled">Auto</option>
 	}
 
