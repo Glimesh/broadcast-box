@@ -144,5 +144,38 @@ func GetAvailableLayersJsonString(whipSession *WhipSession) string {
 }
 
 func GetSessionStatsJsonString(whipSession *WhipSession) string {
-	return "event: status\ndata: " + utils.ToJsonString(GetStreamStatus(whipSession)) + "\n\n"
+	streamStatus, err := utils.ToJsonString(GetStreamStatus((whipSession)))
+	if err != nil {
+		log.Println("GetSessionStatsJsonString Error:", err)
+		return ""
+	}
+
+	return "event: status\ndata: " + streamStatus + "\n\n"
+}
+
+func GetWhepSessionStatus(whepSession *WhepSession) string {
+	currentAudioLayer := whepSession.AudioLayerCurrent.Load().(string)
+	currentVideoLayer := whepSession.VideoLayerCurrent.Load().(string)
+
+	currentSessionState := WhepSessionState{
+		Id: whepSession.SessionId,
+
+		AudioLayerCurrent:   currentAudioLayer,
+		AudioTimestamp:      whepSession.AudioTimestamp,
+		AudioPacketsWritten: whepSession.AudioPacketsWritten,
+		AudioSequenceNumber: uint64(whepSession.AudioSequenceNumber),
+
+		VideoLayerCurrent:   currentVideoLayer,
+		VideoTimestamp:      whepSession.VideoTimestamp,
+		VideoPacketsWritten: whepSession.VideoPacketsWritten,
+		VideoSequenceNumber: uint64(whepSession.VideoSequenceNumber),
+	}
+
+	currentSessionStateJson, err := utils.ToJsonString(currentSessionState)
+	if err != nil {
+		log.Println("GetWhepSessionStatus Error:", err)
+		return ""
+	}
+
+	return "event: currentLayers\ndata: " + currentSessionStateJson + "\n\n"
 }
