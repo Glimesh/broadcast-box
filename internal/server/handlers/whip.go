@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -58,8 +57,11 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	// Stream requires profile
-	if requiresStreamProfile := os.Getenv(environment.STREAM_PROFILE_ACTIVE); strings.EqualFold(requiresStreamProfile, "TRUE") {
+	// Stream profile policy
+	switch os.Getenv(environment.STREAM_PROFILE_POLICY) {
+	// Only approved profiles are allowed to stream
+	case authorization.STREAM_POLICY_RESERVED_ONLY:
+		log.Println("Policy:", authorization.STREAM_POLICY_RESERVED_ONLY)
 		profile, err := authorization.GetProfile(token)
 		if err != nil {
 			log.Println("Unauthorized login attempt with bearer", token)
@@ -67,8 +69,32 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			return
 		}
 		userProfile = *profile
+
+	// Allow anyone to use streamkey has not been reserved
+	case authorization.STREAM_POLICY_WITH_RESERVED:
+		log.Println("Policy:", authorization.STREAM_POLICY_WITH_RESERVED)
+
+		// If using a streamKey check if it has been reserved
+		if authorization.IsProfileReserved(token) {
+			log.Println("Unauthorized login attempt with bearer", token, " - Streamkey has been reserved")
+			responseWriter.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// If its a bearer token, validate and use the profile
+		profile, _ := authorization.GetProfile(token)
+		if profile != nil {
+			userProfile = *profile
+		}
+
+	// Anyone can stream
+	case authorization.STREAM_POLICY_ANYONE:
+		log.Println("Policy:", authorization.STREAM_POLICY_ANYONE)
+	default:
+		log.Println("Policy: None")
 	}
 
+	// Set default profile in case none is set
 	if userProfile == (authorization.Profile{}) {
 		userProfile = authorization.Profile{
 			StreamKey: token,

@@ -19,17 +19,18 @@ func LoadEnvironmentVariables() {
 
 	for _, file := range files {
 		loadEnvironmentFile(file)
+		setDefaultEnvironmentVariables()
 		return
 	}
 
-	log.Println("Could not find any environment files")
+	log.Println("Environment: Could not find any environment files")
 	os.Exit(0)
 }
 
 func loadEnvironmentFile(filePath string) {
 	currentWorkingDirectory, err := os.Getwd()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Environment:", err)
 	}
 
 	path := filepath.Join(currentWorkingDirectory, filePath)
@@ -38,12 +39,19 @@ func loadEnvironmentFile(filePath string) {
 		err := godotenv.Overload(path)
 
 		if err != nil {
-			log.Println("Error occurred loading environment file", path)
+			log.Println("Environment: Error occurred loading environment file", path)
 			log.Println(err)
 
 			os.Exit(0)
 		}
 
-		log.Println("Loaded", filePath)
+		log.Println("Environment: Loaded", filePath)
+	}
+}
+
+func setDefaultEnvironmentVariables() {
+	if os.Getenv(STREAM_PROFILE_PATH) == "" {
+		log.Println("Environment: Setting STREAM_PROFILE_PATH: profiles")
+		os.Setenv(STREAM_PROFILE_PATH, "profiles")
 	}
 }
