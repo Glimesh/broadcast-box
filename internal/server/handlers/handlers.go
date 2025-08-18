@@ -14,7 +14,7 @@ import (
 func GetServeMuxHandler() http.HandlerFunc {
 	serverMux := http.NewServeMux()
 
-	if os.Getenv(environment.DISABLE_FRONTEND) == "" {
+	if os.Getenv(environment.FRONTEND_DISABLED) == "" {
 		serverMux.HandleFunc("/", frontendHandler)
 	}
 
