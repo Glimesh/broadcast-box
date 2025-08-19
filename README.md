@@ -16,7 +16,7 @@
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
   - [Environment variables](#environment-variables)
-  - [Webhook - Authentication and Logging](#webhook--authentication-and-logging)
+  - [Webhook - Authentication and Logging](#webhook---authentication-and-logging)
   - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
@@ -225,11 +225,11 @@ The frontend can be configured by passing these URL Parameters.
 
 ### Authorization & Profiles
 
-| Variable                | Description                                                                                                                                    |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STREAM_PROFILE_PATH`   | Path to store stream profile configurations.                                                                                                   |
-| `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. See [Stream Profile Policy](#stream-profile-policy).                                                 |
-| `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhook - Authentication and Logging](#webhook--authentication-and-logging). |
+| Variable                | Description                                                                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STREAM_PROFILE_PATH`   | Path to store stream profile configurations.                                                                                                    |
+| `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. See [Stream Profile Policy](#stream-profile-policy).                                                  |
+| `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhook - Authentication and Logging](#webhook---authentication-and-logging). |
 
 ### Frontend Configuration
 
@@ -258,13 +258,13 @@ The frontend can be configured by passing these URL Parameters.
 
 ### STUN/TURN Servers
 
-| Variable                  | Description                                                                                                                   |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.  |
+| Variable                  | Description                                                                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.                                                                                     |
 | `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`.  |
-| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.  |
-| `TURN_SERVERS_INTERNAL`   | List of internal used by the backend in case it has trouble connecting to the public TURN server. TURN servers. Separated by `\|`.  |
-| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                 |
+| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.                                                                                     |
+| `TURN_SERVERS_INTERNAL`   | List of internal used by the backend in case it has trouble connecting to the public TURN server. TURN servers. Separated by `\|`. |
+| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                      |
 
 ### Debugging
 
