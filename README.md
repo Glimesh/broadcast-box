@@ -258,13 +258,13 @@ The frontend can be configured by passing these URL Parameters.
 
 ### STUN/TURN Servers
 
-| Variable                  | Description                                                                                                                        |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.                                                                                     |
-| `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`.  |
-| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.                                                                                     |
-| `TURN_SERVERS_INTERNAL`   | List of internal used by the backend in case it has trouble connecting to the public TURN server. TURN servers. Separated by `\|`. |
-| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                      |
+| Variable                  | Description                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.                                                                                                  |
+| `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`.               |
+| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.                                                                                                  |
+| `TURN_SERVERS_INTERNAL`   | List of internal TURN servers used by the backend in case it has trouble connecting to the public TURN server. TURN servers. Separated by `\|`. |
+| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                                   |
 
 ### Debugging
 
