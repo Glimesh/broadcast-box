@@ -16,7 +16,7 @@
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
   - [Environment variables](#environment-variables)
-  - [Authentication and Logging](#authentication-and-logging)
+  - [Webhook - Authentication and Logging](#webhook--authentication-and-logging)
   - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
@@ -197,6 +197,7 @@ will be automatically updated every night. If you are running on a VPS/Cloud ser
 export URL=my-server.com
 docker-compose up -d
 ```
+
 ## URL Parameters
 
 The frontend can be configured by passing these URL Parameters.
@@ -205,47 +206,97 @@ The frontend can be configured by passing these URL Parameters.
 
 ## Environment Variables
 
-The backend can be configured with the following environment variables.
-- `STREAM_PROFILE_ACTIVE` - Enables streaming profiles and requires new whep sessions to have a valid token associated with their stream key
-- `STREAM_PROFILE_PATH` - The path to store all the profile configurations
+### Server Configuration
 
-- `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging
-- `DISABLE_STATUS` - Disable the status API
-- `FRONTEND_ENABLED` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
-- `HTTP_ADDRESS` - HTTP Server Address
-- `NETWORK_TEST_ON_START` - When "true" on startup Broadcast Box will check network connectivity
+| Variable                | Description                                              |
+| ----------------------- | -------------------------------------------------------- |
+| `HTTP_ADDRESS`          | Address for the HTTP server to bind to.                  |
+| `ENABLE_HTTP_REDIRECT`  | Enables automatic redirection from HTTP to HTTPS.        |
+| `HTTPS_REDIRECT_PORT`   | Port to redirect HTTP traffic to HTTPS when using HTTPS. |
+| `NETWORK_TEST_ON_START` | If "true", checks network connectivity on startup.       |
+| `DISABLE_STATUS`        | Disables the status API endpoint.                        |
 
-- `ENABLE_HTTP_REDIRECT` - HTTP traffic will be redirect to HTTPS
-- `SSL_CERT` - Path to SSL certificate if using Broadcast Box's HTTP Server
-- `SSL_KEY` - Path to SSL key if using Broadcast Box's HTTP Server
+### SSL Configuration
 
-- `NAT_1_TO_1_IP` - Announce IPs that don't belong to local machine (like Public IP). delineated by '|'
-- `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` - Like `NAT_1_TO_1_IP` but autoconfigured
-- `INTERFACE_FILTER` - Only use a certain interface for UDP traffic
-- `NAT_ICE_CANDIDATE_TYPE` - By default setting a `NAT_1_TO_1_IP` overrides. Set this to `srflx` to instead append IPs
-- `STUN_SERVERS` - List of STUN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
-- `STUN_SERVERS_INTERNAL` - List of internal STUN servers delineated by '|'. Useful if the server has issues connecting to the public STUN address
-- `TURN_SERVERS` - List of TURN servers delineated by '|'. Useful if Broadcast Box is running behind a NAT
-- `TURN_SERVERS_INTERNAL` - List of internal TURN servers delineated by '|'. Useful if the server has issues connecting to the public TURN address
-- `TURN_SERVER_AUTH_SECRET` - Secret used by the TURN server for new connections if any is set
+| Variable   | Description                       |
+| ---------- | --------------------------------- |
+| `SSL_CERT` | Path to the SSL certificate file. |
+| `SSL_KEY`  | Path to the SSL key file.         |
 
-- `NETWORK_TYPES` - List of network types to use, delineated by '|'. Default is `udp4|udp6`.
-- `INCLUDE_LOOPBACK_CANDIDATE` - Also listen for WebRTC traffic on loopback, disabled by default
+### Authorization & Profiles
 
-- `UDP_MUX_PORT_WHEP` - Like `UDP_MUX_PORT` but only for WHEP traffic
-- `UDP_MUX_PORT_WHIP` - Like `UDP_MUX_PORT` but only for WHIP traffic
-- `UDP_MUX_PORT` - Serve all UDP traffic via one port. By default Broadcast Box listens on a random port
+| Variable                | Description                                                                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STREAM_PROFILE_PATH`   | Path to store stream profile configurations.                                                                                                   |
+| `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. See [Stream Profile Policy](#stream-profile-policy).                                                 |
+| `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhook - Authentication and Logging](#webhook--authentication-and-logging). |
 
-- `TCP_MUX_ADDRESS` - If you wish to make WebRTC traffic available via TCP.
-- `TCP_MUX_FORCE` - If you wish to make WebRTC traffic only available via TCP.
+### Frontend Configuration
 
-- `APPEND_CANDIDATE` - Append candidates to Offer that ICE Agent did not generate. Worse version of `NAT_1_TO_1_IP`
+| Variable               | Description                      |
+| ---------------------- | -------------------------------- |
+| `DISABLE_FRONTEND`     | Disables frontend serving.       |
+| `FRONTEND_PATH`        | Path to frontend assets.         |
+| `FRONTEND_ADMIN_TOKEN` | Admin token for frontend access. |
 
-- `DEBUG_PRINT_OFFER` - Print WebRTC Offers from client to Broadcast Box. Debug things like accepted codecs.
-- `DEBUG_PRINT_ANSWER` - Print WebRTC Answers from Broadcast Box to Browser. Debug things like IP/Ports returned to client.
-- `DEBUG_INCOMING_API_REQUEST` - Print API request paths made to the backend
+### WebRTC & Networking
 
-## Authentication and Logging
+| Variable                             | Description                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------ |
+| `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` | Automatically includes public IPs in NAT configuration.                  |
+| `NAT_1_TO_1_IP`                      | Manually specify IPs (like Public IP) to announce, delineated by `\|`    |
+| `INTERFACE_FILTER`                   | Restrict UDP traffic to a specific network interface.                    |
+| `NAT_ICE_CANDIDATE_TYPE`             | Set to `srflx` to append IPs instead of overriding with `NAT_1_TO_1_IP`. |
+| `NETWORK_TYPES`                      | List of network types to use delineated by `\|` (e.g.,`udp4 \|udp6`).    |
+| `INCLUDE_LOOPBACK_CANDIDATE`         | Enables WebRTC traffic on loopback interface.                            |
+| `UDP_MUX_PORT`                       | Port to multiplex all UDP traffic. Uses random port by default.          |
+| `UDP_MUX_PORT_WHEP`                  | Port to multiplex WHEP traffic only.                                     |
+| `UDP_MUX_PORT_WHIP`                  | Port to multiplex WHIP traffic only.                                     |
+| `TCP_MUX_ADDRESS`                    | Address to serve WebRTC traffic over TCP.                                |
+| `TCP_MUX_FORCE`                      | Forces WebRTC traffic to use TCP only.                                   |
+| `APPEND_CANDIDATE`                   | Appends ICE candidates not generated by the agent.                       |
+
+### STUN/TURN Servers
+
+| Variable                  | Description                                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.  |
+| `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`.  |
+| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.  |
+| `TURN_SERVERS_INTERNAL`   | List of internal used by the backend in case it has trouble connecting to the public TURN server. TURN servers. Separated by `\|`.  |
+| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                 |
+
+### Debugging
+
+| Variable                     | Description                                 |
+| ---------------------------- | ------------------------------------------- |
+| `DEBUG_PRINT_OFFER`          | Prints WebRTC offers received from clients. |
+| `DEBUG_PRINT_ANSWER`         | Prints WebRTC answers sent to clients.      |
+| `DEBUG_INCOMING_API_REQUEST` | Logs incoming API request paths.            |
+| `DEBUG_PRINT_SSE_MESSAGES`   | Logs Server-Sent Events messages.           |
+
+### Logging
+
+| Variable                      | Description                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `LOGGING_ENABLED`             | Enables logging system.                                                                                  |
+| `LOGGING_DIRECTORY`           | Directory to store log files.                                                                            |
+| `LOGGING_SINGLEFILE`          | Logs everything into a single file called 'log'. Default is log files are stamped with current date.     |
+| `LOGGING_NEW_FILE_ON_STARTUP` | Creates a new log file on each startup. Either a new 'log' file, or replaces the current dates log file. |
+| `LOGGING_API_ENABLED`         | Enables logging API to show current log entries on the backend. `/api/log`                               |
+| `LOGGING_API_KEY`             | When set, the logging API requires a bearer token that uses this key.                                    |
+
+## Stream Profile Policy
+
+The `STREAM_PROFILE_POLICY` environment variable controls who is allowed to initiate streaming sessions based on profile reservation status.
+
+| Value                  | Description                                                                                                                      |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `ANYONE`               | All stream keys are accepted, regardless of whether they are reserved or not. No token validation is required.                   |
+| `ANYONE_WITH_RESERVED` | If Stream keys are reserved in advance, only a valid token can be used with them. If not reserved, anyone can used the streamkey |
+| `RESERVED`             | Only users with a valid token **and** a reserved stream key are allowed to stream. This is the most restrictive mode.            |
+
+## Webhook - Authentication and Logging
 
 To prevent random users from streaming to your server, you can set the `WEBHOOK_URL` and validate/process requests in your code.
 
@@ -253,7 +304,6 @@ If the request succeeds (meaning the stream key is accepted), broadcast-box redi
 by the external server, otherwise the streaming request is dropped.
 
 See [here](examples/webhook-server.go). For an example Webhook Server that only allows the stream `broadcastBoxRulez`
-
 
 ## Network Test on Start
 
@@ -292,11 +342,14 @@ If you wish to disable the test set the environment variable `NETWORK_TEST_ON_ST
 
 ## Design
 
-The backend exposes three endpoints (the status page is optional, if hosting locally).
+The backend exposes the following endpoints to support WebRTC streaming and server-side monitoring:
 
-- `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
-- `/api/whep` - Start a WHEP Session. WHEP is video playback via WebRTC.
-- `/api/status` - Status of the all active WHIP streams
+| Endpoint      | Description                                                                                                |
+| ------------- | ---------------------------------------------------------------------------------------------------------- |
+| `/api/whip`   | Initiates a WHIP session for broadcasting video via WebRTC.                                                |
+| `/api/whep`   | Initiates a WHEP session for video playback via WebRTC.                                                    |
+| `/api/status` | Returns the status of all active WHIP streams. If a Stream Profile is not public, it will not be included. |
+| `/api/log`    | Retrieves current server logs. Useful for debugging and monitoring runtime activity.                       |
 
 [license-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [license-url]: https://opensource.org/licenses/MIT
