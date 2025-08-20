@@ -1,36 +1,23 @@
 ﻿import React, { useRef } from "react";
-import { useState } from "react";
 
 interface Props<T extends string | number> {
 	title: string;
 	message: string;
 	placeholder?: string;
 	children?: React.ReactNode;
-	isOpen: boolean;
 	onAccept?: (result: T) => void;
-	onDeny?: () => void;
 	onChange?: (result: T) => void;
 	initialValue?: T;
 
 	canCloseOnBackgroundClick?: boolean;
 }
 
-export default function ModalTextInput<T extends string | number>(
+export default function TextInputDialog<T extends string | number>(
 	props: Props<T>,
 ) {
-	const [isOpen, setIsOpen] = useState<boolean>(props.isOpen);
 	const valueRef = useRef<HTMLInputElement>(null);
 
-	if (!isOpen) {
-		return <></>;
-	}
-
 	return (
-		<div className="flex justify-center items-center h-screen absolute z-100 ">
-			<div
-				className="fixed inset-0 bg-transparent flex items-center justify-center"
-				onClick={() => props.canCloseOnBackgroundClick && setIsOpen(false)}
-			>
 				<div
 					className="p-6 rounded-lg shadow-lg w-1/2 bg-gray-800"
 					onClick={(e) => e.stopPropagation()}
@@ -56,18 +43,7 @@ export default function ModalTextInput<T extends string | number>(
 								Accept
 							</button>
 						)}
-						<button
-							onClick={() => {
-								props.onDeny?.();
-								setIsOpen(false);
-							}}
-							className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
-						>
-							Close
-						</button>
 					</div>
 				</div>
-			</div>
-		</div>
 	);
 }

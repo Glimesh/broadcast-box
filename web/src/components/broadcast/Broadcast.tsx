@@ -62,7 +62,8 @@ function BrowserBroadcaster() {
 		}).then(r => r.json())
 			.then((result) => {
 				peerConnectionRef.current = new RTCPeerConnection({
-					iceServers: result
+					iceServers: result,
+					iceTransportPolicy: result != undefined ? "relay" : undefined
 				});
 			})
 

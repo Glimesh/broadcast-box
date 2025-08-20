@@ -10,7 +10,7 @@ const RootWrapper = () => {
   const navbarEnabled = !cinemaMode;
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen h-screen">
       {navbarEnabled && (
         <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-100 top-0'>
           <div className='container mx-auto flex flex-wrap items-center'>
