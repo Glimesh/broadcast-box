@@ -78,7 +78,7 @@ func sessionStatusesHandler(responseWriter http.ResponseWriter, request *http.Re
 	session.WhipSessionsLock.Lock()
 	defer session.WhipSessionsLock.Unlock()
 
-	if err := json.NewEncoder(responseWriter).Encode(session.GetSessionStates(session.WhipSessions)); err != nil {
+	if err := json.NewEncoder(responseWriter).Encode(session.GetSessionStates(session.WhipSessions, false)); err != nil {
 		helpers.LogHttpError(
 			responseWriter,
 			"Internal Server Error",
