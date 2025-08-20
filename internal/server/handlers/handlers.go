@@ -25,6 +25,8 @@ func GetServeMuxHandler() http.HandlerFunc {
 	serverMux.HandleFunc("/api/log", corsHandler(logHandler))
 	serverMux.HandleFunc("/api/status", corsHandler(statusHandler))
 	serverMux.HandleFunc("/api/ice-servers", corsHandler(clientICEHandler))
+	serverMux.HandleFunc("/api/admin/login", corsHandler(adminLoginHandler))
+	serverMux.HandleFunc("/api/admin/status", corsHandler(adminStatusHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DEBUG_INCOMING_API_REQUEST)
