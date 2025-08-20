@@ -47,8 +47,6 @@ func verifyAdminSession(request *http.Request) *SessionResponse {
 // Verify the expected method and return true or false if the method is as expected
 // This will write a default METHOD NOT ALLOWED response on the responsewriter
 func verifyValidMethod(expectedMethod string, responseWriter http.ResponseWriter, request *http.Request) bool {
-	log.Println("Verifying request method. Expecting", expectedMethod, "got", request.Method, " - ", strings.EqualFold(expectedMethod, request.Method))
-
 	if strings.EqualFold(expectedMethod, request.Method) == false {
 		helpers.LogHttpError(responseWriter, "Method not allowed", http.StatusMethodNotAllowed)
 		json.NewEncoder(responseWriter).Encode(&SessionResponse{
