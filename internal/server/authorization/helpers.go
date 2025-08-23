@@ -90,10 +90,12 @@ func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
 		return "", err
 	}
 
+	separator := "_"
 	for _, file := range files {
-		fileToken := strings.SplitAfter(file.Name(), "_")
+		splitIndex := strings.LastIndex(file.Name(), separator)
+		fileToken := file.Name()[splitIndex+len(separator):]
 
-		if !file.IsDir() && strings.EqualFold(bearerToken, fileToken[len(fileToken)-1]) {
+		if !file.IsDir() && strings.EqualFold(bearerToken, fileToken) {
 			return file.Name(), nil
 		}
 	}
