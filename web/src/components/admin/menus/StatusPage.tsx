@@ -31,11 +31,11 @@ const StatusPage = () => {
 
   return (
     <div className="p-6 w-full max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Stream Status Overview</h1>
+      <h1 className="text-3xl font-bold mb-6">Stream Status Overview</h1>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-amber-800 border border-gray-200 rounded-lg shadow">
-          <thead className="bg-blue-900 text-white">
+        <table className="min-w-full rounded-lg shadow">
+          <thead className="text-white">
             <tr>
               <th className="px-4 py-2 text-left">Stream Key</th>
               <th className="px-4 py-2 text-left">Is Public</th>
@@ -58,8 +58,8 @@ const StatusPage = () => {
               const totalPackets = totalVideoPackets + totalAudioPackets;
 
               return (
-                <tr key={index} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="px-4 py-2 font-medium text-blue-700">{status.streamKey}</td>
+                <tr key={index} className="border-t">
+                  <td className="px-4 py-2 font-medium ">{status.streamKey}</td>
                   <td className="px-4 py-2 font-medium ">{status.isPublic ? "Yes" : "No"}</td>
                   <td className="px-4 py-2">{status.videoTracks.length}</td>
                   <td className="px-4 py-2">{status.audioTracks.length}</td>
