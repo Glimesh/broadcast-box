@@ -248,8 +248,26 @@ const Player = (props: PlayerProps) => {
 
 							{hasSignal && <CurrentViewersComponent streamKey={streamKey}/>}
 							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss}/>
-							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()}/>
-							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()}/>
+							{ videoRef.current?.requestPictureInPicture ?
+								<Square2StackIcon
+									className="cursor-pointer"
+									onClick={() => videoRef.current?.requestPictureInPicture()}
+								/>
+							:
+								<Square2StackIcon
+									className="opacity-25"
+								/>
+							}
+							{ videoRef.current?.requestFullscreen ?
+								<ArrowsPointingOutIcon
+									className="cursor-pointer"
+									onClick={() => videoRef.current?.requestFullscreen()}
+								/>
+							:
+								<ArrowsPointingOutIcon
+									className="opacity-25"
+								/>
+							}
 
 						</div>
 					</div>)}
