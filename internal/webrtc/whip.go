@@ -13,7 +13,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 )
 
-func WHIP(offer string, profile authorization.Profile) (sdp string, sessionId string, err error) {
+func WHIP(offer string, profile authorization.PublicProfile) (sdp string, sessionId string, err error) {
 	log.Println("Incoming stream", profile.StreamKey, profile.MOTD)
 
 	whipSessionId := uuid.New().String()

@@ -14,7 +14,7 @@ import (
 func WHEP(offer string, streamKey string) (string, string, error) {
 	utils.DebugOutputOffer(offer)
 
-	profile := authorization.Profile{
+	profile := authorization.PublicProfile{
 		StreamKey: streamKey,
 	}
 
