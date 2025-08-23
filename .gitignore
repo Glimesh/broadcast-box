@@ -34,3 +34,6 @@ BroadcastBox.exe
 
 # log files
 /logs
+
+# profile files
+/profiles
