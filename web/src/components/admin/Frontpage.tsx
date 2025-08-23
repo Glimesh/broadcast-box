@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Card from "../shared/Card";
 import Button from "../shared/Button";
 import StatusPage from "./menus/StatusPage";
+import ProfilesPage from "./menus/ProfilesPage";
+import ApiPage from "./menus/ApiPage";
+import LoggingPage from "./menus/LoggingPage";
 
 const ADMIN_TOKEN = "adminToken";
 const AdminFrontpage = () => {
@@ -37,9 +40,11 @@ const AdminFrontpage = () => {
         </div>
 
         <div className={"flex-3 h-full"}>
-          <Card title={currentMenu}>
+          <Card>
             {currentMenu === "Status" && <StatusPage />}
-            {currentMenu !== "Status" && <div>Not implemented</div>}
+            {currentMenu === "Profiles" && <ProfilesPage />}
+            {currentMenu === "API" && <ApiPage />}
+            {currentMenu === "Logging" && <LoggingPage />}
           </Card>
         </div>
       </div>
