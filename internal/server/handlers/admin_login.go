@@ -19,6 +19,7 @@ func adminLoginHandler(responseWriter http.ResponseWriter, request *http.Request
 	sessionResult := verifyAdminSession(request)
 	if sessionResult.IsValid != true {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
+		return
 	}
 
 	json.NewEncoder(responseWriter).Encode(sessionResult)

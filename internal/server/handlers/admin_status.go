@@ -16,6 +16,7 @@ func adminStatusHandler(responseWriter http.ResponseWriter, request *http.Reques
 	sessionResult := verifyAdminSession(request)
 	if sessionResult.IsValid != true {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
+		return
 	}
 
 	session.WhipSessionsLock.Lock()
