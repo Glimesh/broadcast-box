@@ -33,11 +33,13 @@ const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 		layerList[0] = <option key="disabled">Auto</option>
 	}
 
+	const hasLayers = props.layers.length > 1;
+
 	return (
 		<div className="h-full flex">
 			<ChartBarIcon
-				className={props.hasPacketLoss ? "text-orange-600" : "" + (layerList.length === 0 ? "opacity-25" : "")}
-				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)} />
+				className={`${props.hasPacketLoss ? "text-orange-600" : ""} ${hasLayers ? "cursor-pointer" : "opacity-25 cursor-default"}`}
+				onClick={() => setIsOpen((prev) => hasLayers && !prev)} />
 
 			{isOpen && (
 				<select
