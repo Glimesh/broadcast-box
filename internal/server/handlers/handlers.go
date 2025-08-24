@@ -30,10 +30,13 @@ func GetServeMuxHandler() http.HandlerFunc {
 	serverMux.HandleFunc("/api/status", corsHandler(statusHandler))
 
 	// Admin endpoints
+	// serverMux.HandleFunc("/api/admin/sse/", corsHandler(adminSseHandler))
 	serverMux.HandleFunc("/api/admin/login", corsHandler(adminLoginHandler))
 	serverMux.HandleFunc("/api/admin/status", corsHandler(adminStatusHandler))
 	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminProfilesHandler))
 	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminProfilesResetTokenHandler))
+	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminProfileAddHandler))
+	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminProfileRemoveHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DEBUG_INCOMING_API_REQUEST)
