@@ -53,7 +53,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		userProfile = authorization.PublicProfile{
 			StreamKey: streamKey,
 			IsPublic:  true,
-			MOTD:      "Welcome to " + token + "'s stream!",
+			MOTD:      "Welcome to " + streamKey + "'s stream!",
 		}
 	}
 
@@ -70,8 +70,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 		userProfile = *profile
 
-	// Allow anyone to use streamkey has not been reserved
-	case authorization.STREAM_POLICY_WITH_RESERVED:
+	default:
 		log.Println("Policy:", authorization.STREAM_POLICY_WITH_RESERVED)
 
 		// If using a streamKey check if it has been reserved
@@ -86,13 +85,6 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		if profile != nil {
 			userProfile = *profile
 		}
-
-	// TODO: Remove this selection, as it is the same as WITH_RESERVED
-	// Anyone can stream
-	case authorization.STREAM_POLICY_ANYONE:
-		log.Println("Policy:", authorization.STREAM_POLICY_ANYONE)
-	default:
-		log.Println("Policy: None")
 	}
 
 	// Set default profile in case none is set

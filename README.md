@@ -258,13 +258,13 @@ The frontend can be configured by passing these URL Parameters.
 
 ### STUN/TURN Servers
 
-| Variable                  | Description                                                                                                                                     |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.                                                                                                  |
-| `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`.               |
-| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.                                                                                                  |
-| `TURN_SERVERS_INTERNAL`   | List of internal TURN servers used by the backend in case it has trouble connecting to the public TURN server. Separated by `\|`.               |
-| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                                   |
+| Variable                  | Description                                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `STUN_SERVERS`            | List of public STUN servers separated by `\|`.                                                                                    |
+| `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`. |
+| `TURN_SERVERS`            | List of public TURN servers separated by `\|`.                                                                                    |
+| `TURN_SERVERS_INTERNAL`   | List of internal TURN servers used by the backend in case it has trouble connecting to the public TURN server. Separated by `\|`. |
+| `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                     |
 
 ### Debugging
 
@@ -292,7 +292,6 @@ The `STREAM_PROFILE_POLICY` environment variable controls who is allowed to init
 
 | Value                  | Description                                                                                                                      |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `ANYONE`               | All stream keys are accepted, regardless of whether they are reserved or not. No token validation is required.                   |
 | `ANYONE_WITH_RESERVED` | If Stream keys are reserved in advance, only a valid token can be used with them. If not reserved, anyone can used the streamkey |
 | `RESERVED`             | Only users with a valid token **and** a reserved stream key are allowed to stream. This is the most restrictive mode.            |
 
