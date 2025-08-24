@@ -78,6 +78,18 @@ export default defineConfig({
 	},
 	build: {
 		outDir: "build",
+		rollupOptions: {
+			output: {
+				manualChunks(id) {
+					if (id.includes('node_modules')) {
+						return "node"
+					}
+					if (id.includes('src/components')) {
+						return "components"
+					}
+				}
+			}
+		}
 	},
 	envDir: "../",
 	// For backwards compatibility
