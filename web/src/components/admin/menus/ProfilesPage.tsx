@@ -7,17 +7,19 @@ import ModalMessageBox from "../../shared/ModalMessageBox";
 const ADMIN_TOKEN = "adminToken";
 
 interface Profile {
-  streamKey: string
-  token: string
-  isPublic: boolean
-  motd: string
+  streamKey: string;
+  token: string;
+  isPublic: boolean;
+  motd: string;
 }
 
 const ProfilesPage = () => {
-  const [response, setResponse] = useState<Profile[]>()
-  const [isAddProfileModalOpen, setIsAddProfileModalOpen] = useState<boolean>(false)
-  const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] = useState<string>("")
-  const [errorMessage, setErrorMessage] = useState<string>()
+  const [response, setResponse] = useState<Profile[]>();
+  const [isAddProfileModalOpen, setIsAddProfileModalOpen] =
+    useState<boolean>(false);
+  const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] =
+    useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>();
 
   const refreshProfiles = () => {
     fetch(`/api/admin/profiles`, {
@@ -25,16 +27,18 @@ const ProfilesPage = () => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
       },
-    }).then((result) => {
-      if (result.status > 400 && result.status < 500) {
-        localStorage.removeItem(ADMIN_TOKEN)
-        return;
-      }
+    })
+      .then((result) => {
+        if (result.status > 400 && result.status < 500) {
+          localStorage.removeItem(ADMIN_TOKEN);
+          return;
+        }
 
-      return result.json();
-    }).then((result) => {
-      setResponse(() => result)
-    });
+        return result.json();
+      })
+      .then((result) => {
+        setResponse(() => result);
+      });
   };
   const resetProfileToken = (streamKey: string) => {
     fetch(`/api/admin/profiles/reset-token`, {
@@ -42,14 +46,14 @@ const ProfilesPage = () => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
       },
-      body: JSON.stringify({ streamKey: streamKey })
+      body: JSON.stringify({ streamKey: streamKey }),
     }).then((result) => {
       if (result.status > 400 && result.status < 500) {
-        localStorage.removeItem(ADMIN_TOKEN)
+        localStorage.removeItem(ADMIN_TOKEN);
         return;
       }
 
-      refreshProfiles()
+      refreshProfiles();
     });
   };
   const addProfile = (streamKey: string) => {
@@ -58,22 +62,21 @@ const ProfilesPage = () => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
       },
-      body: JSON.stringify({ streamKey: streamKey })
+      body: JSON.stringify({ streamKey: streamKey }),
     }).then((result) => {
       if (result.status > 400 && result.status < 500) {
-        localStorage.removeItem(ADMIN_TOKEN)
+        localStorage.removeItem(ADMIN_TOKEN);
         return;
       }
 
       if (result.status === 400) {
-        result.text()
-          .then((resultText) => setErrorMessage(() => resultText))
+        result.text().then((resultText) => setErrorMessage(() => resultText));
 
-        return
+        return;
       }
 
-      setIsAddProfileModalOpen(() => false)
-      refreshProfiles()
+      setIsAddProfileModalOpen(() => false);
+      refreshProfiles();
     });
   };
   const removeProfile = (streamKey: string) => {
@@ -82,28 +85,27 @@ const ProfilesPage = () => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
       },
-      body: JSON.stringify({ streamKey: streamKey })
+      body: JSON.stringify({ streamKey: streamKey }),
     }).then((result) => {
       if (result.status > 400 && result.status < 500) {
-        localStorage.removeItem(ADMIN_TOKEN)
+        localStorage.removeItem(ADMIN_TOKEN);
         return;
       }
 
       if (result.status === 400) {
-        result.text()
-          .then((resultText) => setErrorMessage(() => resultText))
+        result.text().then((resultText) => setErrorMessage(() => resultText));
 
-        return
+        return;
       }
 
-      setIsRemoveProfileModalOpen(() => "")
-      refreshProfiles()
+      setIsRemoveProfileModalOpen(() => "");
+      refreshProfiles();
     });
   };
 
   useEffect(() => {
-    refreshProfiles()
-  }, [])
+    refreshProfiles();
+  }, []);
 
   return (
     <div className="p-6 w-full h-full max-w-6xl mx-auto flex flex-col justify-between">
@@ -145,20 +147,30 @@ const ProfilesPage = () => {
             {response?.map((profile, index) => {
               return (
                 <tr key={index} className="border-t">
-                  <td className="px-4 py-2 font-medium ">{profile.streamKey}</td>
-                  <td className="px-4 py-2 font-medium ">{profile.isPublic ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 font-medium ">
+                    {profile.streamKey}
+                  </td>
+                  <td className="px-4 py-2 font-medium ">
+                    {profile.isPublic ? "Yes" : "No"}
+                  </td>
                   <td className="px-4 py-2">{profile.motd}</td>
-                  <td className="px-4 py-2 flex flex-row justify-between" title="To be implemented">
+                  <td
+                    className="px-4 py-2 flex flex-row justify-between items-center"
+                    title="To be implemented"
+                  >
                     {profile.token}
 
                     <ArrowPathIcon
                       className="ml-2 h-6"
-                      onClick={() => resetProfileToken(profile.streamKey)} />
+                      onClick={() => resetProfileToken(profile.streamKey)}
+                    />
                   </td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 items-center">
                     <XMarkIcon
                       className="ml-2 h-6 text-red-700"
-                      onClick={() => setIsRemoveProfileModalOpen(() => profile.streamKey)}
+                      onClick={() =>
+                        setIsRemoveProfileModalOpen(() => profile.streamKey)
+                      }
                     />
                   </td>
                 </tr>
@@ -174,5 +186,5 @@ const ProfilesPage = () => {
       />
     </div>
   );
-}
+};
 export default ProfilesPage;
