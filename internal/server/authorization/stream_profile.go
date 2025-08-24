@@ -63,7 +63,7 @@ func CreateProfile(streamKey string) (string, error) {
 }
 
 func RemoveProfile(streamKey string) (bool, error) {
-	if isValidStreamKey(streamKey) != true {
+	if !isValidStreamKey(streamKey) {
 		log.Println("Authorization: Remove profile failed due to invalid streamkey", streamKey)
 		return false, fmt.Errorf("streamkey has invalid characters, only numbers, letters, dash and underscore allowed")
 	}

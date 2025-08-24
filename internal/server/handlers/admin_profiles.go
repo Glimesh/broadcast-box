@@ -11,7 +11,7 @@ import (
 
 // Retrieve all existing profiles
 func adminProfilesHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if isValidMethod := verifyValidMethod("GET", responseWriter, request); isValidMethod == false {
+	if isValidMethod := verifyValidMethod("GET", responseWriter, request); !isValidMethod {
 		return
 	}
 
@@ -45,7 +45,7 @@ func adminProfilesResetTokenHandler(responseWriter http.ResponseWriter, request 
 	}
 
 	sessionResult := verifyAdminSession(request)
-	if sessionResult.IsValid != true {
+	if !sessionResult.IsValid {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
 		return
 	}
@@ -71,12 +71,12 @@ type adminAddStreamPayload struct {
 
 // Reset the token of an existing stream profile
 func adminProfileAddHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if isValidMethod := verifyValidMethod("POST", responseWriter, request); isValidMethod == false {
+	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
 
 	sessionResult := verifyAdminSession(request)
-	if sessionResult.IsValid != true {
+	if !sessionResult.IsValid {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
 		return
 	}
@@ -102,12 +102,12 @@ type adminRemoveStreamPayload struct {
 
 // Reset the token of an existing stream profile
 func adminProfileRemoveHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if isValidMethod := verifyValidMethod("POST", responseWriter, request); isValidMethod == false {
+	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
 
 	sessionResult := verifyAdminSession(request)
-	if sessionResult.IsValid != true {
+	if !sessionResult.IsValid {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
 		return
 	}

@@ -17,7 +17,7 @@ func adminLoginHandler(responseWriter http.ResponseWriter, request *http.Request
 	responseWriter.Header().Set("Content-Type", "application/json")
 
 	sessionResult := verifyAdminSession(request)
-	if sessionResult.IsValid != true {
+	if !sessionResult.IsValid {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
 		return
 	}
