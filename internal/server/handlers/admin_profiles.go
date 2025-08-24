@@ -16,7 +16,7 @@ func adminProfilesHandler(responseWriter http.ResponseWriter, request *http.Requ
 	}
 
 	sessionResult := verifyAdminSession(request)
-	if sessionResult.IsValid != true {
+	if !sessionResult.IsValid {
 		helpers.LogHttpError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
 		return
 	}
@@ -28,7 +28,10 @@ func adminProfilesHandler(responseWriter http.ResponseWriter, request *http.Requ
 
 	responseWriter.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(responseWriter).Encode(profiles)
+	err = json.NewEncoder(responseWriter).Encode(profiles)
+	if err != nil {
+		log.Println("API.Admin.Profiles Error", err)
+	}
 }
 
 type adminTokenResetPayload struct {
@@ -37,7 +40,7 @@ type adminTokenResetPayload struct {
 
 // Reset the token of an existing stream profile
 func adminProfilesResetTokenHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if isValidMethod := verifyValidMethod("POST", responseWriter, request); isValidMethod == false {
+	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
 

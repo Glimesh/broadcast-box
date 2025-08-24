@@ -10,7 +10,7 @@ import (
 
 func adminLoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	log.Println("Verifying Admin Login")
-	if isValidMethod := verifyValidMethod("POST", responseWriter, request); isValidMethod != true {
+	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
 
@@ -22,5 +22,8 @@ func adminLoginHandler(responseWriter http.ResponseWriter, request *http.Request
 		return
 	}
 
-	json.NewEncoder(responseWriter).Encode(sessionResult)
+	err := json.NewEncoder(responseWriter).Encode(sessionResult)
+	if err != nil {
+		log.Println("API.Admin.Login Error", err)
+	}
 }

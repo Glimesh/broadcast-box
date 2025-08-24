@@ -87,6 +87,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			userProfile = *profile
 		}
 
+	// TODO: Remove this selection, as it is the same as WITH_RESERVED
 	// Anyone can stream
 	case authorization.STREAM_POLICY_ANYONE:
 		log.Println("Policy:", authorization.STREAM_POLICY_ANYONE)
