@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 )
@@ -16,7 +17,17 @@ const (
 	STREAM_POLICY_RESERVED_ONLY = "RESERVED"
 )
 
+func isValidStreamKey(streamKey string) bool {
+	regExp := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	return regExp.MatchString(streamKey)
+}
 func CreateProfile(streamKey string) (string, error) {
+
+	if isValidStreamKey(streamKey) != true {
+		log.Println("Authorization: Create profile failed due to invalid streamkey", streamKey)
+		return "", fmt.Errorf("streamkey has invalid characters, only numbers, letters, dash and underscore allowed")
+	}
+
 	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 	assureProfilePath()
 
@@ -49,6 +60,24 @@ func CreateProfile(streamKey string) (string, error) {
 	}
 
 	return token, nil
+}
+
+func RemoveProfile(streamKey string) (bool, error) {
+	if isValidStreamKey(streamKey) != true {
+		log.Println("Authorization: Remove profile failed due to invalid streamkey", streamKey)
+		return false, fmt.Errorf("streamkey has invalid characters, only numbers, letters, dash and underscore allowed")
+	}
+
+	fileName, _ := getProfileFileNameByStreamKey(streamKey)
+	if fileName == "" {
+		log.Println("Authorization: RemoveProfile could not find", streamKey)
+		return false, fmt.Errorf("Profile could not be found")
+	}
+
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
+	os.Remove(filepath.Join(profilePath, fileName))
+
+	return true, nil
 }
 
 func GetPublicProfile(bearerToken string) (*PublicProfile, error) {
