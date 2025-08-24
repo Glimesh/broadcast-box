@@ -37,3 +37,6 @@ BroadcastBox.exe
 
 # profile files
 /profiles
+
+# Go vendors
+/vendor
