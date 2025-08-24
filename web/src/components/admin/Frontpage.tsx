@@ -28,12 +28,12 @@ const AdminFrontpage = () => {
             <div className="flex flex-col h-full p-2 space-y-2">
               <Button title="Status" onClick={() => onChangeMenu("Status")} />
               <Button title="Profiles" onClick={() => onChangeMenu("Profiles")} />
-              <Button title="API" onClick={() => onChangeMenu("API")} />
-              <Button title="Logging" onClick={() => onChangeMenu("Logging")} />
+              <Button title="API" onClick={() => onChangeMenu("API")} isDisabled />
+              <Button title="Logging" onClick={() => onChangeMenu("Logging")} isDisabled />
             </div>
 
             <div className="flex flex-col p-2 space-y-2">
-              <Button title="Settings" onClick={() => onChangeMenu("Settings")} />
+              <Button title="Settings" onClick={() => onChangeMenu("Settings")} isDisabled />
               <Button title="Log out" onClick={logout} />
             </div>
           </Card>
