@@ -89,6 +89,12 @@ func disconnected(isWhip bool, streamKey string, streamId string) {
 		stream.OnTrackChan <- struct{}{}
 	}
 
+	// Do not conclude stream if tracks are still present
+	if len(stream.AudioTracks) != 0 || len(stream.VideoTracks) != 0 {
+		return
+	}
+
+	// Do not conclude stream if whep sessions are still listening, or the host is still active
 	if len(stream.WhepSessions) != 0 || stream.HasHost.Load() {
 		return
 	}
