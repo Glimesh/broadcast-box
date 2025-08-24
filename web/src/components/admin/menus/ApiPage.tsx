@@ -18,7 +18,7 @@ const ApiPage = () => {
   //     },
   //   })
   //     .then((result) => {
-  //       if (result.status >= 400 && result.status < 500) {
+  //       if (result.status > 400 && result.status < 500) {
   //         localStorage.removeItem(ADMIN_TOKEN)
   //         return;
   //       }

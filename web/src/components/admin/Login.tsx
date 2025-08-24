@@ -21,7 +21,7 @@ const Admin = () => {
       },
     })
       .then((result) => {
-        if (result.status >= 400 && result.status < 500) {
+        if (result.status > 400 && result.status < 500) {
           setErrorMessage("Invalid login");
           return;
         }
