@@ -23,7 +23,7 @@ func adminProfilesHandler(responseWriter http.ResponseWriter, request *http.Requ
 
 	profiles, err := authorization.GetAdminProfilesAll()
 	if err != nil {
-		helpers.LogHttpError(responseWriter, "Error loading profiles", http.StatusBadRequest)
+		return
 	}
 
 	responseWriter.Header().Set("Content-Type", "application/json")
