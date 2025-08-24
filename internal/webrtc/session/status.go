@@ -27,19 +27,20 @@ func GetStreamStatus(session *WhipSession) (status StreamStatus) {
 	}
 }
 
-func GetSessionStates(whipSessions map[string]*WhipSession) []StreamSession {
+func GetSessionStates(whipSessions map[string]*WhipSession, includePrivateStreams bool) []StreamSession {
 	sessions := make(map[string]*WhipSession)
 	maps.Copy(sessions, whipSessions)
 
 	out := []StreamSession{}
 
 	for streamKey, session := range sessions {
-		if !session.IsPublic {
+		if !includePrivateStreams && !session.IsPublic {
 			continue
 		}
 
 		sessionState := StreamSession{
 			StreamKey:   streamKey,
+			IsPublic:    session.IsPublic,
 			Sessions:    []WhepSessionState{},
 			VideoTracks: []VideoTrackState{},
 			AudioTracks: []AudioTrackState{},

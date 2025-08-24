@@ -14,7 +14,7 @@ import (
 const testStreamKey = "test"
 
 var (
-	testProfile = authorization.Profile{
+	testProfile = authorization.PublicProfile{
 		StreamKey: "test",
 	}
 )

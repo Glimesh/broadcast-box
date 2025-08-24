@@ -13,6 +13,7 @@ type StreamStatus struct {
 // Information for a whip session
 type StreamSession struct {
 	StreamKey string `json:"streamKey"`
+	IsPublic  bool   `json:"isPublic"`
 
 	AudioTracks []AudioTrackState `json:"audioTracks"`
 	VideoTracks []VideoTrackState `json:"videoTracks"`

@@ -18,13 +18,25 @@ func GetServeMuxHandler() http.HandlerFunc {
 		serverMux.HandleFunc("/", frontendHandler)
 	}
 
+	// Whip/Whep operational endpoints
 	serverMux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	serverMux.HandleFunc("/api/whep", corsHandler(WhepHandler))
 	serverMux.HandleFunc("/api/sse/", corsHandler(sseHandler))
 	serverMux.HandleFunc("/api/layer/", corsHandler(layerChangeHandler))
+	serverMux.HandleFunc("/api/ice-servers", corsHandler(clientICEHandler))
+
+	// Logging and status endpoints
 	serverMux.HandleFunc("/api/log", corsHandler(logHandler))
 	serverMux.HandleFunc("/api/status", corsHandler(statusHandler))
-	serverMux.HandleFunc("/api/ice-servers", corsHandler(clientICEHandler))
+
+	// Admin endpoints
+	// serverMux.HandleFunc("/api/admin/sse/", corsHandler(adminSseHandler))
+	serverMux.HandleFunc("/api/admin/login", corsHandler(adminLoginHandler))
+	serverMux.HandleFunc("/api/admin/status", corsHandler(adminStatusHandler))
+	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminProfilesHandler))
+	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminProfilesResetTokenHandler))
+	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminProfileAddHandler))
+	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminProfileRemoveHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DEBUG_INCOMING_API_REQUEST)
@@ -64,13 +76,21 @@ func corsHandler(next func(responseWriter http.ResponseWriter, request *http.Req
 }
 
 func frontendHandler(response http.ResponseWriter, request *http.Request) {
-	frontendFilePath := "./web/build"
+
+	defaultFrontendPath := "./web/build"
+
+	frontendFilePath := os.Getenv(environment.FRONTEND_PATH)
+
+	if frontendFilePath == "" {
+		frontendFilePath = defaultFrontendPath
+	}
+
 	fileSystem := http.Dir(frontendFilePath)
 	fileServer := http.FileServer(fileSystem)
 	_, err := fileSystem.Open(path.Clean(request.URL.Path))
 
 	if errors.Is(err, os.ErrNotExist) {
-		http.ServeFile(response, request, "./web/build/index.html")
+		http.ServeFile(response, request, frontendFilePath+"/index.html")
 	} else {
 		fileServer.ServeHTTP(response, request)
 	}

@@ -52,6 +52,9 @@ func loadEnvironmentFile(filePath string) {
 func setDefaultEnvironmentVariables() {
 	if os.Getenv(STREAM_PROFILE_PATH) == "" {
 		log.Println("Environment: Setting STREAM_PROFILE_PATH: profiles")
-		os.Setenv(STREAM_PROFILE_PATH, "profiles")
+		err := os.Setenv(STREAM_PROFILE_PATH, "profiles")
+		if err != nil {
+			log.Panic("Error setting default value for STREAM_PROFILE_PATH")
+		}
 	}
 }

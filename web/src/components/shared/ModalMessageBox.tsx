@@ -1,27 +1,22 @@
-﻿import React, { useEffect, useRef } from "react";
+﻿import React, { useEffect } from "react";
 import { useState } from "react";
 
-interface Props<T extends string | number> {
+interface Props {
 	title: string;
 	errorTitle?: string;
 	message: string;
 	errorMessage?: string;
-	placeholder?: string;
 	children?: React.ReactNode;
 	isOpen: boolean;
-	onAccept?: (result: T) => void;
+	onAccept?: () => void;
 	onDeny?: () => void;
-	onChange?: (result: T) => void;
-	initialValue?: T;
+	onChange?: () => void;
 
 	canCloseOnBackgroundClick?: boolean;
 }
 
-export default function ModalTextInput<T extends string | number>(
-	props: Props<T>,
-) {
+export default function ModalMessageBox(props: Props) {
 	const [isOpen, setIsOpen] = useState<boolean>(props.isOpen);
-	const valueRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		setIsOpen(() => props.isOpen)
@@ -69,22 +64,12 @@ export default function ModalTextInput<T extends string | number>(
 						</div>
 					)}
 
-					{/*Input*/}
-					<input
-						className="mb-6 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200"
-						type="text"
-						ref={valueRef!}
-						placeholder={props.placeholder}
-						onKeyUp={(evt) => evt.key === "Enter" ? props.onAccept?.(valueRef.current?.value as T) : null}
-						autoFocus
-					/>
-
 					{/*Buttons*/}
 					<div className="flex flex-row justify-items-stretch gap-4 ">
 						{props.onAccept !== null && (
 							<button
 								className="bg-green-700 text-white px-4 py-2 rounded"
-								onClick={() => props.onAccept?.(valueRef.current?.value as T)}
+								onClick={() => props.onAccept?.()}
 							>
 								Accept
 							</button>

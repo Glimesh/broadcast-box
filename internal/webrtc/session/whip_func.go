@@ -17,7 +17,7 @@ import (
 // make the session Id into a list of session Ids that are maintained as sessions are added and removed.
 // Doing so will also allow for layer changes to be connected, so that changing the video feed triggers the
 // corresponding audio feed as well, if at another session
-func GetStream(profile authorization.Profile, whipSessionId string) (*WhipSession, error) {
+func GetStream(profile authorization.PublicProfile, whipSessionId string) (*WhipSession, error) {
 	WhipSessionsLock.Lock()
 	stream, ok := WhipSessions[profile.StreamKey]
 

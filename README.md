@@ -228,7 +228,7 @@ The frontend can be configured by passing these URL Parameters.
 | Variable                | Description                                                                                                                                     |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `STREAM_PROFILE_PATH`   | Path to store stream profile configurations.                                                                                                    |
-| `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. See [Stream Profile Policy](#stream-profile-policy).                                                  |
+| `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. Default is 'Anyone' See [Stream Profile Policy](#stream-profile-policy).                              |
 | `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhook - Authentication and Logging](#webhook---authentication-and-logging). |
 
 ### Frontend Configuration
@@ -263,7 +263,7 @@ The frontend can be configured by passing these URL Parameters.
 | `STUN_SERVERS`            | List of public STUN servers separated by `\|`.                                                                                                  |
 | `STUN_SERVERS_INTERNAL`   | List of internal STUN servers used by the backend in case it has trouble connecting to the public STUN server. Separated by `\|`.               |
 | `TURN_SERVERS`            | List of public TURN servers separated by `\|`.                                                                                                  |
-| `TURN_SERVERS_INTERNAL`   | List of internal TURN servers used by the backend in case it has trouble connecting to the public TURN server. TURN servers. Separated by `\|`. |
+| `TURN_SERVERS_INTERNAL`   | List of internal TURN servers used by the backend in case it has trouble connecting to the public TURN server. Separated by `\|`.               |
 | `TURN_SERVER_AUTH_SECRET` | Shared secret for TURN server authentication.                                                                                                   |
 
 ### Debugging

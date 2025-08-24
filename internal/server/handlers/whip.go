@@ -40,7 +40,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	var userProfile authorization.Profile
+	var userProfile authorization.PublicProfile
 
 	// Stream requires webhook validation
 	if webhookUrl := os.Getenv(environment.WEBHOOK_URL); webhookUrl != "" {
@@ -50,7 +50,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		userProfile = authorization.Profile{
+		userProfile = authorization.PublicProfile{
 			StreamKey: streamKey,
 			IsPublic:  true,
 			MOTD:      "Welcome to " + token + "'s stream!",
@@ -62,7 +62,7 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	// Only approved profiles are allowed to stream
 	case authorization.STREAM_POLICY_RESERVED_ONLY:
 		log.Println("Policy:", authorization.STREAM_POLICY_RESERVED_ONLY)
-		profile, err := authorization.GetProfile(token)
+		profile, err := authorization.GetPublicProfile(token)
 		if err != nil {
 			log.Println("Unauthorized login attempt with bearer", token)
 			responseWriter.WriteHeader(http.StatusUnauthorized)
@@ -82,11 +82,12 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 
 		// If its a bearer token, validate and use the profile
-		profile, _ := authorization.GetProfile(token)
+		profile, _ := authorization.GetPublicProfile(token)
 		if profile != nil {
 			userProfile = *profile
 		}
 
+	// TODO: Remove this selection, as it is the same as WITH_RESERVED
 	// Anyone can stream
 	case authorization.STREAM_POLICY_ANYONE:
 		log.Println("Policy:", authorization.STREAM_POLICY_ANYONE)
@@ -95,8 +96,8 @@ func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	// Set default profile in case none is set
-	if userProfile == (authorization.Profile{}) {
-		userProfile = authorization.Profile{
+	if userProfile == (authorization.PublicProfile{}) {
+		userProfile = authorization.PublicProfile{
 			StreamKey: token,
 			IsPublic:  true,
 			MOTD:      "Welcome to " + token + "'s stream!",
