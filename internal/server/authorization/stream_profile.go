@@ -42,7 +42,7 @@ func CreateProfile(streamKey string) (string, error) {
 	profile := Profile{
 		FileName: fileName,
 		IsPublic: true,
-		MOTD:     "Welcome to my stream!",
+		MOTD:     "Welcome to " + streamKey + "!",
 	}
 
 	jsonData, err := json.MarshalIndent(profile, "", " ")
@@ -97,13 +97,13 @@ func GetPublicProfile(bearerToken string) (*PublicProfile, error) {
 		return nil, err
 	}
 
-	var profile PublicProfile
+	var profile Profile
 	if err := json.Unmarshal(data, &profile); err != nil {
 		log.Println("Authorization: File", bearerToken, "could not read. File may be corrupt.")
 		return nil, err
 	}
 
-	return &profile, nil
+	return profile.AsPublicProfile(), nil
 }
 
 // Returns a slice of profiles intended for admin endpoints
