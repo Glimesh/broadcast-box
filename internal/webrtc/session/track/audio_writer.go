@@ -11,21 +11,13 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
-	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 )
 
 func AudioWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, peerConnection *webrtc.PeerConnection) {
 	id := remoteTrack.RID()
 
 	if id == "" {
-		stream.TracksLock.RLock()
-		var names []string
-		for _, track := range stream.AudioTracks {
-			names = append(names, track.Rid)
-		}
-		stream.TracksLock.RUnlock()
-
-		id = utils.NextAvailableName(codecs.AudioTrackLabelDefault, names)
+		id = codecs.AudioTrackLabelDefault
 	}
 
 	codec := codecs.GetAudioTrackCodec(remoteTrack.Codec().MimeType)

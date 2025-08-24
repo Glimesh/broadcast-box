@@ -7,30 +7,22 @@ import (
 	"math"
 	"time"
 
-	broadcastCodecs "github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
-	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
-	"github.com/pion/rtp/codecs"
 	"github.com/pion/webrtc/v4"
+	pionCodecs "github.com/pion/rtp/codecs"
 )
 
 func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, peerConnection *webrtc.PeerConnection) {
 	id := remoteTrack.RID()
 
 	if id == "" {
-		stream.TracksLock.RLock()
-		var names []string
-		for _, track := range stream.VideoTracks {
-			names = append(names, track.Rid)
-		}
-		stream.TracksLock.RUnlock()
-
-		id = utils.NextAvailableName(broadcastCodecs.VideoTrackLabelDefault, names)
+		id = codecs.VideoTrackLabelDefault
 	}
 
-	codec := broadcastCodecs.GetVideoTrackCodec(remoteTrack.Codec().MimeType)
+	codec := codecs.GetVideoTrackCodec(remoteTrack.Codec().MimeType)
 	track, err := AddVideoTrack(stream, id, codec, &stream.WhepSessionsLock)
 	if err != nil {
 		log.Println("VideoWriter.AddTrack.Error:", err)
@@ -47,12 +39,12 @@ func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 
 	var depacketizer rtp.Depacketizer
 	switch codec {
-	case broadcastCodecs.VideoTrackCodecH264:
-		depacketizer = &codecs.H264Packet{}
-	case broadcastCodecs.VideoTrackCodecVP8:
-		depacketizer = &codecs.VP8Packet{}
-	case broadcastCodecs.VideoTrackCodecVP9:
-		depacketizer = &codecs.VP9Packet{}
+	case codecs.VideoTrackCodecH264:
+		depacketizer = &pionCodecs.H264Packet{}
+	case codecs.VideoTrackCodecVP8:
+		depacketizer = &pionCodecs.VP8Packet{}
+	case codecs.VideoTrackCodecVP9:
+		depacketizer = &pionCodecs.VP9Packet{}
 	}
 
 	lastTimestamp := uint32(0)
@@ -79,7 +71,7 @@ func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 		track.PacketsReceived.Add(1)
 
 		isKeyframe := false
-		if codec == broadcastCodecs.VideoTrackCodecH264 {
+		if codec == codecs.VideoTrackCodecH264 {
 			isKeyframe := isPacketKeyframe(rtpPkt, codec, depacketizer)
 			if isKeyframe {
 				track.LastKeyFrame.Store(time.Now())
@@ -134,7 +126,7 @@ const (
 )
 
 func isPacketKeyframe(pkt *rtp.Packet, codec int, depacketizer rtp.Depacketizer) bool {
-	if codec == broadcastCodecs.VideoTrackCodecH264 {
+	if codec == codecs.VideoTrackCodecH264 {
 		nalu, err := depacketizer.Unmarshal(pkt.Payload)
 
 		if err != nil || len(nalu) < 6 {
