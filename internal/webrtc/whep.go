@@ -161,6 +161,11 @@ func WHEP(offer, streamKey string) (string, string, error) {
 }
 
 func (w *whepSession) sendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec videoTrackCodec, isKeyframe bool) {
+	// Skip if video track is not available (e.g., audio-only)
+	if w.videoTrack == nil || w.videoTrack.writeStream == nil {
+		return
+	}
+
 	if w.currentLayer.Load() == "" {
 		w.currentLayer.Store(layer)
 	} else if layer != w.currentLayer.Load() {
