@@ -48,9 +48,6 @@ func AddVideoTrack(stream *session.WhipSession, rid string, codec int, whepSessi
 	log.Println("Adding VideoStream to", stream.StreamKey, "(", rid, ")")
 	for i := range stream.VideoTracks {
 		if rid == stream.VideoTracks[i].Rid {
-			log.Println("Found", rid)
-			log.Println("Existing tracks", len(stream.VideoTracks))
-
 			return stream.VideoTracks[i], nil
 		}
 	}
