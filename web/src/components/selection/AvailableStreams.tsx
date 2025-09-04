@@ -1,6 +1,7 @@
 ﻿import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusContext, StatusResult } from "../../providers/StatusProvider";
+import Button from "../shared/Button";
 
 interface StreamEntry {
   streamKey: string;
@@ -51,12 +52,12 @@ const AvailableStreams = () => {
 
       <div className='flex flex-col'>
         {streams.map((e, i) => (
-          <button
+          <Button
+            title={e.streamKey}
+            center
             key={i + '_' + e.streamKey}
-            className={`mt-2 py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75`}
-            onClick={() => onWatchStreamClick(e.streamKey)}>
-            {e.streamKey}
-          </button>
+            onClick={() => onWatchStreamClick(e.streamKey)}
+          />
         ))
         }
       </div>

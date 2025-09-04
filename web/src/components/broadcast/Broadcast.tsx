@@ -5,6 +5,7 @@ import PlayerHeader from '../playerHeader/PlayerHeader';
 import { StatusContext } from "../../providers/StatusProvider";
 import { UsersIcon } from "@heroicons/react/20/solid";
 import { parseLinkHeader } from '@web3-storage/parse-link-header';
+import Button from '../shared/Button';
 
 const mediaOptions = {
 	audio: true,
@@ -51,9 +52,7 @@ function BrowserBroadcaster() {
 	const hasSignalRef = useRef<boolean>(false);
 	const badSignalCountRef = useRef<number>(10);
 
-	const endStream = () => {
-		navigate('/')
-	}
+	const endStream = () => navigate('/')
 
 	useEffect(() => {
 		// Fetch ICE-Servers
@@ -241,6 +240,7 @@ function BrowserBroadcaster() {
 			{hasPacketLoss && <PlayerHeader headerType={"Warning"}> WebRTC is experiencing packet loss</PlayerHeader>}
 			{publishSuccess && <PlayerHeader headerType={"Success"}> Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a> </PlayerHeader>}
 
+			{/* Browser Video feed */}
 			<video
 				ref={videoRef}
 				autoPlay
@@ -250,33 +250,32 @@ function BrowserBroadcaster() {
 				className='w-full h-full aspect-video'
 			/>
 
+			{/* Status bar */}
 			<div className={"justify-items-end"} >
-				<div className={"flex flex-row items-center"}>
+				<div className={"flex flex-row items-center gap-1"}>
 					<UsersIcon className={"size-4"} />
 					{currentStreamStatus?.viewers ?? 0}
 				</div>
 			</div>
+
+			{/* Buttons */}
 			<div className="flex flex-row gap-2">
-				<button
+				<Button
 					onClick={() => setUseDisplayMedia("Screen")}
-					className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-blue-900 hover:bg-blue-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
-					Publish Screen/Window/Tab
-				</button>
-				<button
+					title="Publish Screen/Window/Tab"
+					color='Accept'
+				/>
+				<Button
+					title="Publish Webcam"
 					onClick={() => setUseDisplayMedia("Webcam")}
-					className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-blue-900 hover:bg-blue-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
-					Publish Webcam
-				</button>
+				/>
 			</div>
 
 			{publishSuccess && (
-				<div>
-					<button
-						onClick={endStream}
-						className="appearance-none border w-full mt-5 py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-red-900 hover:bg-red-800 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200">
-						End stream
-					</button>
-				</div>
+				<Button
+					onClick={endStream}
+					title="End stream"
+				/>
 			)}
 		</div>
 	)

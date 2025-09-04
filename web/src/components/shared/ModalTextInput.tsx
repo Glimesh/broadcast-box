@@ -12,6 +12,7 @@ interface Props<T extends string | number> {
 	onAccept?: (result: T) => void;
 	onDeny?: () => void;
 	onChange?: (result: T) => void;
+	onClose?: () => void;
 	initialValue?: T;
 
 	canCloseOnBackgroundClick?: boolean;
@@ -26,6 +27,12 @@ export default function ModalTextInput<T extends string | number>(
 	useEffect(() => {
 		setIsOpen(() => props.isOpen)
 	}, [props.isOpen])
+
+	useEffect(() => {
+		if (!isOpen) {
+			props.onClose?.()
+		}
+	}, [isOpen])
 
 	if (!isOpen) {
 		return <></>;

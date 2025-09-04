@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
 import { StatusContext, StreamStatus } from "../../providers/StatusProvider";
+import Button from "../shared/Button";
 
 const PlayerPage = () => {
   const navigate = useNavigate();
@@ -54,18 +55,14 @@ const PlayerPage = () => {
           message={"Insert stream key to add to multi stream"}
           placeholder={"Insert the key of the stream you want to add"}
           isOpen={isModalOpen}
-          canCloseOnBackgroundClick={false}
+          canCloseOnBackgroundClick={true}
           onClose={() => setIsModelOpen(false)}
           onAccept={(result: string) => addStream(result)}
         />
       )}
 
-      <div
-        className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`}
-      >
-        <div
-          className={`grid ${streamKeys.length !== 1 ? "grid-cols-2" : ""}  w-full gap-2`}
-        >
+      <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
+        <div className={`grid ${streamKeys.length !== 1 ? "grid-cols-2" : ""}  w-full gap-2`} >
           {streamKeys.map((streamKey) => (
             <Player
               key={`${streamKey}_player`}
@@ -86,15 +83,11 @@ const PlayerPage = () => {
         {!cinemaMode && (
           <div className="w-full -mt-2 ml-8">
             <div className="relative h-5">
-              <div
-                className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${status?.isOnline ? "opacity-100" : "opacity-0"}`}
-              >
+              <div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${status?.isOnline ? "opacity-100" : "opacity-0"}`} >
                 {status?.motd}
               </div>
 
-              <div
-                className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!status?.isOnline ? "opacity-100" : "opacity-0"}`}
-              >
+              <div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!status?.isOnline ? "opacity-100" : "opacity-0"}`} >
                 Offline
               </div>
             </div>
@@ -103,20 +96,19 @@ const PlayerPage = () => {
 
         {/*Implement footer menu*/}
         <div className="flex flex-row gap-2">
-          <button
-            className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg mt-6"
+          <Button
+            title={cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
             onClick={toggleCinemaMode}
-          >
-            {cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
-          </button>
+            iconRight="CodeBracketSquare"
+          />
 
           {/*Show modal to add stream keys with*/}
-          <button
-            className="bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg mt-6"
+          <Button
+            title="Add Stream"
+            color="Accept"
             onClick={() => setIsModelOpen((prev) => !prev)}
-          >
-            Add Stream
-          </button>
+            iconRight="SquaresPlus"
+          />
         </div>
       </div>
     </div>

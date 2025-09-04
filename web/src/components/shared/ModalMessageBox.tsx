@@ -1,5 +1,6 @@
 ﻿import React, { useEffect } from "react";
 import { useState } from "react";
+import Button from "./Button";
 
 interface Props {
 	title: string;
@@ -67,22 +68,21 @@ export default function ModalMessageBox(props: Props) {
 					{/*Buttons*/}
 					<div className="flex flex-row justify-items-stretch gap-4 ">
 						{props.onAccept !== null && (
-							<button
-								className="bg-green-700 text-white px-4 py-2 rounded"
+							<Button
+								color="Accept"
+								title="Accept"
 								onClick={() => props.onAccept?.()}
-							>
-								Accept
-							</button>
+							/>
 						)}
-						<button
+
+						<Button
+							title="Close"
 							onClick={() => {
 								props.onDeny?.();
 								setIsOpen(false);
 							}}
-							className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
-						>
-							Close
-						</button>
+						/>
+
 					</div>
 				</div>
 			</div>

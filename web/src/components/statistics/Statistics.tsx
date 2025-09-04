@@ -1,6 +1,7 @@
 ﻿import React, { useContext, useEffect } from "react";
 import { StatusContext, StatusResult, WhepSession } from "../../providers/StatusProvider";
 import { useNavigate } from "react-router-dom";
+import Button from "../shared/Button";
 
 const Statistics = () => {
   const { activeStreamsStatus: streamStatus, refreshStatus, subscribe, unsubscribe } = useContext(StatusContext);
@@ -33,12 +34,11 @@ const Statistics = () => {
                 <div className="px-4 py-2 rounded-lg text-2xl">
                   Stream Key: {status.streamKey}
                 </div>
-                <button
-                  disabled={!isStreamActive(status)}
+                <Button
+                  title="Watch stream"
                   onClick={() => navigate(`/${status.streamKey}`)}
-                  className={`${isStreamActive(status) ? "bg-blue-500 hover:bg-blue-700" : "bg-gray-700"} px-4 py-2 rounded-lg text-white`}>
-                  Watch stream
-                </button>
+                  isDisabled={isStreamActive(status)}
+                />
               </div>
 
               <div className="flex justify-start">
