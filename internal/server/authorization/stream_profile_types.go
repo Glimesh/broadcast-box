@@ -1,6 +1,8 @@
 package authorization
 
-import "strings"
+import (
+	"strings"
+)
 
 // Internal Profile struct, do not use for endpoints
 type Profile struct {
@@ -28,6 +30,14 @@ func (profile *Profile) AsPublicProfile() *PublicProfile {
 		MOTD:      profile.MOTD,
 	}
 }
+func (profile *Profile) AsPersonalProfile() *PersonalProfile {
+	return &PersonalProfile{
+		StreamKey: profile.StreamKey(),
+		IsActive:  profile.IsActive,
+		IsPublic:  profile.IsPublic,
+		MOTD:      profile.MOTD,
+	}
+}
 func (profile *Profile) AsAdminProfile() *AdminProfile {
 	return &AdminProfile{
 		StreamKey: profile.StreamKey(),
@@ -39,6 +49,14 @@ func (profile *Profile) AsAdminProfile() *AdminProfile {
 
 // Public profile struct for serving to public endpoints
 type PublicProfile struct {
+	StreamKey string `json:"streamKey"`
+	IsActive  bool   `json:"isActive"`
+	IsPublic  bool   `json:"isPublic"`
+	MOTD      string `json:"motd"`
+}
+
+// Personal profile struct for serving to profile owner endpoints
+type PersonalProfile struct {
 	StreamKey string `json:"streamKey"`
 	IsActive  bool   `json:"isActive"`
 	IsPublic  bool   `json:"isPublic"`

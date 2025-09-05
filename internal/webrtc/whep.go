@@ -19,7 +19,6 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	}
 
 	stream, err := session.GetStream(profile, "")
-
 	if err != nil {
 		return "", "", err
 	}

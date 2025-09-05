@@ -21,6 +21,8 @@ func isValidStreamKey(streamKey string) bool {
 	regExp := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	return regExp.MatchString(streamKey)
 }
+
+// Create a new profile for the provided streamkey
 func CreateProfile(streamKey string) (string, error) {
 
 	if !isValidStreamKey(streamKey) {
@@ -62,6 +64,51 @@ func CreateProfile(streamKey string) (string, error) {
 	return token, nil
 }
 
+// Update a current profile
+func UpdateProfile(token string, motd string, isPublic bool) error {
+	if !hasExistingBearerToken(token) {
+		return fmt.Errorf("Profile was not found")
+	}
+
+	profile, err := GetPersonalProfile(token)
+	if err != nil {
+		log.Println("Authorization: Could not find personal profile")
+		log.Println(err)
+		return err
+	}
+
+	// Update properties
+	profile.MOTD = motd
+	profile.IsPublic = isPublic
+
+	jsonData, err := json.MarshalIndent(profile, "", " ")
+	if err != nil {
+		log.Println("Authorization: Error ocurred while trying to update profile")
+		log.Println(err)
+		return err
+	}
+
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
+	profileFilePath, err := getProfileFileNameByBearerToken(token)
+	if err != nil {
+		log.Println("Authorization: Error ocurred while trying to update profile")
+		log.Println(err)
+		return err
+	}
+
+	log.Println("Updated Profile", profile)
+	log.Println("Writing to", profileFilePath)
+	log.Println("JSON", string(jsonData))
+	err = os.WriteFile(filepath.Join(profilePath, profileFilePath), jsonData, 0644)
+	if err != nil {
+		log.Println("Authorization: Error ocurred while trying to update profile")
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 func RemoveProfile(streamKey string) (bool, error) {
 	if !isValidStreamKey(streamKey) {
 		log.Println("Authorization: Remove profile failed due to invalid streamkey", streamKey)
@@ -83,6 +130,7 @@ func RemoveProfile(streamKey string) (bool, error) {
 	return true, nil
 }
 
+// Returns the publicly available profile
 func GetPublicProfile(bearerToken string) (*PublicProfile, error) {
 	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
 	assureProfilePath()
@@ -102,8 +150,34 @@ func GetPublicProfile(bearerToken string) (*PublicProfile, error) {
 		log.Println("Authorization: File", bearerToken, "could not read. File may be corrupt.")
 		return nil, err
 	}
+	profile.FileName = fileName
 
 	return profile.AsPublicProfile(), nil
+}
+
+// Returns the publicly available profile
+func GetPersonalProfile(bearerToken string) (*PersonalProfile, error) {
+	profilePath := os.Getenv(environment.STREAM_PROFILE_PATH)
+	assureProfilePath()
+
+	fileName, err := getProfileFileNameByBearerToken(bearerToken)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := os.ReadFile(filepath.Join(profilePath, fileName))
+	if err != nil {
+		return nil, err
+	}
+
+	var profile Profile
+	if err := json.Unmarshal(data, &profile); err != nil {
+		log.Println("Authorization: File", bearerToken, "could not read. File may be corrupt.")
+		return nil, err
+	}
+	profile.FileName = fileName
+
+	return profile.AsPersonalProfile(), nil
 }
 
 // Returns a slice of profiles intended for admin endpoints
