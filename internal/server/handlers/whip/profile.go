@@ -24,15 +24,6 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if request.Method == "GET" {
 		profile, err := authorization.GetPersonalProfile(token)
 
-		session.WhipSessionsLock.Lock()
-		defer session.WhipSessionsLock.Unlock()
-
-		for _, stream := range session.WhipSessions {
-			if stream.StreamKey == profile.StreamKey {
-				profile.IsActive = stream.HasHost.Load()
-			}
-		}
-
 		if err != nil {
 			helpers.LogHttpError(
 				responseWriter,
@@ -40,6 +31,15 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				http.StatusNoContent)
 
 			return
+		}
+
+		session.WhipSessionsLock.Lock()
+		defer session.WhipSessionsLock.Unlock()
+
+		for _, stream := range session.WhipSessions {
+			if stream.StreamKey == profile.StreamKey {
+				profile.IsActive = stream.HasHost.Load()
+			}
 		}
 
 		if err := json.NewEncoder(responseWriter).Encode(profile); err != nil {
