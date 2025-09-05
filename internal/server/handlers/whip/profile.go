@@ -27,8 +27,10 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		session.WhipSessionsLock.Lock()
 		defer session.WhipSessionsLock.Unlock()
 
-		if session.WhipSessions[profile.StreamKey] != nil {
-			profile.IsActive = session.WhipSessions[profile.StreamKey].HasHost.Load()
+		for _, stream := range session.WhipSessions {
+			if stream.StreamKey == profile.StreamKey {
+				profile.IsActive = stream.HasHost.Load()
+			}
 		}
 
 		if err != nil {
