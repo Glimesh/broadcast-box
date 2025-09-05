@@ -22,6 +22,7 @@ const colorMapping = {
 
 interface Props {
   title?: string;
+  subTitle?: string;
   isDisabled?: boolean;
   onClick?: () => void;
 
@@ -52,7 +53,14 @@ export default function Button(props: Props) {
         </div>
       )}
 
-      {props.title}
+      <div className="flex flex-col">
+        <div className="font-bold">
+          {props.title}
+        </div>
+        <div className="font-light">
+          {props.subTitle}
+        </div>
+      </div>
 
       {props.iconRight && (
         <div className="ml-2">
