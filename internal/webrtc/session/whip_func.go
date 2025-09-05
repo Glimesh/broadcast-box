@@ -34,9 +34,9 @@ func GetStream(profile authorization.PublicProfile, whipSessionId string) (*Whip
 			ActiveContext:       whipActiveContext,
 			ActiveContextCancel: whipActiveContextCancel,
 			PliChan:             make(chan any, 250),
-			OnOnlineChan:        make(chan bool, 5),
-			OnTrackChan:         make(chan struct{}, 5),
-			SSEChan:             make(chan any, 5),
+			OnOnlineChan:        make(chan bool, 50),
+			OnTrackChan:         make(chan struct{}, 50),
+			SSEChan:             make(chan any, 50),
 
 			AudioTracks: []*AudioTrack{},
 			VideoTracks: []*VideoTrack{},
