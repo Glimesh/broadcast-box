@@ -5,6 +5,7 @@ import Button from "../shared/Button";
 
 interface StreamEntry {
   streamKey: string;
+  motd: string;
 }
 
 const AvailableStreams = () => {
@@ -28,7 +29,8 @@ const AvailableStreams = () => {
         .sort(sortByStreamKey)
         .map((resultEntry: StatusResult) => ({
           streamKey: resultEntry.streamKey,
-          videoStreams: resultEntry.videoTracks
+          videoStreams: resultEntry.videoTracks,
+          motd: resultEntry.motd
         })));
   }, [streamStatus])
 
@@ -50,10 +52,11 @@ const AvailableStreams = () => {
 
       <div className="m-2" />
 
-      <div className='flex flex-col'>
+      <div className='flex flex-col gap-2'>
         {streams.map((e, i) => (
           <Button
             title={e.streamKey}
+            subTitle={e.motd}
             stretch
             center
             key={i + '_' + e.streamKey}
