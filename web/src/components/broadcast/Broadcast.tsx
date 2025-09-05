@@ -37,15 +37,24 @@ function BrowserBroadcaster() {
 
 	const endStream = () => navigate('/')
 
+	interface ICEComponentServer {
+		urls: string;
+		username?: string;
+		credential?: string
+	}
+
 	useEffect(() => {
 		// Fetch ICE-Servers
 		fetch(`/api/ice-servers`, {
 			method: 'GET',
 		}).then(r => r.json())
-			.then((result) => {
+			.then((result: ICEComponentServer[]) => {
 				peerConnectionRef.current = new RTCPeerConnection({
-					iceServers: result,
-					iceTransportPolicy: result != undefined ? "relay" : undefined
+					iceServers: result.map(r => ({
+						urls: r.urls,
+						username: r.username,
+						credential: r.credential,
+					}))
 				});
 			})
 
