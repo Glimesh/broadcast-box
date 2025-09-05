@@ -41,6 +41,7 @@ func GetSessionStates(whipSessions map[string]*WhipSession, includePrivateStream
 		sessionState := StreamSession{
 			StreamKey:   streamKey,
 			IsPublic:    session.IsPublic,
+			MOTD:        session.MOTD,
 			Sessions:    []WhepSessionState{},
 			VideoTracks: []VideoTrackState{},
 			AudioTracks: []AudioTrackState{},

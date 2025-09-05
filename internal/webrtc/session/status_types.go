@@ -14,6 +14,7 @@ type StreamStatus struct {
 type StreamSession struct {
 	StreamKey string `json:"streamKey"`
 	IsPublic  bool   `json:"isPublic"`
+	MOTD      string `json:"motd"`
 
 	AudioTracks []AudioTrackState `json:"audioTracks"`
 	VideoTracks []VideoTrackState `json:"videoTracks"`
