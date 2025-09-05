@@ -1,4 +1,4 @@
-package handlers
+package admin
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 )
 
-func adminLoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func AdminLoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	log.Println("Verifying Admin Login")
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return

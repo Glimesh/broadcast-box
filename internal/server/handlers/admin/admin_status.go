@@ -1,4 +1,4 @@
-package handlers
+package admin
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 )
 
-func adminStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func AdminStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("GET", responseWriter, request); !isValidMethod {
 		return
 	}

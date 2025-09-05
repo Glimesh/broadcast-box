@@ -11,15 +11,8 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 )
 
-func getStreamKey(request *http.Request) (streamKey string) {
-	queries := request.URL.Query()
-	streamKey = queries.Get("key")
-
-	return streamKey
-}
-
 func statusHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	streamKey := getStreamKey(request)
+	streamKey := helpers.GetStreamKey(request)
 
 	if streamKey == "" {
 		sessionStatusesHandler(responseWriter, request)
@@ -31,7 +24,7 @@ func statusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 }
 
 func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	streamKey := getStreamKey(request)
+	streamKey := helpers.GetStreamKey(request)
 
 	session.WhipSessionsLock.Lock()
 	defer session.WhipSessionsLock.Unlock()

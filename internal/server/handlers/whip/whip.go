@@ -1,4 +1,4 @@
-package handlers
+package whip
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc"
 )
 
-func whipHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if request.Method == "DELETE" {
 		return
 	}

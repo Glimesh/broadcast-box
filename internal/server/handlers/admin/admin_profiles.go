@@ -1,4 +1,4 @@
-package handlers
+package admin
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 )
 
 // Retrieve all existing profiles
-func adminProfilesHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func AdminProfilesHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("GET", responseWriter, request); !isValidMethod {
 		return
 	}
@@ -39,7 +39,7 @@ type adminTokenResetPayload struct {
 }
 
 // Reset the token of an existing stream profile
-func adminProfilesResetTokenHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func AdminProfilesResetTokenHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
@@ -70,7 +70,7 @@ type adminAddStreamPayload struct {
 }
 
 // Reset the token of an existing stream profile
-func adminProfileAddHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func AdminProfileAddHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
@@ -101,7 +101,7 @@ type adminRemoveStreamPayload struct {
 }
 
 // Reset the token of an existing stream profile
-func adminProfileRemoveHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func AdminProfileRemoveHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}

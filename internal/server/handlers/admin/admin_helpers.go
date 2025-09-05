@@ -1,4 +1,4 @@
-package handlers
+package admin
 
 import (
 	"encoding/json"

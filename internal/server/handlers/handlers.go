@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
+	adminHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/admin"
+	whipHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/whip"
 )
 
 func GetServeMuxHandler() http.HandlerFunc {
@@ -18,12 +20,17 @@ func GetServeMuxHandler() http.HandlerFunc {
 		serverMux.HandleFunc("/", frontendHandler)
 	}
 
-	// Whip/Whep operational endpoints
-	serverMux.HandleFunc("/api/whip", corsHandler(whipHandler))
+	// Whip/Whep shared endpoints
 	serverMux.HandleFunc("/api/whep", corsHandler(WhepHandler))
 	serverMux.HandleFunc("/api/sse/", corsHandler(sseHandler))
-	serverMux.HandleFunc("/api/layer/", corsHandler(layerChangeHandler))
 	serverMux.HandleFunc("/api/ice-servers", corsHandler(clientICEHandler))
+
+	// Whip session endpoints
+	serverMux.HandleFunc("/api/whip", corsHandler(whipHandlers.WhipHandler))
+	serverMux.HandleFunc("/api/whip/profile", corsHandler(whipHandlers.ProfileHandler))
+
+	// Whep session endpoints
+	serverMux.HandleFunc("/api/layer/", corsHandler(layerChangeHandler))
 
 	// Logging and status endpoints
 	serverMux.HandleFunc("/api/log", corsHandler(logHandler))
@@ -31,12 +38,12 @@ func GetServeMuxHandler() http.HandlerFunc {
 
 	// Admin endpoints
 	// serverMux.HandleFunc("/api/admin/sse/", corsHandler(adminSseHandler))
-	serverMux.HandleFunc("/api/admin/login", corsHandler(adminLoginHandler))
-	serverMux.HandleFunc("/api/admin/status", corsHandler(adminStatusHandler))
-	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminProfilesHandler))
-	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminProfilesResetTokenHandler))
-	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminProfileAddHandler))
-	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminProfileRemoveHandler))
+	serverMux.HandleFunc("/api/admin/login", corsHandler(adminHandlers.AdminLoginHandler))
+	serverMux.HandleFunc("/api/admin/status", corsHandler(adminHandlers.AdminStatusHandler))
+	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminHandlers.AdminProfilesHandler))
+	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminHandlers.AdminProfilesResetTokenHandler))
+	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminHandlers.AdminProfileAddHandler))
+	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminHandlers.AdminProfileRemoveHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DEBUG_INCOMING_API_REQUEST)
