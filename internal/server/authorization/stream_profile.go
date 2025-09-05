@@ -96,9 +96,7 @@ func UpdateProfile(token string, motd string, isPublic bool) error {
 		return err
 	}
 
-	log.Println("Updated Profile", profile)
-	log.Println("Writing to", profileFilePath)
-	log.Println("JSON", string(jsonData))
+	log.Println("Authorization: Updated Profile", profile.StreamKey)
 	err = os.WriteFile(filepath.Join(profilePath, profileFilePath), jsonData, 0644)
 	if err != nil {
 		log.Println("Authorization: Error ocurred while trying to update profile")
