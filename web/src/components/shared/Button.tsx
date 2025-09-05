@@ -43,7 +43,7 @@ export default function Button(props: Props) {
 
   return (
     <button
-      className={`flex text-white font-medium px-4 py-2 rounded ${props.center === true ? "justify-center" : ""} ${props.stretch ? "w-full" : ""} ${color.base} ${color.hover} ${props.classNames}`}
+      className={`flex text-white font-medium px-4 py-2 rounded ${props.center === true ? "justify-center" : ""} ${props.stretch ? "w-full" : "w-fit"} ${color.base} ${color.hover} ${props.classNames}`}
       onClick={!props.isDisabled ? props.onClick : undefined}
     >
       {props.iconLeft && (

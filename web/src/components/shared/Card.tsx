@@ -5,6 +5,7 @@ interface Props {
 	subTitle?: string;
 	placeholder?: string;
 	children?: React.ReactNode;
+	classNames?: string;
 
 	onAccept?: () => void;
 	onDeny?: () => void;
@@ -13,7 +14,7 @@ interface Props {
 export default function Card(props: Props) {
 	return (
 		<div
-			className="flex flex-col p-2 rounded-lg shadow-lg bg-gray-800 h-full border-1 border-gray-700"
+			className={`flex flex-col p-2 rounded-lg shadow-lg bg-gray-800 h-full border-1 border-gray-700 ${props.classNames}`}
 			onClick={(e) => e.stopPropagation()}
 		>
 			{!!props.title && (

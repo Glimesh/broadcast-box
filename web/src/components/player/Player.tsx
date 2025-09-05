@@ -176,7 +176,6 @@ const Player = (props: PlayerProps) => {
 		if (!peerConnectionRef.current) {
 			return;
 		}
-
 		peerConnectionRef.current.ontrack = (event: RTCTrackEvent) => {
 			if (videoRef.current) {
 				videoRef.current.srcObject = event.streams[0];
@@ -189,52 +188,51 @@ const Player = (props: PlayerProps) => {
 
 		peerConnectionRef.current
 			.createOffer()
-			.then(offer => {
+			.then(async offer => {
 				offer["sdp"] = offer["sdp"]!.replace("useinbandfec=1", "useinbandfec=1;stereo=1")
 
-				peerConnectionRef.current!
+				await peerConnectionRef.current!
 					.setLocalDescription(offer)
 					.catch((err) => console.error("SetLocalDescription", err));
 
-				fetch(`/api/whep`, {
+				const whepResponse = await fetch(`/api/whep`, {
 					method: 'POST',
 					body: offer.sdp,
 					headers: {
 						Authorization: `Bearer ${streamKey}`,
 						'Content-Type': 'application/sdp'
 					}
-				}).then(r => {
-					const parsedLinkHeader = parseLinkHeader(r.headers.get('Link'))
+				})
 
-					if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
-						throw new DOMException("Missing link header");
-					}
+				const parsedLinkHeader = parseLinkHeader(whepResponse.headers.get('Link'))
 
-					layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
-					const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
+				if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
+					throw new DOMException("Missing link header");
+				}
 
-					evtSource.onerror = _ => evtSource.close();
+				layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
+				const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 
-					// Receive current status of the whip stream
-					evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
+				evtSource.onerror = _ => evtSource.close();
 
-					// Receive current current layers of this whep stream
-					evtSource.addEventListener("currentLayers", (event: MessageEvent) => setCurrentLayersStatus(() => JSON.parse(event.data)))
+				// Receive current status of the whip stream
+				evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
 
-					// Receive layers
-					evtSource.addEventListener("layers", event => {
-						const parsed = JSON.parse(event.data)
-						setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
-						setAudioLayers(() => parsed['2']['layers'].map((layer: any) => layer.encodingId))
-					})
+				// Receive current current layers of this whep stream
+				evtSource.addEventListener("currentLayers", (event: MessageEvent) => setCurrentLayersStatus(() => JSON.parse(event.data)))
 
-					return r.text()
-				}).then(answer => {
-					peerConnectionRef.current!.setRemoteDescription({
-						sdp: answer,
-						type: 'answer'
-					}).catch((err) => console.error("RemoteDescription", err))
-				}).catch((err) => console.error("PeerConnectionError", err))
+				// Receive layers
+				evtSource.addEventListener("layers", event => {
+					const parsed = JSON.parse(event.data)
+					setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
+					setAudioLayers(() => parsed['2']['layers'].map((layer: any) => layer.encodingId))
+				})
+
+				const answer = await whepResponse.text()
+				await peerConnectionRef.current!.setRemoteDescription({
+					sdp: answer,
+					type: 'answer'
+				}).catch((err) => console.error("RemoteDescription", err))
 			})
 	}, [peerConnectionRef, hasPreparedPeerConnectionRef])
 

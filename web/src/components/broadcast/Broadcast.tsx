@@ -1,11 +1,12 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
-import { StatusContext } from "../../providers/StatusProvider";
-import { UsersIcon } from "@heroicons/react/20/solid";
 import { parseLinkHeader } from '@web3-storage/parse-link-header';
 import Button from '../shared/Button';
+import { ErrorMessageEnum, getMediaErrorMessage } from './errorMessage';
+import ProfileSettings from './ProfileSettings';
+import Player from '../player/Player';
 
 const mediaOptions = {
 	audio: true,
@@ -15,30 +16,10 @@ const mediaOptions = {
 	},
 }
 
-enum ErrorMessageEnum {
-	NoMediaDevices,
-	NotAllowedError,
-	NotFoundError
-}
-
-function getMediaErrorMessage(value: ErrorMessageEnum): string {
-	switch (value) {
-		case ErrorMessageEnum.NoMediaDevices:
-			return `MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS 👮`;
-		case ErrorMessageEnum.NotFoundError:
-			return `Seems like you don't have camera. Or the access to it is blocked\nCheck camera settings, browser permissions and system permissions.`;
-		case ErrorMessageEnum.NotAllowedError:
-			return `You can't publish stream using your camera, access has been disabled.`;
-		default:
-			return "Could not access your media device";
-	}
-}
-
 function BrowserBroadcaster() {
 	const location = useLocation()
 	const navigate = useNavigate();
 	const streamKey = location.pathname.split('/').pop()
-	const { currentStreamStatus, setCurrentStreamStatus } = useContext(StatusContext)
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
 	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
@@ -46,6 +27,8 @@ function BrowserBroadcaster() {
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
 	const [connectFailed, setConnectFailed] = useState<boolean>(false);
+	const [profileStateIsActive, setProfileStateIsActive] = useState<boolean>(false)
+	const [profileStreamKey, setProfileStreamKey] = useState<string>("")
 
 	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 	const videoRef = useRef<HTMLVideoElement>(null)
@@ -168,7 +151,7 @@ function BrowserBroadcaster() {
 						evtSource.onerror = _ => evtSource.close();
 
 						// Receive current status of the stream
-						evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
+						// evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
 
 						return r.text()
 					}).then(answer => {
@@ -233,48 +216,60 @@ function BrowserBroadcaster() {
 	}, [hasSignal]);
 
 	return (
-		<div className='container mx-auto'>
-			{mediaAccessError != null && <PlayerHeader headerType={"Error"}> {getMediaErrorMessage(mediaAccessError)} </PlayerHeader>}
-			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}> WebRTC has disconnected or failed to connect at all 😭 </PlayerHeader>}
-			{connectFailed && <PlayerHeader headerType={"Error"}> Failed to start Broadcast Box session 👮</PlayerHeader>}
-			{hasPacketLoss && <PlayerHeader headerType={"Warning"}> WebRTC is experiencing packet loss</PlayerHeader>}
-			{publishSuccess && <PlayerHeader headerType={"Success"}> Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a> </PlayerHeader>}
+		<div className='flex flex-col container mx-auto gap-2'>
+			{mediaAccessError != null && <PlayerHeader headerType={"Error"}>{getMediaErrorMessage(mediaAccessError)}</PlayerHeader>}
+			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}>WebRTC has disconnected or failed to connect at all</PlayerHeader>}
+			{connectFailed && <PlayerHeader headerType={"Error"}>Failed to start Broadcast Box session</PlayerHeader>}
+			{hasPacketLoss && <PlayerHeader headerType={"Warning"}>WebRTC is experiencing packet loss</PlayerHeader>}
+			{publishSuccess && <PlayerHeader headerType={"Success"}>Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a></PlayerHeader>}
 
-			{/* Browser Video feed */}
-			<video
-				ref={videoRef}
-				autoPlay
-				muted
-				controls
-				playsInline
-				className='w-full h-full aspect-video'
-			/>
+			{/* Browser video feed */}
+			{profileStateIsActive ? (
+				<Player
+					streamKey={profileStreamKey}
+					cinemaMode={false} />
+			) : (
+				<video
+					ref={videoRef}
+					autoPlay
+					muted
+					controls
+					playsInline
+					className='w-full h-full aspect-video'
+				/>
+			)}
 
-			{/* Status bar */}
-			<div className={"justify-items-end"} >
-				<div className={"flex flex-row items-center gap-1"}>
-					<UsersIcon className={"size-4"} />
-					{currentStreamStatus?.viewers ?? 0}
-				</div>
-			</div>
+			{/* TODO: Add this view instead of only relying on the Player */}
+			{/* Current stream status */}
+			{/* <StreamStatus currentViewerCount={0} /> */}
+
+			{/* Profile settings */}
+			<ProfileSettings stateHasChanged={(isActive, streamKey) => {
+				setProfileStateIsActive(() => isActive)
+				setProfileStreamKey(() => streamKey)
+			}
+			} />
 
 			{/* Buttons */}
-			<div className="flex flex-row gap-2">
-				<Button
-					onClick={() => setUseDisplayMedia("Screen")}
-					title="Publish Screen/Window/Tab"
-					color='Accept'
-				/>
-				<Button
-					title="Publish Webcam"
-					onClick={() => setUseDisplayMedia("Webcam")}
-				/>
-			</div>
+			{!profileStateIsActive && (
+				<div className="flex flex-row gap-2">
+					<Button
+						color='Accept'
+						title="Publish Screen/Window/Tab"
+						onClick={() => setUseDisplayMedia("Screen")}
+					/>
+					<Button
+						title="Publish Webcam"
+						onClick={() => setUseDisplayMedia("Webcam")}
+					/>
+				</div>
+			)}
 
+			{/* Conclude browser stream */}
 			{publishSuccess && (
 				<Button
-					onClick={endStream}
 					title="End stream"
+					onClick={endStream}
 				/>
 			)}
 		</div>

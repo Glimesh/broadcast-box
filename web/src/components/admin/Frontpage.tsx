@@ -26,15 +26,15 @@ const AdminFrontpage = () => {
         <div className="flex-1 space-x-2">
           <Card title={"Settings"}>
             <div className="flex flex-col h-full p-2 space-y-2">
-              <Button title="Status" onClick={() => onChangeMenu("Status")} />
-              <Button title="Profiles" onClick={() => onChangeMenu("Profiles")} />
-              <Button title="API" onClick={() => onChangeMenu("API")} isDisabled />
-              <Button title="Logging" onClick={() => onChangeMenu("Logging")} isDisabled />
+              <Button title="Status" stretch onClick={() => onChangeMenu("Status")} />
+              <Button title="Profiles" stretch onClick={() => onChangeMenu("Profiles")} />
+              <Button title="API" stretch onClick={() => onChangeMenu("API")} isDisabled />
+              <Button title="Logging" stretch onClick={() => onChangeMenu("Logging")} isDisabled />
             </div>
 
             <div className="flex flex-col p-2 space-y-2">
-              <Button title="Settings" onClick={() => onChangeMenu("Settings")} isDisabled />
-              <Button title="Log out" onClick={logout} />
+              <Button title="Settings" stretch onClick={() => onChangeMenu("Settings")} isDisabled />
+              <Button title="Log out" stretch onClick={logout} />
             </div>
           </Card>
         </div>

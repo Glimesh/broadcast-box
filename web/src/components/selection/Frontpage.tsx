@@ -1,4 +1,4 @@
-import React, { createRef, useContext, useState } from 'react'
+import React, { useContext, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AvailableStreams from "./AvailableStreams";
 import { HeaderContext } from '../../providers/HeaderProvider';
@@ -8,23 +8,27 @@ import Input from '../shared/Input';
 
 const Frontpage = () => {
 	const { setTitle } = useContext(HeaderContext)
+	const [isDisabledSubmit, setIsDisabledSubmit] = useState(true)
 	const [streamType, setStreamType] = useState<'Watch' | 'Share'>('Watch');
-	const streamKey = createRef<HTMLInputElement>()
+	const [streamKey, setStreamKey] = useState("")
 	const navigate = useNavigate()
 	setTitle("")
 
-	const onStreamClick = () => {
-		if (!streamKey.current || streamKey.current?.value === '') {
+	const onSubmit = () => {
+		if (!streamKey || streamKey === '') {
 			return;
 		}
 
 		if (streamType === "Share") {
-			navigate(`/publish/${streamKey.current.value}`)
+			navigate(`/publish/${streamKey}`)
 		}
 
 		if (streamType === "Watch") {
-			navigate(`/${streamKey.current.value}`)
+			navigate(`/${streamKey}`)
 		}
+	}
+	const onKeyUp = () => {
+		setIsDisabledSubmit(() => streamKey === '')
 	}
 
 	return (
@@ -33,6 +37,8 @@ const Frontpage = () => {
 			<div className='rounded-md bg-gray-800 shadow-md p-8'>
 				<h2 className="font-light leading-tight text-4xl mt-0 mb-2">Welcome to Broadcast Box</h2>
 				<p>Broadcast Box is a tool that allows you to efficiently stream high-quality video in real time, using the latest in video codecs and WebRTC technology.</p>
+
+				<div className='mt-4' />
 
 				<Toggle
 					titleLeft='I want to watch'
@@ -43,22 +49,27 @@ const Frontpage = () => {
 					onClickRight={() => setStreamType("Share")}
 					iconRight='Camera'
 
+					selected={streamType === "Watch" ? "Left" : "Right"}
+
 				/>
 
-				<div className='flex flex-col my-4 justify-center'>
+				<div className='flex flex-col mt-2 justify-center'>
 					<Input
 						label="Stream key"
-						ref={streamKey}
+						value={streamKey}
+						setValue={setStreamKey}
 						hasAutofocus={true}
 						placeholder={`Insert the key of the stream you want to ${streamType === "Share" ? 'share' : 'join'}`}
-						onKeyUp={onStreamClick}
+						onKeyUp={onKeyUp}
+						onEnterKeyUp={onSubmit}
 					/>
 
 					<Button
 						title={streamType === "Share" ? "Start stream" : "Join stream"}
 						center
-						isDisabled={streamKey.current?.value.length === 0}
-						onClick={onStreamClick}
+						isDisabled={isDisabledSubmit}
+						onClick={onSubmit}
+						stretch
 					/>
 				</div>
 

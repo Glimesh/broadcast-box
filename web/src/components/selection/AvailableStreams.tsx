@@ -54,6 +54,7 @@ const AvailableStreams = () => {
         {streams.map((e, i) => (
           <Button
             title={e.streamKey}
+            stretch
             center
             key={i + '_' + e.streamKey}
             onClick={() => onWatchStreamClick(e.streamKey)}
