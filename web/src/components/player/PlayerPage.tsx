@@ -5,6 +5,7 @@ import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
 import { StatusContext, StreamStatus } from "../../providers/StatusProvider";
 import Button from "../shared/Button";
+import AvailableStreams from "../selection/AvailableStreams";
 
 const PlayerPage = () => {
   const navigate = useNavigate();
@@ -58,7 +59,12 @@ const PlayerPage = () => {
           canCloseOnBackgroundClick={true}
           onClose={() => setIsModelOpen(false)}
           onAccept={(result: string) => addStream(result)}
-        />
+        >
+          <AvailableStreams
+            showHeader={false}
+            onClickOverride={(streamKey) => addStream(streamKey)}
+          />
+        </ModalTextInput>
       )}
 
       <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >

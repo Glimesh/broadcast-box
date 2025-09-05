@@ -8,7 +8,12 @@ interface StreamEntry {
   motd: string;
 }
 
-const AvailableStreams = () => {
+interface AvailableStreamsProps {
+  showHeader?: boolean;
+  onClickOverride?: (streamKey: string) => void;
+}
+
+const AvailableStreams = (props: AvailableStreamsProps) => {
   const navigate = useNavigate();
 
   const { activeStreamsStatus: streamStatus, refreshStatus, subscribe, unsubscribe } = useContext(StatusContext)
@@ -46,11 +51,15 @@ const AvailableStreams = () => {
 
   return (
     <div className="flex flex-col">
-      <h2 className="font-light leading-tight text-4xl mb-2 mt-6">Current Streams</h2>
-      {streams.length === 0 && <p className='flex justify-center mt-6'>No streams currently available</p>}
-      {streams.length !== 0 && <p>Click a stream to join it</p>}
+      {props.showHeader !== false && (
+        <div>
+          <div className="font-light leading-tight text-4xl mb-2">Current Streams</div>
+          {streams.length !== 0 && <p>Click a stream to join it</p>}
 
-      <div className="m-2" />
+          <div className="m-2" />
+        </div>
+      )}
+      {streams.length === 0 && <p className='flex justify-center mb-2 mt-2'>No streams currently available</p>}
 
       <div className='flex flex-col gap-2'>
         {streams.map((e, i) => (
@@ -60,7 +69,13 @@ const AvailableStreams = () => {
             stretch
             center
             key={i + '_' + e.streamKey}
-            onClick={() => onWatchStreamClick(e.streamKey)}
+            onClick={() => {
+              if (props.onClickOverride !== undefined) {
+                props.onClickOverride(e.streamKey)
+              } else {
+                onWatchStreamClick(e.streamKey)
+              }
+            }}
           />
         ))
         }

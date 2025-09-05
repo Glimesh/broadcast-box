@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef } from "react";
 import { useState } from "react";
+import AvailableStreams from "../selection/AvailableStreams";
 
 interface Props<T extends string | number> {
 	title: string;
@@ -41,11 +42,11 @@ export default function ModalTextInput<T extends string | number>(
 	return (
 		<div className="flex justify-center items-center h-screen absolute z-10">
 			<div
-				className="fixed inset-0 bg-transparent flex items-center justify-center"
+				className="flex fixed inset-0 bg-transparent items-center justify-center"
 				onClick={() => props.canCloseOnBackgroundClick && setIsOpen(false)}
 			>
 				<div
-					className="p-6 rounded-lg shadow-lg w-1/2 bg-gray-800"
+					className="p-4 rounded-lg shadow-lg w-1/2 bg-gray-800"
 					onClick={(e) => e.stopPropagation()}
 				>
 					<h2 className="text-lg font-semibold">{props.title}</h2>
@@ -86,8 +87,13 @@ export default function ModalTextInput<T extends string | number>(
 						autoFocus
 					/>
 
+					{/* Optional children */}
+					{props.children && (<div className="mb-2">
+						{props.children}
+					</div>)}
+
 					{/*Buttons*/}
-					<div className="flex flex-row justify-items-stretch gap-4 ">
+					<div className="flex flex-row justify-items-stretch gap-2">
 						{props.onAccept !== null && (
 							<button
 								className="bg-green-700 text-white px-4 py-2 rounded"
