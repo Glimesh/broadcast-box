@@ -26,6 +26,7 @@ export interface WhepSession {
 
 export interface StatusResult {
 	streamKey: string;
+	motd: string;
 
 	videoTracks: VideoTrack[];
 	audioTracks: AudioTrack[];
