@@ -77,6 +77,22 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			log.Println(err.Error())
 			return
 		}
+
+		profile, _ := authorization.GetPersonalProfile(token)
+
+		session.WhipSessionsLock.Lock()
+		defer session.WhipSessionsLock.Unlock()
+
+		// Update current session
+		for _, stream := range session.WhipSessions {
+			stream.StatusLock.RLock()
+			if stream.StreamKey == profile.StreamKey {
+				stream.MOTD = profile.MOTD
+				stream.IsPublic = profile.IsPublic
+			}
+			stream.StatusLock.RUnlock()
+		}
+
 	}
 
 	responseWriter.Header().Add("Content-Type", "application/json")
