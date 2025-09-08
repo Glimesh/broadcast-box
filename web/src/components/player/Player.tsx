@@ -8,6 +8,7 @@ import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponen
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { HeaderContext } from '../../providers/HeaderProvider';
 import { StatusContext } from '../../providers/StatusProvider';
+import { LocaleContext } from '../../providers/LocaleProvider';
 
 interface PlayerProps {
 	streamKey: string;
@@ -31,6 +32,7 @@ interface CurrentLayersMessage {
 const Player = (props: PlayerProps) => {
 	const { streamKey, cinemaMode } = props;
 	const { setTitle } = useContext(HeaderContext)
+	const { locale } = useContext(LocaleContext)
 	const { currentStreamStatus, setCurrentStreamStatus } = useContext(StatusContext)
 
 	const [currentLayersStatus, setCurrentLayersStatus] = useState<CurrentLayersMessage | undefined>()
@@ -316,13 +318,13 @@ const Player = (props: PlayerProps) => {
 				{videoLayers.length === 0 && !hasSignal && (
 					<h2
 						className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-						{props.streamKey} is not currently streaming
+						{props.streamKey} {locale.player.message_is_not_online}
 					</h2>
 				)}
 				{videoLayers.length > 0 && !hasSignal && (
 					<h2
 						className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-						Loading video
+						{locale.player.message_loading_video}
 					</h2>
 				)}
 

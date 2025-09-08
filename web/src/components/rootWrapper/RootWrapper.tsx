@@ -3,6 +3,7 @@ import { Link, Outlet } from 'react-router-dom'
 import React from 'react';
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import { HeaderContext } from '../../providers/HeaderProvider';
+import LocalesModal from '../shared/ModalLocaleSelector';
 
 const RootWrapper = () => {
   const { title } = useContext(HeaderContext)
@@ -12,14 +13,16 @@ const RootWrapper = () => {
   return (
     <div className="flex flex-col min-h-screen h-screen">
       {navbarEnabled && (
-        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-100 top-0'>
+        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-50 top-0'>
           <div className='container mx-auto flex flex-wrap items-center'>
-            <div className='flex flex-1 text-white font-extrabold'>
+            <div className='flex flex-1 text-white font-extrabold justify-between items-center'>
               <Link to="/" className='font-light leading-tight text-2xl'>
                 {title}
               </Link>
             </div>
+            <LocalesModal canCloseOnBackgroundClick={true} />
           </div>
+
         </nav>
       )}
 

@@ -1,8 +1,9 @@
-import React, { useLayoutEffect, useState } from "react";
+import React, { useContext, useLayoutEffect, useState } from "react";
 import Card from "../shared/Card";
 import Input from "../shared/Input";
 import Toggle from "../shared/Toggle";
 import Button from "../shared/Button";
+import { LocaleContext } from "../../providers/LocaleProvider";
 
 interface Profile {
   streamKey: string
@@ -16,6 +17,7 @@ interface ProfileSettingsProps {
 }
 
 export default function ProfileSettings(props: ProfileSettingsProps) {
+  const { locale } = useContext(LocaleContext)
   const streamKey = location.pathname.split('/').pop()
 
   const [profileType, setProfileType] = useState<"Public" | "Reserved">("Public")
@@ -76,29 +78,29 @@ export default function ProfileSettings(props: ProfileSettingsProps) {
 
   return (
     <Card
-      title="Profile settings"
-      subTitle='Configure streaming profile'
+      title={locale.profile_settings.title}
+      subTitle={locale.profile_settings.subTitle}
     >
 
       <Input
-        label="Message of the day"
+        label={locale.profile_settings.input_motd_label}
         value={motd}
         setValue={setMotd}
       />
 
       <Toggle
-        label="Stream privacy"
-        titleLeft='Is Private'
+        label={locale.profile_settings.toggle_stream_privacy_label}
+        titleLeft={locale.profile_settings.toggle_stream_privacy_title_left}
         onClickLeft={() => setIsPublic(() => "Private")}
 
-        titleRight='Is Public'
+        titleRight={locale.profile_settings.toggle_stream_privacy_title_right}
         onClickRight={() => setIsPublic(() => "Public")}
 
         selected={isPublic === "Public" ? "Right" : "Left"}
       />
 
       <Button
-        title="Save"
+        title={locale.profile_settings.button_save_label}
         color='Accept'
         onClick={updateSettings}
       />

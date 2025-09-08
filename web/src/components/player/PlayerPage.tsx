@@ -6,9 +6,11 @@ import ModalTextInput from "../shared/ModalTextInput";
 import { StatusContext, StreamStatus } from "../../providers/StatusProvider";
 import Button from "../shared/Button";
 import AvailableStreams from "../selection/AvailableStreams";
+import { LocaleContext } from "../../providers/LocaleProvider";
 
 const PlayerPage = () => {
   const navigate = useNavigate();
+  const { locale } = useContext(LocaleContext)
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
   const { currentStreamStatus } = useContext(StatusContext);
   const [streamKeys, setStreamKeys] = useState<string[]>([
@@ -52,9 +54,9 @@ const PlayerPage = () => {
     <div>
       {isModalOpen && (
         <ModalTextInput<string>
-          title="Add stream"
-          message={"Insert stream key to add to multi stream"}
-          placeholder={"Insert the key of the stream you want to add"}
+          title={locale.player_page.modal_add_stream_title}
+          message={locale.player_page.modal_add_stream_message}
+          placeholder={locale.player_page.modal_add_stream_placeholder}
           isOpen={isModalOpen}
           canCloseOnBackgroundClick={true}
           onClose={() => setIsModelOpen(false)}
@@ -94,7 +96,7 @@ const PlayerPage = () => {
               </div>
 
               <div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!status?.isOnline ? "opacity-100" : "opacity-0"}`} >
-                Offline
+                {locale.player_page.stream_status_offline}
               </div>
             </div>
           </div>
@@ -103,14 +105,14 @@ const PlayerPage = () => {
         {/*Implement footer menu*/}
         <div className="flex flex-row gap-2">
           <Button
-            title={cinemaMode ? "Disable cinema mode" : "Enable cinema mode"}
+            title={cinemaMode ? locale.player_page.cinema_mode_disable : locale.player_page.cinema_mode_enable}
             onClick={toggleCinemaMode}
             iconRight="CodeBracketSquare"
           />
 
           {/*Show modal to add stream keys with*/}
           <Button
-            title="Add Stream"
+            title={locale.player_page.modal_add_stream_title}
             color="Accept"
             onClick={() => setIsModelOpen((prev) => !prev)}
             iconRight="SquaresPlus"

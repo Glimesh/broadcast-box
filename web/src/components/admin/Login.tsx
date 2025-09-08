@@ -1,6 +1,7 @@
-﻿import React, { useEffect, useState } from "react";
+﻿import React, { useContext, useEffect, useState } from "react";
 import TextInputDialog from "../shared/TextInputDialog";
 import AdminFrontpage from "./Frontpage";
+import { LocaleContext } from "../../providers/LocaleProvider";
 
 const ADMIN_TOKEN = "adminToken";
 
@@ -10,6 +11,7 @@ interface LoginResponse {
 }
 
 const Admin = () => {
+  const { locale } = useContext(LocaleContext)
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
@@ -67,14 +69,11 @@ const Admin = () => {
   return (
     <div className="flex items-center justify-center h-full w-full flex-col">
       <TextInputDialog<string>
-        title="Login"
-        message={"Insert admin token to log in"}
-        placeholder="Insert admin token to log in"
+        title={locale.admin_login.login_input_dialog_title}
+        message={locale.admin_login.login_input_dialog_message}
+        placeholder={locale.admin_login.login_input_dialog_placeholder}
         canCloseOnBackgroundClick={false}
-        onAccept={(result: string) => {
-          login(result);
-          console.log("Call Login endpoint: " + result);
-        }}
+        onAccept={(result: string) => login(result)}
       />
 
       {errorMessage !== "" && (
@@ -94,7 +93,7 @@ const Admin = () => {
               />
             </svg>
             <h2 className="text-lg font-semibold text-red-700">
-              Error Logging In
+              {locale.admin_login.error_message_login_failed}
             </h2>
           </div>
           <p className="mt-2 pl-6 text-sm text-red-600">{errorMessage}</p>

@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { LocaleContext } from "../../../providers/LocaleProvider";
 
 const ADMIN_TOKEN = "adminToken";
 
 const StatusPage = () => {
+  const { locale } = useContext(LocaleContext)
   const [response, setResponse] = useState<StatusResult[]>()
 
   const refreshStatus = () => {
@@ -31,18 +33,18 @@ const StatusPage = () => {
 
   return (
     <div className="p-6 w-full max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Stream Status Overview</h1>
+      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_status_page.title}</h1>
 
       <div className="overflow-x-auto">
         <table className="min-w-full rounded-lg shadow">
           <thead className="text-white">
             <tr>
-              <th className="px-4 py-2 text-left">Stream Key</th>
-              <th className="px-4 py-2 text-left">Is Public</th>
-              <th className="px-4 py-2 text-left">Video Tracks</th>
-              <th className="px-4 py-2 text-left">Audio Tracks</th>
-              <th className="px-4 py-2 text-left">Sessions</th>
-              <th className="px-4 py-2 text-left">Total Packets</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_stream_key}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_is_public}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_video_tracks}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_audio_tracks}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_sessions}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_total_packets}</th>
             </tr>
           </thead>
           <tbody>
@@ -60,7 +62,7 @@ const StatusPage = () => {
               return (
                 <tr key={index} className="border-t">
                   <td className="px-4 py-2 font-medium ">{status.streamKey}</td>
-                  <td className="px-4 py-2 font-medium ">{status.isPublic ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 font-medium ">{status.isPublic ? locale.admin_page_status_page.yes : locale.admin_page_status_page.no}</td>
                   <td className="px-4 py-2">{status.videoTracks.length}</td>
                   <td className="px-4 py-2">{status.audioTracks.length}</td>
                   <td className="px-4 py-2">{status.sessions.length}</td>

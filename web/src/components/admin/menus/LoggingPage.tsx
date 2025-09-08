@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
+import { LocaleContext } from "../../../providers/LocaleProvider";
 
 // const ADMIN_TOKEN = "adminToken";
 
@@ -8,6 +9,7 @@ interface ApiSettingsResult {
 }
 
 const LoggingPage = () => {
+  const { locale } = useContext(LocaleContext)
   const [response, setResponse] = useState<ApiSettingsResult[]>()
 
   // const refreshStatus = () => {
@@ -35,14 +37,14 @@ const LoggingPage = () => {
 
   return (
     <div className="p-6 w-full max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Logging Settings</h1>
+      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_logging.title}</h1>
 
       <div className="overflow-x-auto">
         <table className="min-w-full rounded-lg shadow">
           <thead className="text-white">
             <tr>
-              <th className="px-4 py-2 text-left">Setting Name</th>
-              <th className="px-4 py-2 text-left">Value</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_logging.table_header_setting_name}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_logging.table_header_value}</th>
             </tr>
           </thead>
           <tbody>

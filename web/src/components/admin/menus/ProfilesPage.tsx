@@ -1,8 +1,9 @@
 import { ArrowPathIcon, XMarkIcon } from "@heroicons/react/16/solid";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Button from "../../shared/Button";
 import ModalTextInput from "../../shared/ModalTextInput";
 import ModalMessageBox from "../../shared/ModalMessageBox";
+import { LocaleContext } from "../../../providers/LocaleProvider";
 
 const ADMIN_TOKEN = "adminToken";
 
@@ -14,11 +15,10 @@ interface Profile {
 }
 
 const ProfilesPage = () => {
+  const { locale } = useContext(LocaleContext);
   const [response, setResponse] = useState<Profile[]>();
-  const [isAddProfileModalOpen, setIsAddProfileModalOpen] =
-    useState<boolean>(false);
-  const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] =
-    useState<string>("");
+  const [isAddProfileModalOpen, setIsAddProfileModalOpen] = useState<boolean>(false);
+  const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const refreshProfiles = () => {
@@ -109,14 +109,14 @@ const ProfilesPage = () => {
 
   return (
     <div className="p-6 w-full h-full max-w-6xl mx-auto flex flex-col justify-between">
-      <h1 className="text-3xl font-bold mb-6">Profiles Overview</h1>
+      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_profiles.title}</h1>
 
       <div className="overflow-x-auto h-full">
         <ModalTextInput
-          title="Add Profile"
-          message="Insert a key to add a new stream"
+          title={locale.admin_page_profiles.add_profile_modal_title}
+          message={locale.admin_page_profiles.add_profile_modal_message}
           errorMessage={errorMessage}
-          placeholder="Write new stream key here"
+          placeholder={locale.admin_page_profiles.add_profile_modal_placeholder}
           isOpen={isAddProfileModalOpen}
           canCloseOnBackgroundClick={true}
           onAccept={(result) => addProfile(result.toString())}
@@ -124,8 +124,8 @@ const ProfilesPage = () => {
         />
 
         <ModalMessageBox
-          title="Remove profile"
-          message={`Are you sure you would like to remove ${isRemoveProfileModalOpen}`}
+          title={locale.admin_page_profiles.remove_profile_modal_title}
+          message={locale.admin_page_profiles.remove_profile_modal_message + " " + isRemoveProfileModalOpen}
           errorMessage={errorMessage}
           isOpen={isRemoveProfileModalOpen !== ""}
           canCloseOnBackgroundClick={true}
@@ -136,10 +136,10 @@ const ProfilesPage = () => {
         <table className="min-w-full rounded-lg">
           <thead className=" text-white">
             <tr>
-              <th className="px-4 py-2 text-left">Stream Key</th>
-              <th className="px-4 py-2 text-left">Is Public</th>
-              <th className="px-4 py-2 text-left">Motd</th>
-              <th className="px-4 py-2 text-left">Token</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_stream_key}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_is_public}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_motd}</th>
+              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_token}</th>
               <th className="px-4 py-2 text-left"></th>
             </tr>
           </thead>
@@ -168,9 +168,7 @@ const ProfilesPage = () => {
                   <td className="px-4 py-2 items-center">
                     <XMarkIcon
                       className="ml-2 h-6 text-red-700"
-                      onClick={() =>
-                        setIsRemoveProfileModalOpen(() => profile.streamKey)
-                      }
+                      onClick={() => setIsRemoveProfileModalOpen(() => profile.streamKey)}
                     />
                   </td>
                 </tr>
@@ -181,7 +179,7 @@ const ProfilesPage = () => {
       </div>
 
       <Button
-        title="Add profile"
+        title={locale.admin_page_profiles.button_add_profile}
         onClick={() => setIsAddProfileModalOpen(() => true)}
       />
     </div>

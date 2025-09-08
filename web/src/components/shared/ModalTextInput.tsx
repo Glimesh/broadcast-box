@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useRef } from "react";
+﻿import React, { useContext, useEffect, useRef } from "react";
 import { useState } from "react";
-import AvailableStreams from "../selection/AvailableStreams";
+import { LocaleContext } from "../../providers/LocaleProvider";
 
 interface Props<T extends string | number> {
 	title: string;
@@ -22,6 +22,7 @@ interface Props<T extends string | number> {
 export default function ModalTextInput<T extends string | number>(
 	props: Props<T>,
 ) {
+	const { locale } = useContext(LocaleContext)
 	const [isOpen, setIsOpen] = useState<boolean>(props.isOpen);
 	const valueRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +100,7 @@ export default function ModalTextInput<T extends string | number>(
 								className="bg-green-700 text-white px-4 py-2 rounded"
 								onClick={() => props.onAccept?.(valueRef.current?.value as T)}
 							>
+								{locale.shared_component_text_input_modal.button_accept}
 								Accept
 							</button>
 						)}

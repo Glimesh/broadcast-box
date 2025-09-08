@@ -1,18 +1,20 @@
+import { localeInterface } from "../../locale/localeInterface";
+
 export enum ErrorMessageEnum {
   NoMediaDevices,
   NotAllowedError,
   NotFoundError
 }
 
-export function getMediaErrorMessage(value: ErrorMessageEnum): string {
+export function getMediaErrorMessage(locale: localeInterface, value: ErrorMessageEnum): string {
   switch (value) {
     case ErrorMessageEnum.NoMediaDevices:
-      return `MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS 👮`;
+      return locale.player_header.mediaAccessError_noMediaDevices;
     case ErrorMessageEnum.NotFoundError:
-      return `Seems like you don't have camera. Or the access to it is blocked\nCheck camera settings, browser permissions and system permissions.`;
+      return locale.player_header.mediaAccessError_notFoundError;
     case ErrorMessageEnum.NotAllowedError:
-      return `You can't publish stream using your camera, access has been disabled.`;
+      return locale.player_header.mediaAccessError_notAllowedError;
     default:
-      return "Could not access your media device";
+      return locale.player_header.mediaAccessError_default;
   }
 }

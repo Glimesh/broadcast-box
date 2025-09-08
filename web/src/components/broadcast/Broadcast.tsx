@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react'
+﻿import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
@@ -7,6 +7,7 @@ import Button from '../shared/Button';
 import { ErrorMessageEnum, getMediaErrorMessage } from './errorMessage';
 import ProfileSettings from './ProfileSettings';
 import Player from '../player/Player';
+import { LocaleContext } from '../../providers/LocaleProvider';
 
 const mediaOptions = {
 	audio: true,
@@ -18,6 +19,7 @@ const mediaOptions = {
 
 function BrowserBroadcaster() {
 	const location = useLocation()
+	const { locale } = useContext(LocaleContext)
 	const navigate = useNavigate();
 	const streamKey = location.pathname.split('/').pop()
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
@@ -226,11 +228,11 @@ function BrowserBroadcaster() {
 
 	return (
 		<div className='flex flex-col container mx-auto gap-2'>
-			{mediaAccessError != null && <PlayerHeader headerType={"Error"}>{getMediaErrorMessage(mediaAccessError)}</PlayerHeader>}
-			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}>WebRTC has disconnected or failed to connect at all</PlayerHeader>}
-			{connectFailed && <PlayerHeader headerType={"Error"}>Failed to start Broadcast Box session</PlayerHeader>}
-			{hasPacketLoss && <PlayerHeader headerType={"Warning"}>WebRTC is experiencing packet loss</PlayerHeader>}
-			{publishSuccess && <PlayerHeader headerType={"Success"}>Live: Currently streaming to <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a></PlayerHeader>}
+			{mediaAccessError != null && <PlayerHeader headerType={"Error"}>{getMediaErrorMessage(locale, mediaAccessError)}</PlayerHeader>}
+			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}>{locale.player_header.connection_disconnected}</PlayerHeader>}
+			{connectFailed && <PlayerHeader headerType={"Error"}>{locale.player_header.connection_failed}</PlayerHeader>}
+			{hasPacketLoss && <PlayerHeader headerType={"Warning"}>{locale.player_header.connection_has_packetloss}</PlayerHeader>}
+			{publishSuccess && <PlayerHeader headerType={"Success"}>{locale.player_header.connection_established} <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a></PlayerHeader>}
 
 			{/* Browser video feed */}
 			{profileStateIsActive ? (
@@ -247,10 +249,6 @@ function BrowserBroadcaster() {
 					className='w-full h-full aspect-video'
 				/>
 			)}
-
-			{/* TODO: Add this view instead of only relying on the Player */}
-			{/* Current stream status */}
-			{/* <StreamStatus currentViewerCount={0} /> */}
 
 			{/* Profile settings */}
 			<ProfileSettings stateHasChanged={(isActive, streamKey) => {
@@ -277,7 +275,7 @@ function BrowserBroadcaster() {
 			{/* Conclude browser stream */}
 			{publishSuccess && (
 				<Button
-					title="End stream"
+					title={locale.player_header.button_end_stream}
 					onClick={endStream}
 				/>
 			)}

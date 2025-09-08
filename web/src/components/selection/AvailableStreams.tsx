@@ -2,6 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { StatusContext, StatusResult } from "../../providers/StatusProvider";
 import Button from "../shared/Button";
+import { LocaleContext } from '../../providers/LocaleProvider';
 
 interface StreamEntry {
   streamKey: string;
@@ -15,6 +16,7 @@ interface AvailableStreamsProps {
 
 const AvailableStreams = (props: AvailableStreamsProps) => {
   const navigate = useNavigate();
+  const { locale } = useContext(LocaleContext)
 
   const { activeStreamsStatus: streamStatus, refreshStatus, subscribe, unsubscribe } = useContext(StatusContext)
   const [streams, setStreams] = useState<StreamEntry[] | undefined>(undefined);
@@ -53,13 +55,13 @@ const AvailableStreams = (props: AvailableStreamsProps) => {
     <div className="flex flex-col">
       {props.showHeader !== false && (
         <div>
-          <div className="font-light leading-tight text-4xl mb-2">Current Streams</div>
-          {streams.length !== 0 && <p>Click a stream to join it</p>}
+          <div className="font-light leading-tight text-4xl mb-2">{locale.available_streams.title}</div>
+          {streams.length !== 0 && <p>{locale.available_streams.stream_join_message}</p>}
 
           <div className="m-2" />
         </div>
       )}
-      {streams.length === 0 && <p className='flex justify-center mb-2 mt-2'>No streams currently available</p>}
+      {streams.length === 0 && <p className='flex justify-center mb-2 mt-2'>{locale.available_streams.no_streams_message}</p>}
 
       <div className='flex flex-col gap-2'>
         {streams.map((e, i) => (
