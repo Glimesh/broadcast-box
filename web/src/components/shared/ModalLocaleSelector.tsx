@@ -48,7 +48,7 @@ export function LocalesModal(props: Props) {
           onClick={() => props.canCloseOnBackgroundClick && setIsOpen(false)}
         >
           <div
-            className="flex flex-col p-4 w-1/3 bg-gray-800 gap-2 h-min border-gray-500 border rounded-2xl"
+            className="flex flex-col p-4 w-52 bg-gray-800 gap-2 h-min border-gray-500 border rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {LocaleTypes.map((localeSelection) => <Button
