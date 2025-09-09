@@ -14,8 +14,8 @@ const RootWrapper = () => {
     <div className="flex flex-col min-h-screen h-screen">
       {navbarEnabled && (
         <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-50 top-0'>
-          <div className='container mx-auto flex flex-wrap items-center'>
-            <div className='flex flex-1 text-white font-extrabold justify-between items-center'>
+          <div className='flex flex-wrap items-center w-full'>
+            <div className='flex flex-1 text-white font-extrabold justify-between items-center w-full'>
               <Link to="/" className='font-light leading-tight text-2xl'>
                 {title}
               </Link>
