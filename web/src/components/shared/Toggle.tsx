@@ -31,7 +31,7 @@ export default function Toggle(props: Props) {
         <button
           type="button"
           onClick={() => props.onClickLeft?.()}
-          className={`${props.selected === "Left" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-s-lg hover:text-blue-700 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white`}>
+          className={`${props.selected === "Left" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-s-lg hover:text-blue-700 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white gap-1`}>
 
           {props.iconLeft && getIcon(props.iconLeft)}
           {props.titleLeft}
@@ -40,7 +40,7 @@ export default function Toggle(props: Props) {
         <button
           type="button"
           onClick={() => props.onClickRight?.()}
-          className={`${props.selected === "Right" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-e-lg hover:text-blue-700 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white`}>
+          className={`${props.selected === "Right" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-e-lg hover:text-blue-700 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white gap-1`}>
 
           {props.iconRight && getIcon(props.iconRight)}
           {props.titleRight}
