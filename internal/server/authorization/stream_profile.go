@@ -223,11 +223,9 @@ func IsProfileReserved(streamKey string) bool {
 
 	fileName, _ := getProfileFileNameByStreamKey(streamKey)
 	if fileName != "" {
-		log.Println("Authorization: Profile is reserved")
 		return true
 	}
 
-	log.Println("Authorization: Profile is not reserved")
 	return false
 }
 
