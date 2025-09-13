@@ -31,7 +31,7 @@ const AdminFrontpage = () => {
               <Button title={locale.admin_page.menu_status} stretch onClick={() => onChangeMenu("Status")} />
               <Button title={locale.admin_page.menu_profiles} stretch onClick={() => onChangeMenu("Profiles")} />
               <Button title={locale.admin_page.menu_api} stretch onClick={() => onChangeMenu("API")} isDisabled />
-              <Button title={locale.admin_page.menu_logging} stretch onClick={() => onChangeMenu("Logging")} isDisabled />
+              <Button title={locale.admin_page.menu_logging} stretch onClick={() => onChangeMenu("Logging")} />
             </div>
 
             <div className="flex flex-col p-2 space-y-2">
@@ -41,7 +41,7 @@ const AdminFrontpage = () => {
           </Card>
         </div>
 
-        <div className={"flex-3 h-full"}>
+        <div className={"flex-3"}>
           <Card>
             {currentMenu === "Status" && <StatusPage />}
             {currentMenu === "Profiles" && <ProfilesPage />}

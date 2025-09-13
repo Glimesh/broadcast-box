@@ -27,7 +27,7 @@ func GetServeMuxHandler() http.HandlerFunc {
 
 	// Whip session endpoints
 	serverMux.HandleFunc("/api/whip", corsHandler(whipHandlers.WhipHandler))
-	serverMux.HandleFunc("/api/whip/profile", corsHandler(whipHandlers.ProfileHandler))
+	serverMux.HandleFunc("/api/profile", corsHandler(whipHandlers.ProfileHandler))
 
 	// Whep session endpoints
 	serverMux.HandleFunc("/api/layer/", corsHandler(layerChangeHandler))
@@ -40,6 +40,7 @@ func GetServeMuxHandler() http.HandlerFunc {
 	// serverMux.HandleFunc("/api/admin/sse/", corsHandler(adminSseHandler))
 	serverMux.HandleFunc("/api/admin/login", corsHandler(adminHandlers.AdminLoginHandler))
 	serverMux.HandleFunc("/api/admin/status", corsHandler(adminHandlers.AdminStatusHandler))
+	serverMux.HandleFunc("/api/admin/logging", corsHandler(adminHandlers.AdminLoggingHandler))
 	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminHandlers.AdminProfilesHandler))
 	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminHandlers.AdminProfilesResetTokenHandler))
 	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminHandlers.AdminProfileAddHandler))
