@@ -12,6 +12,8 @@ interface Props<T extends string | number> {
 	initialValue?: T;
 
 	canCloseOnBackgroundClick?: boolean;
+
+	buttonAcceptText?: string;
 }
 
 export default function TextInputDialog<T extends string | number>(
@@ -30,11 +32,15 @@ export default function TextInputDialog<T extends string | number>(
 
 			<input
 				className="mb-6 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200"
-				type={props.isSecret === true ? "password" : "text"}
-				security=""
+				type={props.isSecret ? "password" : "text"}
 				ref={valueRef!}
 				placeholder={props.placeholder}
 				autoFocus
+				onKeyUp={(e) => {
+					if (e.key === "Enter") {
+						props.onAccept?.(valueRef.current?.value as T)
+					}
+				}}
 			/>
 
 			{/*Buttons*/}
@@ -44,7 +50,7 @@ export default function TextInputDialog<T extends string | number>(
 						className="bg-green-700 text-white px-4 py-2 rounded"
 						onClick={() => props.onAccept?.(valueRef.current?.value as T)}
 					>
-						{locale.shared_component_text_input_dialog.button_accept}
+						{props.buttonAcceptText !== undefined ? props.buttonAcceptText : locale.shared_component_text_input_dialog.button_accept}
 					</button>
 				)}
 			</div>
