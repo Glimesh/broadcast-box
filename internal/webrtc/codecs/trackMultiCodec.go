@@ -51,7 +51,7 @@ func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCode
 		}
 
 		if track.payloadTypeOpus != 0 {
-			log.Println("Binding AudioTrack Type:", track.currentPayloadType)
+			log.Println("TrackMultiCodec: Binding AudioTrack Type for", track.streamId, "-", track.currentPayloadType)
 
 			track.kind = webrtc.RTPCodecTypeAudio
 			return webrtc.RTPCodecParameters{
@@ -93,7 +93,7 @@ func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCode
 		}
 	}
 
-	log.Println("Binding VideoTrack Type:", track.currentPayloadType)
+	log.Println("TrackMultiCodec: Binding VideoTrack Type for", track.streamId, "-", track.currentPayloadType)
 	track.kind = webrtc.RTPCodecTypeVideo
 	return webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
@@ -114,7 +114,7 @@ func (track *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec int) error {
 	packet.SSRC = uint32(track.ssrc)
 
 	if codec != track.codec {
-		log.Println("Setting Codec from", track.codec, "to", codec)
+		log.Println("TrackMultiCodec: Setting Codec on", track.streamId, "(", track.RID(), ")", "from", track.codec, "to", codec)
 		track.codec = codec
 
 		switch track.codec {
