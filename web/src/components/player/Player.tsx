@@ -1,6 +1,6 @@
 ﻿import React, { useContext, useEffect, useRef, useState } from 'react'
 import { parseLinkHeader } from '@web3-storage/parse-link-header'
-import { ArrowsPointingOutIcon, Square2StackIcon } from "@heroicons/react/16/solid";
+import { ArrowsPointingOutIcon, SpeakerXMarkIcon, Square2StackIcon } from "@heroicons/react/16/solid";
 import VolumeComponent from "./components/VolumeComponent";
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
@@ -279,6 +279,7 @@ const Player = (props: PlayerProps) => {
 
 							<VolumeComponent
 								isMuted={videoRef.current?.muted ?? false}
+								isDisabled={audioLayers.length === 0}
 								onVolumeChanged={(newValue) => videoRef.current!.volume = newValue}
 								onStateChanged={(newState) => videoRef.current!.muted = newState}
 							/>
@@ -286,13 +287,16 @@ const Player = (props: PlayerProps) => {
 							<div className="w-full"></div>
 
 							<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
-							<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
+							<VideoLayerSelectorComponent
+								layers={videoLayers}
+								layerEndpoint={layerEndpointRef.current}
+								hasPacketLoss={hasPacketLoss}
+								currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
 							{audioLayers.length > 1 && (
 								<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
 							)}
 							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
 							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()} />
-
 						</div>
 					</div>)}
 

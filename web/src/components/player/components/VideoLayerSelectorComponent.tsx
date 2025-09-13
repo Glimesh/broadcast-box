@@ -41,7 +41,7 @@ const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 	return (
 		<div className="h-full flex">
 			<ChartBarIcon
-				className={props.hasPacketLoss ? "text-orange-600" : ""}
+				className={props.hasPacketLoss ? "text-orange-600" : "" + (layerList.length === 0 ? "opacity-25" : "")}
 				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)} />
 
 			{isOpen && (
