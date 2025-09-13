@@ -69,11 +69,13 @@ const Admin = () => {
   return (
     <div className="flex items-center justify-center h-full w-full flex-col">
       <TextInputDialog<string>
+        isSecret={true}
         title={locale.admin_login.login_input_dialog_title}
         message={locale.admin_login.login_input_dialog_message}
         placeholder={locale.admin_login.login_input_dialog_placeholder}
         canCloseOnBackgroundClick={false}
         onAccept={(result: string) => login(result)}
+        buttonAcceptText={locale.admin_login.button_login_text}
       />
 
       {errorMessage !== "" && (
