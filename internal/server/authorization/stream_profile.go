@@ -222,11 +222,7 @@ func IsProfileReserved(streamKey string) bool {
 	assureProfilePath()
 
 	fileName, _ := getProfileFileNameByStreamKey(streamKey)
-	if fileName != "" {
-		return true
-	}
-
-	return false
+	return fileName != ""
 }
 
 func ResetProfileToken(streamKey string) error {
