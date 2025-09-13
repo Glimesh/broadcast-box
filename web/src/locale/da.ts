@@ -106,7 +106,8 @@ const locale_da: localeInterface = {
     login_input_dialog_title: "Login",
     login_input_dialog_message: "Indsæt admin-token for at logge ind",
     login_input_dialog_placeholder: "Indsæt admin-token for at logge ind",
-    error_message_login_failed: "Login mislykkedes"
+    error_message_login_failed: "Login mislykkedes",
+    button_login_text: "Login"
   },
 
   admin_page: {

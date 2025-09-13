@@ -118,6 +118,8 @@ export interface localeInterface {
     login_input_dialog_placeholder: string,
 
     error_message_login_failed: string
+
+    button_login_text: string
   },
 
   admin_page: {
