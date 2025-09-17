@@ -4,6 +4,7 @@ import Button from "../../shared/Button";
 import ModalTextInput from "../../shared/ModalTextInput";
 import ModalMessageBox from "../../shared/ModalMessageBox";
 import { LocaleContext } from "../../../providers/LocaleProvider";
+import { getIcon } from "../../shared/Icons";
 
 const ADMIN_TOKEN = "adminToken";
 
@@ -20,6 +21,8 @@ const ProfilesPage = () => {
   const [isAddProfileModalOpen, setIsAddProfileModalOpen] = useState<boolean>(false);
   const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
+
+  const copyTokenToClipboard = (token: string) => navigator.clipboard.writeText(token)
 
   const refreshProfiles = () => {
     fetch(`/api/admin/profiles`, {
@@ -151,14 +154,19 @@ const ProfilesPage = () => {
                     {profile.streamKey}
                   </td>
                   <td className="px-4 py-2 font-medium ">
-                    {profile.isPublic ? "Yes" : "No"}
+                    {profile.isPublic
+                      ? locale.admin_page_profiles.yes
+                      : locale.admin_page_profiles.no}
                   </td>
                   <td className="px-4 py-2">{profile.motd}</td>
-                  <td
-                    className="px-4 py-2 flex flex-row justify-between items-center"
-                    title="To be implemented"
-                  >
-                    {profile.token}
+                  <td className="px-4 py-2 flex flex-row justify-between items-center">
+                    <div
+                      title="Copy to clipboard"
+                      className="flex flex-row gap-1 cursor-pointer"
+                      onClick={() => copyTokenToClipboard(profile.token)} >
+                      {getIcon("Copy")}
+                      {profile.token}
+                    </div>
 
                     <ArrowPathIcon
                       className="ml-2 h-6"
