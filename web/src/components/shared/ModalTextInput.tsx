@@ -101,7 +101,6 @@ export default function ModalTextInput<T extends string | number>(
 								onClick={() => props.onAccept?.(valueRef.current?.value as T)}
 							>
 								{locale.shared_component_text_input_modal.button_accept}
-								Accept
 							</button>
 						)}
 						<button
