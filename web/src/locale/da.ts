@@ -148,6 +148,9 @@ const locale_da: localeInterface = {
     table_header_token: "Token",
 
     button_add_profile: "Tilføj profil",
+
+    yes: "Ja",
+    no: "Nej"
   },
 
   admin_page_status_page: {

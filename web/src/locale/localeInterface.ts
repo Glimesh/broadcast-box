@@ -162,7 +162,10 @@ export interface localeInterface {
     table_header_motd: string,
     table_header_token: string,
 
-    button_add_profile: string
+    button_add_profile: string,
+
+    yes: string,
+    no: string
   },
 
   admin_page_status_page: {

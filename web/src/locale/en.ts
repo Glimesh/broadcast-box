@@ -149,6 +149,9 @@ const locale_en: localeInterface = {
     table_header_token: "Token",
 
     button_add_profile: "Add profile",
+
+    yes: "Yes",
+    no: "No"
   },
 
   admin_page_status_page: {
