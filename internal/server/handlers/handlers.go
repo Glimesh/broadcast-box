@@ -27,7 +27,7 @@ func GetServeMuxHandler() http.HandlerFunc {
 
 	// Whip session endpoints
 	serverMux.HandleFunc("/api/whip", corsHandler(whipHandlers.WhipHandler))
-	serverMux.HandleFunc("/api/profile", corsHandler(whipHandlers.ProfileHandler))
+	serverMux.HandleFunc("/api/whip/profile", corsHandler(whipHandlers.ProfileHandler))
 
 	// Whep session endpoints
 	serverMux.HandleFunc("/api/layer/", corsHandler(layerChangeHandler))
