@@ -5,6 +5,7 @@ import ModalTextInput from "../../shared/ModalTextInput";
 import ModalMessageBox from "../../shared/ModalMessageBox";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 import { getIcon } from "../../shared/Icons";
+import toBase64Utf8 from "../../../utilities/base64";
 
 const ADMIN_TOKEN = "adminToken";
 
@@ -28,7 +29,7 @@ const ProfilesPage = () => {
     fetch(`/api/admin/profiles`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
+        Authorization: `Bearer ${toBase64Utf8(localStorage.getItem(ADMIN_TOKEN))}`,
       },
     })
       .then((result) => {
@@ -47,7 +48,7 @@ const ProfilesPage = () => {
     fetch(`/api/admin/profiles/reset-token`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
+        Authorization: `Bearer ${toBase64Utf8(localStorage.getItem(ADMIN_TOKEN))}`,
       },
       body: JSON.stringify({ streamKey: streamKey }),
     }).then((result) => {
@@ -63,7 +64,7 @@ const ProfilesPage = () => {
     fetch(`/api/admin/profiles/add-profile`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
+        Authorization: `Bearer ${toBase64Utf8(localStorage.getItem(ADMIN_TOKEN))}`,
       },
       body: JSON.stringify({ streamKey: streamKey }),
     }).then((result) => {
@@ -86,7 +87,7 @@ const ProfilesPage = () => {
     fetch(`/api/admin/profiles/remove-profile`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
+        Authorization: `Bearer ${toBase64Utf8(localStorage.getItem(ADMIN_TOKEN))}`,
       },
       body: JSON.stringify({ streamKey: streamKey }),
     }).then((result) => {

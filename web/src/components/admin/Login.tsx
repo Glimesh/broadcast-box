@@ -2,6 +2,7 @@
 import TextInputDialog from "../shared/TextInputDialog";
 import AdminFrontpage from "./Frontpage";
 import { LocaleContext } from "../../providers/LocaleProvider";
+import toBase64Utf8 from "../../utilities/base64";
 
 const ADMIN_TOKEN = "adminToken";
 
@@ -19,7 +20,7 @@ const Admin = () => {
     fetch(`/api/admin/login`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${toBase64Utf8(token)}`,
       },
     })
       .then((result) => {
@@ -51,7 +52,7 @@ const Admin = () => {
     fetch(`/api/admin/login`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${toBase64Utf8(token)}`,
       },
     })
       .then((result) => result.json())

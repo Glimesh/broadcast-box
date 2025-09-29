@@ -4,6 +4,7 @@ import Input from "../shared/Input";
 import Toggle from "../shared/Toggle";
 import Button from "../shared/Button";
 import { LocaleContext } from "../../providers/LocaleProvider";
+import toBase64Utf8 from "../../utilities/base64";
 
 interface Profile {
   streamKey: string
@@ -28,7 +29,7 @@ export default function ProfileSettings(props: ProfileSettingsProps) {
     fetch(`/api/whip/profile`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${streamKey}`,
+        Authorization: `Bearer ${toBase64Utf8(streamKey)}`,
       },
       body: JSON.stringify({
         motd: motd,
@@ -46,7 +47,7 @@ export default function ProfileSettings(props: ProfileSettingsProps) {
     fetch(`/api/whip/profile`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${streamKey}`,
+        Authorization: `Bearer ${toBase64Utf8(streamKey)}`,
       },
     }).then((result) => {
       if (result.status > 400 && result.status < 500 || result.status === 204) {

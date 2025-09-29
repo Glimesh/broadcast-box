@@ -8,6 +8,7 @@ import { ErrorMessageEnum, getMediaErrorMessage } from './errorMessage';
 import ProfileSettings from './ProfileSettings';
 import Player from '../player/Player';
 import { LocaleContext } from '../../providers/LocaleProvider';
+import toBase64Utf8 from '../../utilities/base64';
 
 const mediaOptions = {
 	audio: true,
@@ -21,7 +22,7 @@ function BrowserBroadcaster() {
 	const location = useLocation()
 	const { locale } = useContext(LocaleContext)
 	const navigate = useNavigate();
-	const streamKey = location.pathname.split('/').pop()
+	const streamKey = decodeURIComponent(location.pathname.split('/').pop() ?? "")
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
 	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
@@ -142,7 +143,7 @@ function BrowserBroadcaster() {
 						method: 'POST',
 						body: offer.sdp,
 						headers: {
-							Authorization: `Bearer ${streamKey}`,
+							Authorization: `Bearer ${toBase64Utf8(streamKey)}`,
 							'Content-Type': 'application/sdp'
 						}
 					}).then(r => {

@@ -9,6 +9,7 @@ import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { HeaderContext } from '../../providers/HeaderProvider';
 import { StatusContext } from '../../providers/StatusProvider';
 import { LocaleContext } from '../../providers/LocaleProvider';
+import toBase64Utf8 from '../../utilities/base64';
 
 interface PlayerProps {
 	streamKey: string;
@@ -30,7 +31,8 @@ interface CurrentLayersMessage {
 }
 
 const Player = (props: PlayerProps) => {
-	const { streamKey, cinemaMode } = props;
+	const { cinemaMode } = props;
+	const streamKey = decodeURIComponent(props.streamKey).replace(' ', '_')
 	const { setTitle } = useContext(HeaderContext)
 	const { locale } = useContext(LocaleContext)
 	const { currentStreamStatus, setCurrentStreamStatus } = useContext(StatusContext)
@@ -199,11 +201,13 @@ const Player = (props: PlayerProps) => {
 
 				const whepResponse = await fetch(`/api/whep`, {
 					method: 'POST',
-					body: offer.sdp,
+					body: toBase64Utf8(JSON.stringify({
+						streamKey: streamKey,
+						offer: offer.sdp
+					})),
 					headers: {
-						Authorization: `Bearer ${streamKey}`,
 						'Content-Type': 'application/sdp'
-					}
+					},
 				})
 
 				const parsedLinkHeader = parseLinkHeader(whepResponse.headers.get('Link'))
@@ -318,7 +322,7 @@ const Player = (props: PlayerProps) => {
 				{videoLayers.length === 0 && !hasSignal && (
 					<h2
 						className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-						{props.streamKey} {locale.player.message_is_not_online}
+						{streamKey} {locale.player.message_is_not_online}
 					</h2>
 				)}
 				{videoLayers.length > 0 && !hasSignal && (
