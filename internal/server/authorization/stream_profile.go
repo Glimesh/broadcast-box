@@ -18,7 +18,7 @@ const (
 )
 
 func isValidStreamKey(streamKey string) bool {
-	regExp := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	regExp := regexp.MustCompile(`[\p{L}\p{N}_-]+`)
 	return regExp.MatchString(streamKey)
 }
 
