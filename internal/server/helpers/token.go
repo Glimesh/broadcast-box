@@ -6,7 +6,7 @@ import (
 )
 
 func ResolveBearerToken(authHeader string) string {
-	const bearerPrefix = "Bearer"
+	const bearerPrefix = "Bearer "
 	if result, ok := strings.CutPrefix(authHeader, bearerPrefix); ok {
 
 		if base64String, err := getBase64String(strings.ReplaceAll(result, " ", "")); err == nil {
