@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -10,34 +12,36 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc"
 )
 
+type WhepRequest struct {
+	Offer     string
+	StreamKey string
+}
+
 func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if request.Method == "DELETE" {
 		return
 	}
 
-	authHeader := request.Header.Get("Authorization")
-
-	if authHeader == "" {
-		log.Println("Authorization was not set")
-		helpers.LogHttpError(responseWriter, "Authorization was not set", http.StatusBadRequest)
-	}
-
-	token := helpers.ResolveBearerToken(authHeader)
-	if token == "" {
-		log.Println("Authorization was invalid")
-		helpers.LogHttpError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
-		return
-	}
-
-	offer, err := io.ReadAll(request.Body)
+	requestBodyB64, err := io.ReadAll(request.Body)
 	if err != nil {
 		log.Println(err.Error())
 		helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	log.Println("API.WHEP: Setting up WHEP")
-	whipAnswer, sessionId, err := webrtc.WHEP(string(offer), token)
+	decodedB64, err := base64.StdEncoding.DecodeString(string(requestBodyB64))
+	if err != nil {
+		log.Println("API.WHEP: Invalid B64 encoding for request")
+		return
+	}
+
+	var whepRequest WhepRequest
+	if err := json.Unmarshal(decodedB64, &whepRequest); err != nil {
+		log.Println("API.WHEP: Could not read WHEP request")
+		return
+	}
+
+	whipAnswer, sessionId, err := webrtc.WHEP(string(whepRequest.Offer), whepRequest.StreamKey)
 	if err != nil {
 		log.Println("API.WHEP: Setup Error", err.Error())
 		helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
