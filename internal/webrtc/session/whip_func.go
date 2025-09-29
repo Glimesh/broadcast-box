@@ -3,7 +3,6 @@ package session
 import (
 	"context"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -27,7 +26,7 @@ func GetStream(profile authorization.PublicProfile, whipSessionId string) (*Whip
 		stream = &WhipSession{
 			SessionId: whipSessionId,
 
-			StreamKey: strings.ReplaceAll(profile.StreamKey, " ", ""),
+			StreamKey: profile.StreamKey,
 			IsPublic:  profile.IsPublic,
 			MOTD:      profile.MOTD,
 
