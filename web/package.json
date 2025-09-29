@@ -44,6 +44,6 @@
     "react-router-dom": "^7.7.1",
     "tailwindcss": "^4.1.10",
     "typescript": "^5.8.3",
-    "vite": "^7.0.6"
+    "vite": "^7.1.7"
   }
 }
