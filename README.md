@@ -239,12 +239,13 @@ The backend can be configured with the following environment variables.
 
 ## Authentication and Logging
 
-To prevent random users from streaming to your server, you can set the `WEBHOOK_URL` and validate/process requests in your code.
+To prevent random users from streaming to your server, you can set the `WEBHOOK_URL` and validate/process requests in your code. This enables you to separate the authorization between broadcasting (whip) and watching (whep). So you can safely share a watch link without exposing the key used for broadcasting.
 
-If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given
-by the external server, otherwise the streaming request is dropped.
+If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given by the external server, otherwise the streaming request is dropped.
 
 See [here](examples/webhook-server.go). For an example Webhook Server that only allows the stream `broadcastBoxRulez`
+
+For a more advanced example of a webhook server implementation making use of separating the key for streaming from the key for watching, see the [broadcastbox-webhookserver](https://github.com/chrisingenhaag/broadcastbox-webhookserver) repository.
 
 
 ## Network Test on Start
