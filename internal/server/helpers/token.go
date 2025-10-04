@@ -30,12 +30,10 @@ func ResolveBearerToken(authHeader string) string {
 func getBase64String(token string) (result string, err error) {
 	log.Println("Checking B64 for string", token)
 	if !regexp.MustCompile(`^[A-Za-z0-9+/]+={0,2}$`).MatchString(token) {
-		log.Println("Failed B64 for string", token)
 		return "", fmt.Errorf("string is not valid base64")
 	}
 
 	output, err := base64.StdEncoding.DecodeString(token)
-	log.Println("Converting", token, " to B64", string(output))
 	if err != nil {
 		return "", err
 	}
