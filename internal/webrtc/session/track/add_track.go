@@ -15,7 +15,6 @@ func AddAudioTrack(stream *session.WhipSession, rid string, codec int, whepSessi
 	whepSessionsLock.Lock()
 	defer whepSessionsLock.Unlock()
 
-	log.Println("Adding AudioStream to", stream.StreamKey, "(", rid, ")")
 	for i := range stream.AudioTracks {
 		if rid == stream.AudioTracks[i].Rid {
 			return stream.AudioTracks[i], nil
