@@ -8,6 +8,7 @@ import (
 	"github.com/pion/rtp"
 )
 
+// Sends provided audio packet to the Whep session
 func (session *WhepSession) SendAudioPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec int) {
 	currentLayer := session.AudioLayerCurrent.Load()
 
@@ -29,6 +30,7 @@ func (session *WhepSession) SendAudioPacket(rtpPkt *rtp.Packet, layer string, ti
 	}
 }
 
+// Sends provided video packet to the Whep session
 func (session *WhepSession) SendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec int, isKeyframe bool) {
 	currentLayer := session.VideoLayerCurrent.Load()
 
