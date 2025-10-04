@@ -159,6 +159,9 @@ func GetWhepSessionStatus(whepSession *WhepSession) string {
 	currentAudioLayer := whepSession.AudioLayerCurrent.Load().(string)
 	currentVideoLayer := whepSession.VideoLayerCurrent.Load().(string)
 
+	whepSession.AudioLock.RLock()
+	whepSession.VideoLock.RLock()
+
 	currentSessionState := WhepSessionState{
 		Id: whepSession.SessionId,
 
@@ -172,6 +175,9 @@ func GetWhepSessionStatus(whepSession *WhepSession) string {
 		VideoPacketsWritten: whepSession.VideoPacketsWritten,
 		VideoSequenceNumber: uint64(whepSession.VideoSequenceNumber),
 	}
+
+	whepSession.AudioLock.RUnlock()
+	whepSession.VideoLock.RUnlock()
 
 	currentSessionStateJson, err := utils.ToJsonString(currentSessionState)
 	if err != nil {

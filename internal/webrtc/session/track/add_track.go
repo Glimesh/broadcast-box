@@ -36,7 +36,9 @@ func AddAudioTrack(stream *session.WhipSession, rid string, codec int, whepSessi
 	}
 	track.LastRecieved.Store(time.Time{})
 
+	stream.TracksLock.Lock()
 	stream.AudioTracks = append(stream.AudioTracks, track)
+	stream.TracksLock.Unlock()
 
 	return track, nil
 }
@@ -66,7 +68,9 @@ func AddVideoTrack(stream *session.WhipSession, rid string, codec int, whepSessi
 	}
 	track.LastRecieved.Store(time.Time{})
 
+	stream.TracksLock.Lock()
 	stream.VideoTracks = append(stream.VideoTracks, track)
+	stream.TracksLock.Unlock()
 
 	return track, nil
 }

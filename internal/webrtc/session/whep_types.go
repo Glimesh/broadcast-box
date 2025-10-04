@@ -1,6 +1,7 @@
 package session
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -9,16 +10,19 @@ import (
 
 type (
 	WhepSession struct {
+		SessionLock          sync.RWMutex
 		SessionId            string
 		IsWaitingForKeyframe atomic.Bool
 		SSEChannel           chan any
 
+		VideoLock           sync.RWMutex
 		VideoTrack          *codecs.TrackMultiCodec
 		VideoTimestamp      uint32
 		VideoPacketsWritten uint64
 		VideoSequenceNumber uint16
 		VideoLayerCurrent   atomic.Value
 
+		AudioLock           sync.RWMutex
 		AudioTrack          *codecs.TrackMultiCodec
 		AudioTimestamp      uint32
 		AudioPacketsWritten uint64
