@@ -70,7 +70,6 @@ func StartWhipSessionLoop(stream *WhipSession) {
 		// Announce new layers available
 		case <-stream.OnTrackChan:
 			// Lock, copy session data, then unlock
-			WhipSessionsLock.Lock()
 			stream.WhepSessionsLock.RLock()
 
 			whepSessionsCopy := make([]*WhepSession, 0, len(stream.WhepSessions))
@@ -79,7 +78,6 @@ func StartWhipSessionLoop(stream *WhipSession) {
 			}
 
 			stream.WhepSessionsLock.RUnlock()
-			WhipSessionsLock.Unlock()
 
 			// Generate layer info outside lock
 			currentLayers := GetAvailableLayersJsonString(stream)
