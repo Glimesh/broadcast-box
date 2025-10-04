@@ -79,6 +79,7 @@ func getWhipSessionChannel(sessionId string) chan any {
 
 	return nil
 }
+
 func getWhepSessionChannel(sessionId string) chan any {
 	session.WhipSessionsLock.Lock()
 	defer session.WhipSessionsLock.Unlock()

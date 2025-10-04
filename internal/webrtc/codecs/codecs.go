@@ -11,7 +11,6 @@ const (
 	VideoTrackLabelDefault = "Video"
 
 	VideoTrackCodecH264 = iota + 1
-	// VideoTrackCodecH264 videoTrackCodec = iota + 1
 	VideoTrackCodecH265
 	VideoTrackCodecVP8
 	VideoTrackCodecVP9
