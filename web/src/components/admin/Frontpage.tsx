@@ -26,7 +26,7 @@ const AdminFrontpage = () => {
 
       <div className="flex flex-row w-full h-full space-x-2">
         <div className="flex-1 space-x-2">
-          <Card title={"Settings"}>
+          <Card title={locale.admin_page.menu_settings}>
             <div className="flex flex-col h-full p-2 space-y-2">
               <Button title={locale.admin_page.menu_status} stretch onClick={() => onChangeMenu("Status")} />
               <Button title={locale.admin_page.menu_profiles} stretch onClick={() => onChangeMenu("Profiles")} />
