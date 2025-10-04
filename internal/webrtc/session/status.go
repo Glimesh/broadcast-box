@@ -156,11 +156,11 @@ func GetSessionStatsJsonString(whipSession *WhipSession) string {
 }
 
 func GetWhepSessionStatus(whepSession *WhepSession) string {
-	currentAudioLayer := whepSession.AudioLayerCurrent.Load().(string)
-	currentVideoLayer := whepSession.VideoLayerCurrent.Load().(string)
-
 	whepSession.AudioLock.RLock()
 	whepSession.VideoLock.RLock()
+
+	currentAudioLayer := whepSession.AudioLayerCurrent.Load().(string)
+	currentVideoLayer := whepSession.VideoLayerCurrent.Load().(string)
 
 	currentSessionState := WhepSessionState{
 		Id: whepSession.SessionId,
