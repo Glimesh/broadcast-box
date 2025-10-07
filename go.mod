@@ -12,7 +12,7 @@ require (
 	github.com/pion/interceptor v0.1.40
 	github.com/pion/rtcp v1.2.15
 	github.com/pion/rtp v1.8.23
-	github.com/pion/sdp/v3 v3.0.15
+	github.com/pion/sdp/v3 v3.0.16
 	github.com/pion/webrtc/v4 v4.1.3
 	github.com/stretchr/testify v1.11.1
 )
