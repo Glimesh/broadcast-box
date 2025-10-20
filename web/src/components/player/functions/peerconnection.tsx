@@ -96,7 +96,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	.setLocalDescription(offer)
 	.catch((err) => console.error("PeerConnection.SetLocalDescription", err));
 
-	await waitForIceGatheringComplete(peerConnection)
+	// await waitForIceGatheringComplete(peerConnection)
 
 	const whepResponse = await fetch(`/api/whep`, {
 		method: 'POST',
