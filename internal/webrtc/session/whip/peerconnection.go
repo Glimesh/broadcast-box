@@ -28,6 +28,10 @@ func (whipSession *WhipSession) AddPeerConnection(peerConnection *webrtc.PeerCon
 func (whipSession *WhipSession) RemovePeerConnection() {
 	log.Println("WhipSession.RemovePeerConnection", whipSession.StreamKey)
 
+	if whipSession.PeerConnection == nil {
+		return
+	}
+
 	err := whipSession.PeerConnection.Close()
 	if err != nil {
 		log.Println("WhipSession.RemovePeerConnection.Error", err)
