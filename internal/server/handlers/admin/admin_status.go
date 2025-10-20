@@ -20,16 +20,11 @@ func AdminStatusHandler(responseWriter http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
-
-	sessions := session.GetSessionStates(session.WhipSessions, true)
-	sessionsCopy := make([]session.StreamSession, len(sessions))
-	copy(sessionsCopy, sessions)
+	sessions := session.SessionManager.GetSessionStates(true)
 
 	responseWriter.Header().Set("Content-Type", "application/json")
 
-	err := json.NewEncoder(responseWriter).Encode(sessionsCopy)
+	err := json.NewEncoder(responseWriter).Encode(sessions)
 	if err != nil {
 		log.Println("API.AdminStatus Error", err)
 	}

@@ -1,4 +1,4 @@
-package track
+package whip
 
 import (
 	"errors"
@@ -8,14 +8,13 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
-	"github.com/pion/webrtc/v4"
 	pionCodecs "github.com/pion/rtp/codecs"
+	"github.com/pion/webrtc/v4"
 )
 
-func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, peerConnection *webrtc.PeerConnection) {
+func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, peerConnection *webrtc.PeerConnection) {
 	id := remoteTrack.RID()
 
 	if id == "" {
@@ -23,16 +22,14 @@ func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 	}
 
 	codec := codecs.GetVideoTrackCodec(remoteTrack.Codec().MimeType)
-	track, err := AddVideoTrack(stream, id, codec, &stream.WhepSessionsLock)
+	track, err := whipSession.AddVideoTrack(id, codec)
 	if err != nil {
 		log.Println("VideoWriter.AddTrack.Error:", err)
 		return
 	}
-	track.Priority = getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
+	track.Priority = whipSession.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
-	stream.OnTrackChan <- struct{}{}
-
-	go subscribeStreamChannels(remoteTrack, stream, peerConnection)
+	go whipStreamVideoWriterChannels(remoteTrack, whipSession, peerConnection)
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
@@ -60,11 +57,11 @@ func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 		case errors.Is(err, io.EOF):
 			return
 		case err != nil:
-			log.Println("video_writer", err)
+			log.Println("VideoWriter.RtpPkt.Unmarshal.Error", err)
 		}
 
 		if err = rtpPkt.Unmarshal(rtpBuf[:rtpRead]); err != nil {
-			log.Println("video_writer", err)
+			log.Println("VideoWriter.RtpPkt.Unmarshal.Error", err)
 			return
 		}
 
@@ -102,18 +99,17 @@ func VideoWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 		lastTimestamp = rtpPkt.Timestamp
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
-		stream.WhepSessionsLock.RLock()
-		for whepSession := range stream.WhepSessions {
-			stream.WhepSessions[whepSession].SendVideoPacket(
+		whipSession.WhepSessionsLock.RLock()
+		for _, whepSession := range whipSession.WhepSessions {
+			whepSession.SendVideoPacket(
 				rtpPkt,
 				id,
 				timeDiff,
 				sequenceDiff,
 				codec,
 				isKeyframe)
-
 		}
-		stream.WhepSessionsLock.RUnlock()
+		whipSession.WhepSessionsLock.RUnlock()
 	}
 }
 
@@ -125,7 +121,7 @@ const (
 	ppsNALUType = 8
 )
 
-func isPacketKeyframe(pkt *rtp.Packet, codec int, depacketizer rtp.Depacketizer) bool {
+func isPacketKeyframe(pkt *rtp.Packet, codec codecs.TrackCodeType, depacketizer rtp.Depacketizer) bool {
 	if codec == codecs.VideoTrackCodecH264 {
 		nalu, err := depacketizer.Unmarshal(pkt.Payload)
 
@@ -140,13 +136,19 @@ func isPacketKeyframe(pkt *rtp.Packet, codec int, depacketizer rtp.Depacketizer)
 	return true
 }
 
-func subscribeStreamChannels(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, peerConnection *webrtc.PeerConnection) {
+// Triggers a request for a new key frame to be sent to the client
+func whipStreamVideoWriterChannels(remoteTrack *webrtc.TrackRemote, whipSession *WhipSession, peerConnection *webrtc.PeerConnection) {
+
+	whipSession.StatusLock.RLock()
+	whipActiveContext := whipSession.ActiveContext
+	whipSession.StatusLock.RUnlock()
+
 	for {
 		{
 			select {
-			case <-stream.ActiveContext.Done():
+			case <-whipActiveContext.Done():
 				return
-			case <-stream.PliChan:
+			case <-whipSession.PacketLossIndicationChannel:
 				if sendError := peerConnection.WriteRTCP([]rtcp.Packet{
 					&rtcp.PictureLossIndication{
 						MediaSSRC: uint32(remoteTrack.SSRC()),

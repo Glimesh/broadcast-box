@@ -25,63 +25,28 @@ func layerChangeHandler(responseWriter http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	log.Println("Changing layer", requestContent)
 	values := strings.Split(request.URL.RequestURI(), "/")
 	whepSessionId := values[len(values)-1]
+	whepSession, ok := session.SessionManager.GetWhepStream(whepSessionId)
+
+	log.Println("Found WHEP session", whepSession.SessionId)
+
+	if !ok {
+		helpers.LogHttpError(responseWriter, "Could not find WHEP session", http.StatusBadRequest)
+		return
+	}
 
 	if requestContent.MediaId == "1" {
-		if err := whepChangeVideoLayer(whepSessionId, requestContent.EncodingId); err != nil {
-			helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
-		}
+		log.Println("Setting Video Layer", requestContent.EncodingId)
+		whepSession.SetVideoLayer(requestContent.EncodingId)
 		return
 	}
 
 	if requestContent.MediaId == "2" {
-		if err := whepChangeAudioLayer(whepSessionId, requestContent.EncodingId); err != nil {
-			helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
-		}
+		log.Println("Setting Audio Layer", requestContent.EncodingId)
+		whepSession.SetAudioLayer(requestContent.EncodingId)
 		return
 	}
 
 	helpers.LogHttpError(responseWriter, "Unknown media type", http.StatusBadRequest)
-}
-
-func whepChangeAudioLayer(sessionId string, encodingId string) error {
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
-
-	log.Println("LayerChange.Audio", sessionId)
-
-	for streamKey := range session.WhipSessions {
-		session.WhipSessions[streamKey].WhepSessionsLock.Lock()
-		defer session.WhipSessions[streamKey].WhepSessionsLock.Unlock()
-
-		if _, ok := session.WhipSessions[streamKey].WhepSessions[sessionId]; ok {
-			session.WhipSessions[streamKey].WhepSessions[sessionId].AudioLayerCurrent.Store(encodingId)
-			session.WhipSessions[streamKey].PliChan <- true
-		}
-	}
-
-	log.Println("LayerChange.Audio.Complete", sessionId)
-	return nil
-}
-
-func whepChangeVideoLayer(sessionId string, encodingId string) error {
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
-
-	log.Println("LayerChange.Video", sessionId)
-
-	for streamKey := range session.WhipSessions {
-		session.WhipSessions[streamKey].WhepSessionsLock.Lock()
-		defer session.WhipSessions[streamKey].WhepSessionsLock.Unlock()
-
-		if _, ok := session.WhipSessions[streamKey].WhepSessions[sessionId]; ok {
-			session.WhipSessions[streamKey].WhepSessions[sessionId].VideoLayerCurrent.Store(encodingId)
-			session.WhipSessions[streamKey].PliChan <- true
-		}
-	}
-
-	log.Println("LayerChange.Video.Complete", sessionId)
-	return nil
 }

@@ -6,11 +6,14 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
+type TrackCodeType uint
+
 const (
 	AudioTrackLabelDefault = "Audio"
 	VideoTrackLabelDefault = "Video"
-
-	VideoTrackCodecH264 = iota + 1
+)
+const (
+	VideoTrackCodecH264 TrackCodeType = iota + 1
 	VideoTrackCodecH265
 	VideoTrackCodecVP8
 	VideoTrackCodecVP9
@@ -159,7 +162,7 @@ func GetDefaultTracks(streamKey string) (audioTrack *TrackMultiCodec, videoTrack
 	return audioTrack, videoTrack
 }
 
-func GetAudioTrackCodec(codec string) int {
+func GetAudioTrackCodec(codec string) TrackCodeType {
 	lowerCase := strings.ToLower(codec)
 
 	switch {
@@ -170,7 +173,7 @@ func GetAudioTrackCodec(codec string) int {
 	return 0
 }
 
-func GetVideoTrackCodec(codec string) int {
+func GetVideoTrackCodec(codec string) TrackCodeType {
 	lowerCase := strings.ToLower(codec)
 
 	switch {

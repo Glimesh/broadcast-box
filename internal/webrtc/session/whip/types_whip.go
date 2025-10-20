@@ -1,4 +1,4 @@
-package session
+package whip
 
 import (
 	"context"
@@ -6,33 +6,34 @@ import (
 	"sync/atomic"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 	"github.com/pion/webrtc/v4"
 )
 
-var (
-	WhipSessions     map[string]*WhipSession
-	WhipSessionsLock sync.Mutex
-	ApiWhip          *webrtc.API
-	ApiWhep          *webrtc.API
+type (
+	simulcastLayerResponse struct {
+		EncodingId string `json:"encodingId"`
+	}
 )
 
 type (
 	WhipSession struct {
-		// Protects StreamKey, SessionId, MOTD, HasHost
+		// Protects StreamKey, SessionId, MOTD, HasHost, IsPublic
 		StatusLock sync.RWMutex
 		StreamKey  string
 		SessionId  string
 		MOTD       string
 		HasHost    atomic.Bool
+		IsPublic   bool
 
 		ActiveContext       context.Context
 		ActiveContextCancel func()
+		PeerConnection      *webrtc.PeerConnection
+		PeerConnectionLock  sync.RWMutex
 
-		PliChan      chan any
-		IsPublic     bool
-		OnOnlineChan chan bool
-		OnTrackChan  chan struct{}
-		SSEChan      chan any
+		OnTrackChangeChannel        chan struct{}
+		EventsChannel               chan any
+		PacketLossIndicationChannel chan any
 
 		// Protects AudioTrack, VideoTracks
 		TracksLock  sync.RWMutex
@@ -41,7 +42,7 @@ type (
 
 		// Protects WhepSessions
 		WhepSessionsLock sync.RWMutex
-		WhepSessions     map[string]*WhepSession
+		WhepSessions     map[string]*whep.WhepSession
 	}
 
 	VideoTrack struct {

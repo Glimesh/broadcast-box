@@ -1,6 +1,8 @@
 package webrtc
 
 import (
+	"log"
+
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/peerconnection"
@@ -11,6 +13,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
+// TODO: Move peer connection inside of Whep struct, like it is done in Whip session
 func WHEP(offer string, streamKey string) (string, string, error) {
 	utils.DebugOutputOffer(offer)
 
@@ -18,7 +21,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		StreamKey: streamKey,
 	}
 
-	stream, err := session.GetStream(profile, "")
+	whipSession, err := session.SessionManager.GetOrAddStream(profile, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -37,14 +40,12 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		return "", "", err
 	}
 
-	rtpSender, err := peerConnection.AddTrack(videoTrack)
+	_, err = peerConnection.AddTrack(videoTrack)
 	if err != nil {
 		return "", "", err
 	}
 
-	peerconnection.RegisterHandlers(peerConnection, stream, false, whepSessionId)
-
-	go session.RtcpPacketReaderLoop(stream, rtpSender)
+	peerconnection.RegisterWhepHandlers(whipSession, peerConnection, whepSessionId)
 
 	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		SDP:  offer,
@@ -63,35 +64,9 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	}
 
 	<-gatherComplete
+	log.Println("WhepSession.GatheringCompletePromise: Completed Gathering for", streamKey)
 
-	session.WhipSessionsLock.Lock()
-	stream.WhepSessionsLock.Lock()
+	session.SessionManager.AddWhepSession(whepSessionId, whipSession, peerConnection, audioTrack, videoTrack)
 
-	stream.WhepSessions[whepSessionId] = &session.WhepSession{
-		AudioTrack:     audioTrack,
-		VideoTrack:     videoTrack,
-		AudioTimestamp: 5000,
-		VideoTimestamp: 5000,
-		SSEChannel:     make(chan any, 100),
-	}
-
-	var defaultAudioTrack = stream.GetHighestPrioritizedAudioTrack()
-	var defaultVideoTrack = stream.GetHighestPrioritizedVideoTrack()
-
-	whepSession := stream.WhepSessions[whepSessionId]
-	whepSession.VideoLayerCurrent.Store(defaultVideoTrack)
-	whepSession.AudioLayerCurrent.Store(defaultAudioTrack)
-	whepSession.IsWaitingForKeyframe.Store(false)
-
-	session.WhipSessionsLock.Unlock()
-	stream.WhepSessionsLock.Unlock()
-
-	// When WHEP is established, send initial messages to client
-	go func() {
-		whepSession.SSEChannel <- session.GetSessionStatsJsonString(stream)
-		whepSession.SSEChannel <- session.GetAvailableLayersJsonString(stream)
-		whepSession.SSEChannel <- session.GetWhepSessionStatus(whepSession)
-	}()
-
-	return utils.DebugOutputAnswer(utils.AppendAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
+	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
 }

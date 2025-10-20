@@ -1,4 +1,4 @@
-package track
+package whip
 
 import (
 	"errors"
@@ -10,10 +10,10 @@ import (
 	"github.com/pion/webrtc/v4"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 )
 
-func AudioWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, peerConnection *webrtc.PeerConnection) {
+func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, peerConnection *webrtc.PeerConnection) {
 	id := remoteTrack.RID()
 
 	if id == "" {
@@ -21,14 +21,12 @@ func AudioWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 	}
 
 	codec := codecs.GetAudioTrackCodec(remoteTrack.Codec().MimeType)
-	track, err := AddAudioTrack(stream, id, codec, &stream.WhepSessionsLock)
+	track, err := whipSession.AddAudioTrack(id, codec)
 	if err != nil {
 		log.Println("AudioWriter.AddTrack.Error:", err)
 		return
 	}
-	track.Priority = getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
-
-	stream.OnTrackChan <- struct{}{}
+	track.Priority = whipSession.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
 	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
@@ -80,15 +78,20 @@ func AudioWriter(remoteTrack *webrtc.TrackRemote, stream *session.WhipSession, p
 		lastTimestamp = rtpPkt.Timestamp
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
-		stream.WhepSessionsLock.RLock()
-		for whepSession := range stream.WhepSessions {
-			stream.WhepSessions[whepSession].SendAudioPacket(
+		whipSession.WhepSessionsLock.RLock()
+		whepSessions := make([]*whep.WhepSession, 0, len(whipSession.WhepSessions))
+		for _, s := range whipSession.WhepSessions {
+			whepSessions = append(whepSessions, s)
+		}
+		whipSession.WhepSessionsLock.RUnlock()
+
+		for _, whepSession := range whepSessions {
+			whepSession.SendAudioPacket(
 				rtpPkt,
 				id,
 				timeDiff,
 				sequenceDiff,
 				codec)
 		}
-		stream.WhepSessionsLock.RUnlock()
 	}
 }

@@ -8,11 +8,12 @@ import (
 )
 
 type TrackMultiCodec struct {
-	id       string
-	rid      string
-	streamId string
-	kind     webrtc.RTPCodecType
-	codec    int
+	id         string
+	rid        string
+	streamId   string
+	kind       webrtc.RTPCodecType
+	codec      TrackCodeType
+	errorCount int
 
 	ssrc        webrtc.SSRC
 	writeStream webrtc.TrackLocalWriter
@@ -27,7 +28,12 @@ type TrackMultiCodec struct {
 	currentPayloadType uint8
 }
 
-func CreateTrackMultiCodec(id string, rid string, streamId string, kind webrtc.RTPCodecType, codec int) *TrackMultiCodec {
+func (track *TrackMultiCodec) ID() string                { return track.id }
+func (track *TrackMultiCodec) RID() string               { return track.rid }
+func (track *TrackMultiCodec) StreamID() string          { return track.streamId }
+func (track *TrackMultiCodec) Kind() webrtc.RTPCodecType { return track.kind }
+
+func CreateTrackMultiCodec(id string, rid string, streamId string, kind webrtc.RTPCodecType, codec TrackCodeType) *TrackMultiCodec {
 	return &TrackMultiCodec{
 		id:       id,
 		rid:      rid,
@@ -51,7 +57,7 @@ func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCode
 		}
 
 		if track.payloadTypeOpus != 0 {
-			log.Println("TrackMultiCodec: Binding AudioTrack Type for", track.streamId, "-", track.currentPayloadType)
+			log.Println("WhipSession.TrackMultiCodec: Binding AudioTrack Type for", track.streamId, "-", track.currentPayloadType)
 
 			track.kind = webrtc.RTPCodecTypeAudio
 			return webrtc.RTPCodecParameters{
@@ -93,7 +99,7 @@ func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCode
 		}
 	}
 
-	log.Println("TrackMultiCodec: Binding VideoTrack Type for", track.streamId, "-", track.currentPayloadType)
+	log.Println("WhepSession.TrackMultiCodec: Binding VideoTrack Type for", track.streamId, "-", track.currentPayloadType)
 	track.kind = webrtc.RTPCodecTypeVideo
 	return webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
@@ -106,15 +112,15 @@ func (track *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCode
 	}, nil
 }
 
-func (track *TrackMultiCodec) Unbind(webrtc.TrackLocalContext) error {
+func (track *TrackMultiCodec) Unbind(context webrtc.TrackLocalContext) error {
 	return nil
 }
 
-func (track *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec int) error {
+func (track *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) error {
 	packet.SSRC = uint32(track.ssrc)
 
 	if codec != track.codec {
-		log.Println("TrackMultiCodec: Setting Codec on", track.streamId, "(", track.RID(), ")", "from", track.codec, "to", codec)
+		log.Println("WhepSession.TrackMultiCodec.WriteRTP: Setting Codec on", track.streamId, "(", track.RID(), ")", "from", track.codec, "to", codec)
 		track.codec = codec
 
 		switch track.codec {
@@ -136,14 +142,13 @@ func (track *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec int) error {
 	packet.PayloadType = track.currentPayloadType
 
 	if _, err := track.writeStream.WriteRTP(&packet.Header, packet.Payload); err != nil {
-		log.Println("WriteRTP.Error", err)
-		return err
+		track.errorCount += 1
+
+		if track.errorCount%50 == 0 {
+			log.Println("WhipSession.TrackMultiCodec.WriteRTP.Error(", track.errorCount, ")", err)
+			return err
+		}
 	}
 
 	return nil
 }
-
-func (track *TrackMultiCodec) ID() string                { return track.id }
-func (track *TrackMultiCodec) RID() string               { return track.rid }
-func (track *TrackMultiCodec) StreamID() string          { return track.streamId }
-func (track *TrackMultiCodec) Kind() webrtc.RTPCodecType { return track.kind }

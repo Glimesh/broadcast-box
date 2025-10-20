@@ -1,4 +1,4 @@
-package track
+package whip
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 // Helper function for getting the simulcast order and using as priority for consumers
 // This example will order from left to right with highest to lowest priority
 // a=simulcast:send High,Mid,Low
-func getPrioritizedStreamingLayer(layer string, sdpDescription string) int {
+func (whipSession *WhipSession) getPrioritizedStreamingLayer(layer string, sdpDescription string) int {
 	var sessionDescription sdp.SessionDescription
 	err := sessionDescription.Unmarshal([]byte(sdpDescription))
 	if err != nil {

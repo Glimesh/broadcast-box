@@ -1,99 +1,85 @@
 package peerconnection
 
 import (
-	"os"
-	"slices"
-	"strings"
-
-	"github.com/glimesh/broadcast-box/internal/environment"
-	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session"
 	"github.com/pion/webrtc/v4"
+	"log"
 )
 
+type CreateWhipPeerConnectionResult struct {
+	PeerConnection *webrtc.PeerConnection
+	Error          error
+}
+
 func CreateWhepPeerConnection() (*webrtc.PeerConnection, error) {
-	return session.ApiWhep.NewPeerConnection(GetPeerConfig())
+	return session.ApiWhep.NewPeerConnection(GetPeerConnectionConfig())
 }
 
-func CreateWhipPeerConnection() (*webrtc.PeerConnection, error) {
-	return session.ApiWhip.NewPeerConnection(GetPeerConfig())
-}
+func CreateWhipPeerConnection(offer string) (*webrtc.PeerConnection, error) {
+	log.Println("CreateWhipPeerConnection.CreateWhipPeerConnection")
 
-func GetPeerConfig() webrtc.Configuration {
-	config := webrtc.Configuration{}
-	if stunServers := os.Getenv(environment.STUN_SERVERS_INTERNAL); stunServers != "" {
-		for stunServer := range strings.SplitSeq(stunServers, "|") {
-			config.ICEServers = append(config.ICEServers, webrtc.ICEServer{
-				URLs: []string{"stun:" + stunServer},
-			})
-		}
-	} else if stunServers := os.Getenv(environment.STUN_SERVERS); stunServers != "" {
-		for stunServer := range strings.SplitSeq(stunServers, "|") {
-			config.ICEServers = append(config.ICEServers, webrtc.ICEServer{
-				URLs: []string{"stun:" + stunServer},
-			})
-		}
+	peerConnection, err := session.ApiWhip.NewPeerConnection(GetPeerConnectionConfig())
+	if err != nil {
+		return nil, err
 	}
 
-	username, credential := authorization.GetTURNCredentials()
-
-	if turnServers := os.Getenv(environment.TURN_SERVERS_INTERNAL); turnServers != "" {
-		for turnServer := range strings.SplitSeq(turnServers, "|") {
-			config.ICEServers = append(config.ICEServers, webrtc.ICEServer{
-				URLs:       []string{"turn:" + turnServer},
-				Username:   username,
-				Credential: credential,
-			})
-		}
-	} else if turnServers := os.Getenv(environment.TURN_SERVERS); turnServers != "" {
-		for turnServer := range strings.SplitSeq(turnServers, "|") {
-			config.ICEServers = append(config.ICEServers, webrtc.ICEServer{
-				URLs:       []string{"turn:" + turnServer},
-				Username:   username,
-				Credential: credential,
-			})
-		}
+	// Setup PeerConnection RemoteDescription
+	sessionDescription := webrtc.SessionDescription{
+		SDP:  string(offer),
+		Type: webrtc.SDPTypeOffer,
 	}
 
-	return config
+	if err := peerConnection.SetRemoteDescription(sessionDescription); err != nil {
+		return nil, err
+	}
+
+	gatheringCompleteResult := webrtc.GatheringCompletePromise(peerConnection)
+
+	answer, err := peerConnection.CreateAnswer(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := peerConnection.SetLocalDescription(answer); err != nil {
+		return nil, err
+	}
+
+	// Await gathering trickle
+	<-gatheringCompleteResult
+	log.Println("PeerConnection.CreateWhipPeerConnection.GatheringCompleteResult")
+
+	return peerConnection, nil
 }
 
-func disconnected(isWhip bool, streamKey string, streamId string) {
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
+func disconnected(isWhip bool, streamKey string, sessionId string) {
+	whipSession, ok := session.SessionManager.GetWhipStream(streamKey)
 
-	stream, ok := session.WhipSessions[streamKey]
+	if isWhip {
+		log.Println("WhipSession.Disconnected:", streamKey, "found was", ok)
+	} else {
+		log.Println("WhepSession.Disconnected:", streamKey, "found was", ok)
+	}
+
 	if !ok {
 		return
 	}
 
-	stream.WhepSessionsLock.Lock()
-	defer stream.WhepSessionsLock.Unlock()
-
-	if !isWhip {
-		delete(stream.WhepSessions, streamId)
+	// Remove active tracks if it is a WHIP session
+	if isWhip {
+		log.Println("WhipSession.Disconnected: Removing tracks", sessionId)
+		whipSession.RemoveTracks()
 	} else {
-		stream.AudioTracks = slices.DeleteFunc(stream.AudioTracks, func(track *session.AudioTrack) bool {
-			return track.SessionId == stream.SessionId
-		})
-
-		stream.VideoTracks = slices.DeleteFunc(stream.VideoTracks, func(track *session.VideoTrack) bool {
-			return track.SessionId == stream.SessionId
-		})
-
-		if stream.SessionId != streamId {
-			return
-		}
-
-		stream.HasHost.Store(false)
-		stream.OnTrackChan <- struct{}{}
+		log.Println("WhepSession.Disconnected: Removing session", sessionId)
+		//TODO: Find a way to use the SSE connection to be considdered the tether to an open connection
+		// whipSession.RemoveWhepSession(sessionId)
 	}
 
 	// Do not conclude stream if whep sessions are still listening, or the host is still active
-	if len(stream.WhepSessions) != 0 || stream.HasHost.Load() {
+	if whipSession.HasWhepSessions() {
 		return
 	}
 
-	stream.ActiveContextCancel()
-	delete(session.WhipSessions, streamKey)
+	// Remove Whip session from manager if its empty
+	log.Println("WhipSession.RemoveWhipSession: No Whep session, closing down")
+	whipSession.ActiveContextCancel()
 }

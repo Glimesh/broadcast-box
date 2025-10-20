@@ -26,12 +26,9 @@ func statusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	streamKey := helpers.GetStreamKey(request)
 
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
+	whipSession, ok := session.SessionManager.GetWhipStream(streamKey)
 
-	stream := session.WhipSessions[streamKey]
-
-	if stream == nil {
+	if !ok {
 		log.Println("Could not find active stream", streamKey)
 		helpers.LogHttpError(
 			responseWriter,
@@ -41,7 +38,7 @@ func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	statusResult := session.GetStreamStatus(stream)
+	statusResult := whipSession.GetStreamStatus()
 
 	if err := json.NewEncoder(responseWriter).Encode(statusResult); err != nil {
 		helpers.LogHttpError(
@@ -68,14 +65,12 @@ func sessionStatusesHandler(responseWriter http.ResponseWriter, request *http.Re
 		return
 	}
 
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
-
-	if err := json.NewEncoder(responseWriter).Encode(session.GetSessionStates(session.WhipSessions, false)); err != nil {
+	if err := json.NewEncoder(responseWriter).Encode(session.SessionManager.GetSessionStates(false)); err != nil {
 		helpers.LogHttpError(
 			responseWriter,
 			"Internal Server Error",
 			http.StatusInternalServerError)
+
 		log.Println(err.Error())
 	}
 

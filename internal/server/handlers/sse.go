@@ -38,7 +38,6 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	if sseChannel == nil {
-		log.Println("API.SSE Error: No session could be found")
 		helpers.LogHttpError(responseWriter, "Invalid request", http.StatusBadRequest)
 		return
 	}
@@ -52,7 +51,7 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				log.Println("API.SSE Sending:", msg)
 			}
 
-			if !ok {
+			if !ok || msg == "close" {
 				log.Println("API.SSE: Channel closed")
 				return
 			}
@@ -67,35 +66,23 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 }
 
 func getWhipSessionChannel(sessionId string) chan any {
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
+	var channel chan any
+	whipSession, ok := session.SessionManager.GetWhipStreamBySessionId(sessionId)
 
-	// Go through the current WHIP sessions to find the one
-	for _, session := range session.WhipSessions {
-		if session.SessionId == sessionId {
-			return session.SSEChan
-		}
+	if ok {
+		channel = whipSession.EventsChannel
 	}
 
-	return nil
+	return channel
 }
 
 func getWhepSessionChannel(sessionId string) chan any {
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
+	var channel chan any
+	whepSession, ok := session.SessionManager.GetWhepStreamBySessionId(sessionId)
 
-	// Go through the current WHIP sessions to find the one the WHEP is connected to
-	for streamKey := range session.WhipSessions {
-		session.WhipSessions[streamKey].WhepSessionsLock.Lock()
-		defer session.WhipSessions[streamKey].WhepSessionsLock.Unlock()
-
-		// The corresponding WHIP session has been found
-		if _, ok := session.WhipSessions[streamKey].WhepSessions[sessionId]; ok {
-
-			// Stop looking through remaining WHIP sessions
-			return session.WhipSessions[streamKey].WhepSessions[sessionId].SSEChannel
-		}
+	if ok {
+		channel = whepSession.SseEventsChannel
 	}
 
-	return nil
+	return channel
 }

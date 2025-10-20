@@ -11,7 +11,8 @@ import (
 )
 
 func Setup() {
-	session.WhipSessions = map[string]*session.WhipSession{}
+	session.SessionManager = &session.WhipSessionManager{}
+	session.SessionManager.Setup()
 
 	// Initialize media engine
 	mediaEngine := &webrtc.MediaEngine{}

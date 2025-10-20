@@ -20,10 +20,7 @@ var (
 )
 
 func doesWHIPSessionExist() (ok bool) {
-	session.WhipSessionsLock.Lock()
-	defer session.WhipSessionsLock.Unlock()
-
-	_, ok = session.WhipSessions[testStreamKey]
+	_, ok = session.SessionManager.GetWhipStream(testStreamKey)
 	return
 }
 

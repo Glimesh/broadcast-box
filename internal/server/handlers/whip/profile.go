@@ -33,15 +33,6 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		session.WhipSessionsLock.Lock()
-		defer session.WhipSessionsLock.Unlock()
-
-		for _, stream := range session.WhipSessions {
-			if stream.StreamKey == profile.StreamKey {
-				profile.IsActive = stream.HasHost.Load()
-			}
-		}
-
 		if err := json.NewEncoder(responseWriter).Encode(profile); err != nil {
 			helpers.LogHttpError(
 				responseWriter,
@@ -68,6 +59,7 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			return
 		}
 
+		// Update stored profile
 		err := authorization.UpdateProfile(token, payload.Motd, payload.IsPublic)
 		if err != nil {
 			helpers.LogHttpError(
@@ -80,19 +72,8 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 		profile, _ := authorization.GetPersonalProfile(token)
 
-		session.WhipSessionsLock.Lock()
-		defer session.WhipSessionsLock.Unlock()
-
 		// Update current session
-		for _, stream := range session.WhipSessions {
-			stream.StatusLock.RLock()
-			if stream.StreamKey == profile.StreamKey {
-				stream.MOTD = profile.MOTD
-				stream.IsPublic = profile.IsPublic
-			}
-			stream.StatusLock.RUnlock()
-		}
-
+		session.SessionManager.UpdateProfile(profile)
 	}
 
 	responseWriter.Header().Add("Content-Type", "application/json")

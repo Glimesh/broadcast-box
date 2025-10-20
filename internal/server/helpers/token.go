@@ -3,7 +3,6 @@ package helpers
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 )
@@ -28,7 +27,6 @@ func ResolveBearerToken(authHeader string) string {
 // In case the bearer token is encoded in Base64, it can be resolved before return. This
 // allows for UTF-8 character support in headers with bearer tokens
 func getBase64String(token string) (result string, err error) {
-	log.Println("Checking B64 for string", token)
 	if !regexp.MustCompile(`^[A-Za-z0-9+/]+={0,2}$`).MatchString(token) {
 		return "", fmt.Errorf("string is not valid base64")
 	}
