@@ -123,9 +123,10 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
 	const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 
-	evtSource.onerror = () => {
+	evtSource.onerror = (ev: Event) => {
 		evtSource.close();
 		console.log("PeerConnection.Eventsource Offline")
+		console.error("PeerConnection.Eventsource", ev)
 		onStateChange(SetupPeerConnectionStateChange.OFFLINE)
 	}
 
