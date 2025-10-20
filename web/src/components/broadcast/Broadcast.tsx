@@ -263,11 +263,11 @@ function BrowserBroadcaster() {
 				<div className="flex flex-row gap-2">
 					<Button
 						color='Accept'
-						title="Publish Screen/Window/Tab"
+						title={locale.player_header.publish_screen}
 						onClick={() => setUseDisplayMedia("Screen")}
 					/>
 					<Button
-						title="Publish Webcam"
+						title={locale.player_header.publish_webcam}
 						onClick={() => setUseDisplayMedia("Webcam")}
 					/>
 				</div>
