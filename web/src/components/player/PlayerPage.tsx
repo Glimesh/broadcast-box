@@ -13,9 +13,7 @@ const PlayerPage = () => {
   const { locale } = useContext(LocaleContext)
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
   const { currentStreamStatus } = useContext(StatusContext);
-  const [streamKeys, setStreamKeys] = useState<string[]>([
-    window.location.pathname.substring(1),
-  ]);
+  const [streamKeys, setStreamKeys] = useState<string[]>([ window.location.pathname.substring(1) ]);
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
   const [status, setStatus] = useState<StreamStatus>({
     motd: "",
@@ -69,7 +67,7 @@ const PlayerPage = () => {
         </ModalTextInput>
       )}
 
-      <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
+      <div className={`flex flex-col w-full items-center`} >
         <div className={`grid ${streamKeys.length !== 1 ? "grid-cols-2" : ""}  w-full gap-2`} >
           {streamKeys.map((streamKey) => (
             <Player
@@ -88,21 +86,7 @@ const PlayerPage = () => {
           ))}
         </div>
 
-        {!cinemaMode && (
-          <div className="w-full -mt-2 ml-8">
-            <div className="relative h-5">
-              <div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${status?.isOnline ? "opacity-100" : "opacity-0"}`} >
-                {status?.motd}
-              </div>
-
-              <div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!status?.isOnline ? "opacity-100" : "opacity-0"}`} >
-                {locale.player_page.stream_status_offline}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/*Implement footer menu*/}
+        {/*Footer menu*/}
         <div className="flex flex-row gap-2">
           <Button
             title={cinemaMode ? locale.player_page.cinema_mode_disable : locale.player_page.cinema_mode_enable}

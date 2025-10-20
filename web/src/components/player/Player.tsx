@@ -1,15 +1,13 @@
 ﻿import React, { useContext, useEffect, useRef, useState } from 'react'
-import { parseLinkHeader } from '@web3-storage/parse-link-header'
-import { ArrowsPointingOutIcon, Square2StackIcon } from "@heroicons/react/16/solid";
-import VolumeComponent from "./components/VolumeComponent";
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
-import { HeaderContext } from '../../providers/HeaderProvider';
-import { StatusContext } from '../../providers/StatusProvider';
+import { StreamStatus } from '../../providers/StatusProvider';
 import { LocaleContext } from '../../providers/LocaleProvider';
-import toBase64Utf8 from '../../utilities/base64';
+import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
+import { ArrowsPointingOutIcon, Square2StackIcon, VideoCameraSlashIcon } from '@heroicons/react/20/solid';
+import VolumeComponent from './components/VolumeComponent';
 
 interface PlayerProps {
 	streamKey: string;
@@ -17,47 +15,53 @@ interface PlayerProps {
 	onCloseStream?: () => void;
 }
 
-interface CurrentLayersMessage {
-	id: string,
-	audioLayerCurrent: string
-	audioTimestamp: number
-	audioPacketsWritten: number
-	audioSequenceNumber: number
-
-	videoLayerCurrent: string
-	videoTimestamp: number
-	videoPacketsWritten: number
-	videoSequenceNumber: number
-}
-
 const Player = (props: PlayerProps) => {
 	const { cinemaMode } = props;
-	const streamKey = decodeURIComponent(props.streamKey).replace(' ', '_')
-	const { setTitle } = useContext(HeaderContext)
 	const { locale } = useContext(LocaleContext)
-	const { currentStreamStatus, setCurrentStreamStatus } = useContext(StatusContext)
+	const streamKey = decodeURIComponent(props.streamKey).replace(' ', '_')
+
+	const [currentStreamStatus, setCurrentStreamStatus] = useState<StreamStatus>({
+		streamKey: streamKey,
+		motd: "",
+		viewers: 0,
+		isOnline: false,
+	})
 
 	const [currentLayersStatus, setCurrentLayersStatus] = useState<CurrentLayersMessage | undefined>()
 	const [audioLayers, setAudioLayers] = useState([]);
 	const [videoLayers, setVideoLayers] = useState([]);
-	const [hasPreparedPeerConnectionRef, setHasPreparedPeerConnectionRef] = useState<boolean>(false);
-	const [hasSignal, setHasSignal] = useState<boolean>(false);
-	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
+	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 
+	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
-	const hasSignalRef = useRef<boolean>(false);
-	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 	const videoOverlayVisibleTimeoutRef = useRef<number | undefined>(undefined);
-	const clickDelay = 250;
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
 	const streamVideoPlayerId = streamKey + "_videoPlayer";
 
-	const setHasSignalHandler = (_: Event) => {
-		setHasSignal(() => true);
+	const peerConnectionConfig: SetupPeerConnectionProps = {
+		streamKey: streamKey,
+		videoRef: videoRef,
+		layerEndpointRef: layerEndpointRef,
+		onStateChange: (state) => console.log("PeerConnectionState.Change", state),
+		onStreamRestart: () => console.log("PeerConnectionConfig.onStreamRestart: Missing setup"),
+		onAudioLayerChange: (layers) => setAudioLayers(layers),
+		onVideoLayerChange: (layers) => setVideoLayers(layers),
+		onLayerStatus: (status) => setCurrentLayersStatus(status),
+		onStreamStatus: (status) => {
+			if(!status.isOnline){
+				setStreamState("Offline")
+			}
+			setCurrentStreamStatus(status)
+		},
+		onError: (error) => {
+			console.log("PeerConnection.Error", error)
+			setStreamState("Error")
+		},
 	}
+
 	const resetTimer = (isVisible: boolean) => {
 		setVideoOverlayVisible(() => isVisible);
 
@@ -82,6 +86,7 @@ const Player = (props: PlayerProps) => {
 			}
 		}, clickDelay);
 	};
+
 	const handleVideoPlayerDoubleClick = () => {
 		clearTimeout(clickTimeoutRef.current);
 		lastClickTimeRef.current = 0;
@@ -90,258 +95,156 @@ const Player = (props: PlayerProps) => {
 	};
 
 	useEffect(() => {
-		const handleWindowBeforeUnload = () => {
-			peerConnectionRef.current?.close();
-			peerConnectionRef.current = null;
-		}
-
-		document.title = streamKey + " - Broadcast Box"
 		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible)
-		const player = document.getElementById(streamVideoPlayerId)
 
+		const player = document.getElementById(streamVideoPlayerId)
+		player?.addEventListener('mouseup', () => handleOverlayTimer(true))
 		player?.addEventListener('mousemove', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
-		player?.addEventListener('mouseup', () => handleOverlayTimer(true))
 
-		window.addEventListener("beforeunload", handleWindowBeforeUnload)
-
-		fetch(`/api/ice-servers`, {
-			method: 'GET',
-		}).then(r => r.json())
-			.then((result) => {
-				peerConnectionRef.current = new RTCPeerConnection({
-					iceServers: result
-				});
-				setHasPreparedPeerConnectionRef(() => true)
-			}).catch(() => {
-				console.error("Error calling Ice-Servers endpoint. Ignoring STUN/TURN configuration")
-				peerConnectionRef.current = new RTCPeerConnection();
-
-				setHasPreparedPeerConnectionRef(() => true)
+		peerConnectionConfig.onStreamRestart = () => PeerConnectionSetup(peerConnectionConfig)
+		PeerConnectionSetup(peerConnectionConfig)
+			.then((peerConnection) => {
+				window.addEventListener("beforeunload", () => peerConnection.close())
 			})
 
 		return () => {
-			peerConnectionRef.current?.close()
-			peerConnectionRef.current = null
-
-			videoRef.current?.removeEventListener("playing", setHasSignalHandler)
-
+			player?.removeEventListener('mouseup', () => handleOverlayTimer)
 			player?.removeEventListener('mouseenter', () => handleOverlayTimer)
 			player?.removeEventListener('mouseleave', () => handleOverlayTimer)
 			player?.removeEventListener('mousemove', () => handleOverlayTimer)
-			player?.removeEventListener('mouseup', () => handleOverlayTimer)
-
-			window.removeEventListener("beforeunload", handleWindowBeforeUnload)
 
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
 	}, [])
 
-	useEffect(() => {
-		setTitle(currentStreamStatus?.streamKey ?? "")
-	}, [currentStreamStatus])
-
-	useEffect(() => {
-		hasSignalRef.current = hasSignal;
-
-		const intervalHandler = () => {
-			if (!peerConnectionRef.current) {
-				return
-			}
-
-			let receiversHasPacketLoss = false;
-			peerConnectionRef.current
-				.getReceivers()
-				.forEach(receiver => {
-					if (receiver) {
-						receiver.getStats()
-							.then(stats => {
-								stats.forEach(report => {
-									if (report.type === "inbound-rtp") {
-										const lossRate = report.packetsLost / (report.packetsLost + report.packetsReceived);
-										receiversHasPacketLoss = receiversHasPacketLoss ? true : lossRate > 5;
-									}
-								}
-								)
-							})
-					}
-				})
-
-			setHasPacketLoss(() => receiversHasPacketLoss);
-		}
-
-		const interval = setInterval(intervalHandler, hasSignal ? 15_000 : 2_500)
-
-		return () => clearInterval(interval);
-	}, [hasSignal]);
-
-	useEffect(() => {
-		if (!peerConnectionRef.current) {
-			return;
-		}
-		peerConnectionRef.current.ontrack = (event: RTCTrackEvent) => {
-			if (videoRef.current) {
-				videoRef.current.srcObject = event.streams[0];
-				videoRef.current.addEventListener("playing", setHasSignalHandler)
-			}
-		}
-
-		peerConnectionRef.current.addTransceiver('audio', { direction: 'recvonly' })
-		peerConnectionRef.current.addTransceiver('video', { direction: 'recvonly' })
-
-		peerConnectionRef.current
-			.createOffer()
-			.then(async offer => {
-				offer["sdp"] = offer["sdp"]!.replace("useinbandfec=1", "useinbandfec=1;stereo=1")
-
-				await peerConnectionRef.current!
-					.setLocalDescription(offer)
-					.catch((err) => console.error("SetLocalDescription", err));
-
-				const whepResponse = await fetch(`/api/whep`, {
-					method: 'POST',
-					body: toBase64Utf8(JSON.stringify({
-						streamKey: streamKey,
-						offer: offer.sdp
-					})),
-					headers: {
-						'Content-Type': 'application/sdp'
-					},
-				})
-
-				const parsedLinkHeader = parseLinkHeader(whepResponse.headers.get('Link'))
-
-				if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
-					throw new DOMException("Missing link header");
-				}
-
-				layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
-				const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
-
-				evtSource.onerror = _ => evtSource.close();
-
-				// Receive current status of the whip stream
-				evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
-
-				// Receive current current layers of this whep stream
-				evtSource.addEventListener("currentLayers", (event: MessageEvent) => setCurrentLayersStatus(() => JSON.parse(event.data)))
-
-				// Receive layers
-				evtSource.addEventListener("layers", event => {
-					const parsed = JSON.parse(event.data)
-					setVideoLayers(() => parsed['1']['layers'].map((layer: any) => layer.encodingId))
-					setAudioLayers(() => parsed['2']['layers'].map((layer: any) => layer.encodingId))
-				})
-
-				const answer = await whepResponse.text()
-				await peerConnectionRef.current!.setRemoteDescription({
-					sdp: answer,
-					type: 'answer'
-				}).catch((err) => console.error("RemoteDescription", err))
-			})
-	}, [peerConnectionRef, hasPreparedPeerConnectionRef])
-
 	return (
 		<div
 			id={streamVideoPlayerId}
-			className="inline-block w-full relative z-0 aspect-video"
+			className="inline-block w-full relative z-0 aspect-video rounded-md mb-6"
 			style={cinemaMode ? {
 				maxHeight: '100vh',
 				maxWidth: '100vw',
 			} : {}}>
-			<div
-				onClick={handleVideoPlayerClick}
-				onDoubleClick={handleVideoPlayerDoubleClick}
-				className={`
+
+			<div className="absolute rounded-md w-full h-full">
+
+				<div
+					onClick={handleVideoPlayerClick}
+					onDoubleClick={handleVideoPlayerDoubleClick}
+					className={`
 					absolute
 					rounded-md
 					w-full
 					h-full
 					z-10
-					${!hasSignal && "bg-gray-800"}
-					${hasSignal && `
+					${streamState !== "Playing" && "bg-gray-950"}
+					${streamState === "Playing" && `
 						transition-opacity
 						duration-500
 						hover: ${videoOverlayVisible ? 'opacity-100' : 'opacity-0'}
 						${!videoOverlayVisible ? 'cursor-none' : 'cursor-default'}
 					`}
 				`}
-			>
+				>
 
-				{/*Opaque background*/}
-				<div className={`absolute w-full bg-gray-950 ${!hasSignal ? 'opacity-40' : 'opacity-0'} h-full bg-red-100`} />
+					{/*Buttons */}
+					{videoRef.current !== null && (
+						<div className="absolute bottom-0 h-8 w-full flex place-items-end z-20">
+							<div
+								onClick={(e) => e.stopPropagation()}
+								className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8 rounded-md">
 
-				{/*Buttons */}
-				{videoRef.current !== null && (
-					<div className="absolute bottom-0 h-8 w-full flex place-items-end z-20">
-						<div
-							onClick={(e) => e.stopPropagation()}
-							className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8">
+								<PlayPauseComponent videoRef={videoRef} />
 
-							<PlayPauseComponent videoRef={videoRef} />
+								<VolumeComponent
+									isMuted={videoRef.current?.muted ?? false}
+									isDisabled={audioLayers.length === 0}
+									onVolumeChanged={(newValue) => videoRef.current!.volume = newValue}
+									onStateChanged={(newState) => videoRef.current!.muted = newState}
+								/>
 
-							<VolumeComponent
-								isMuted={videoRef.current?.muted ?? false}
-								isDisabled={audioLayers.length === 0}
-								onVolumeChanged={(newValue) => videoRef.current!.volume = newValue}
-								onStateChanged={(newState) => videoRef.current!.muted = newState}
-							/>
+								<div className="w-full pointer-events-none"></div>
 
-							<div className="w-full"></div>
+								<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
+								<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
+								{audioLayers.length > 1 && (
+									<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
+								)}
+								<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
+								<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()} />
+							</div>
+						</div>)}
 
-							<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
-							<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
-							{audioLayers.length > 1 && (
-								<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
-							)}
-							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
-							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()} />
-						</div>
-					</div>)}
+					{!!props.onCloseStream && (
+						<button
+							onClick={props.onCloseStream}
+							className="absolute top-2 right-2 p-2 rounded-full bg-red-400 hover:bg-red-500 pointer-events-auto">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="h-6 w-6 text-gray-700"
+								viewBox="0 0 24 24"
+								fill="black"
+							>
+								<path
+									fillRule="evenodd"
+									d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
+									clipRule="evenodd"
+								/>
+							</svg>
+						</button>
+					)}
 
-				{!!props.onCloseStream && (
-					<button
-						onClick={props.onCloseStream}
-						className="absolute top-2 right-2 p-2 rounded-full bg-red-400 hover:bg-red-500 pointer-events-auto">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							className="h-6 w-6 text-gray-700"
-							viewBox="0 0 24 24"
-							fill="black"
-						>
-							<path
-								fillRule="evenodd"
-								d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
-								clipRule="evenodd"
-							/>
-						</svg>
-					</button>
-				)}
+					{/* Status messages */}
+					{streamState === "Error" && (
+						<h2
+							className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+							{locale.player.message_error}
+						</h2>
+					)}
+					{streamState === "Offline" && (
+						<h2
+							className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+							{streamKey} {locale.player.message_is_not_online}
+						</h2>
+					)}
+					{streamState === "Loading" && (
+						<h2
+							className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
+							{locale.player.message_loading_video}
+						</h2>
+					)}
 
-				{videoLayers.length === 0 && !hasSignal && (
-					<h2
-						className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-						{streamKey} {locale.player.message_is_not_online}
-					</h2>
-				)}
-				{videoLayers.length > 0 && !hasSignal && (
-					<h2
-						className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-						{locale.player.message_loading_video}
-					</h2>
-				)}
+				</div>
+
+				<VideoCameraSlashIcon className="w-32 h-32 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+
+				<video
+					ref={videoRef}
+					autoPlay
+					muted
+					playsInline
+					className="rounded-md w-full h-full relative bg-gray-950 "
+					onPlaying={() => setStreamState("Playing")}
+				/>
 
 			</div>
 
-			<video
-				ref={videoRef}
-				autoPlay
-				muted
-				playsInline
-				className="bg-transparent rounded-md w-full h-full relative"
-			/>
+			<div className="absolute -bottom-5 w-full">
+				<div className="relative h-5 ml-4">
+					<div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${currentStreamStatus?.isOnline ? "opacity-100" : "opacity-0"}`} >
+						{currentStreamStatus.motd}
+					</div>
+
+					<div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!currentStreamStatus?.isOnline ? "opacity-100" : "opacity-0"}`} >
+						{locale.player.stream_status_offline}
+					</div>
+				</div>
+			</div>
+
 		</div>
+
 	)
 }
 
