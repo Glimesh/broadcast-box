@@ -77,13 +77,14 @@ const locale_en: localeInterface = {
     modal_add_stream_title: "Add stream",
     modal_add_stream_message: "Insert stream key to add to multi stream",
     modal_add_stream_placeholder: "Insert the key of the stream you want to add",
-
-    stream_status_offline: "Offline"
   },
 
   player: {
     message_is_not_online: "is not currently streaming",
-    message_loading_video: "Loading video"
+    message_loading_video: "Loading video",
+    message_error: "Error loading video",
+
+    stream_status_offline: "Offline"
   },
 
   stream_status: {

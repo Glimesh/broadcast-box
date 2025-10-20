@@ -78,12 +78,14 @@ const locale_da: localeInterface = {
     modal_add_stream_message: "Indsæt stream-nøgle for at tilføje til multi-stream",
     modal_add_stream_placeholder: "Indsæt nøglen til den stream, du vil tilføje",
 
-    stream_status_offline: "Offline"
   },
 
   player: {
     message_is_not_online: "streamer ikke i øjeblikket",
-    message_loading_video: "Indlæser video"
+    message_loading_video: "Indlæser video",
+    message_error: "Fejl ved indlæsning af video",
+
+    stream_status_offline: "Offline"
   },
 
   stream_status: {

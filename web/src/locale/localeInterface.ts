@@ -75,13 +75,15 @@ export interface localeInterface {
     modal_add_stream_message: string,
     modal_add_stream_placeholder: string,
 
-    stream_status_offline: string,
     cinema_mode_enable: string,
     cinema_mode_disable: string,
   },
   player: {
     message_is_not_online: string,
-    message_loading_video: string
+    message_loading_video: string,
+    message_error: string,
+
+    stream_status_offline: string,
   },
   stream_status: {
     message_current_viewers: string
