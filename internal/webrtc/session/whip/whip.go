@@ -65,15 +65,6 @@ func (whipSession *WhipSession) statusTick() {
 	// Generate status
 	currentStatus := whipSession.GetSessionStatsEvent()
 
-	// Inform WHIP session about current state if it is subscribing to it
-	if whipSession.EventsChannel != nil {
-		select {
-		case whipSession.EventsChannel <- currentStatus:
-		default:
-			log.Println("WhipSession.Loop.StatusTick: Skipped sending to EventsChannel")
-		}
-	}
-
 	// Send status to each WHEP session
 	for _, whepSession := range whepSessionsCopy {
 		if whepSession.IsSessionClosed.Load() {
