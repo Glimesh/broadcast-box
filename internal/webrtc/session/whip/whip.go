@@ -65,14 +65,16 @@ func (whipSession *WhipSession) statusTick() {
 	// Generate status
 	currentStatus := whipSession.GetSessionStatsEvent()
 
-	// Information WHIP session about current state
-	select {
-	case whipSession.EventsChannel <- currentStatus:
-	default:
-		log.Println("WhipSession.Loop: Skipped sending to EventsChannel")
+	// Inform WHIP session about current state if it is subscribing to it
+	if whipSession.EventsChannel != nil {
+		select {
+		case whipSession.EventsChannel <- currentStatus:
+		default:
+			log.Println("WhipSession.Loop.StatusTick: Skipped sending to EventsChannel")
+		}
 	}
 
-	// Send to each WHEP session
+	// Send status to each WHEP session
 	for _, whepSession := range whepSessionsCopy {
 		if whepSession.IsSessionClosed.Load() {
 			continue
@@ -81,7 +83,7 @@ func (whipSession *WhipSession) statusTick() {
 		select {
 		case whepSession.SseEventsChannel <- currentStatus:
 		default:
-			log.Println("WhipSession.Loop: Status update skipped for session (", whepSession.SessionId, ") due to full channel")
+			log.Println("WhipSession.Loop.StatusTick: Status update skipped for session (", whepSession.SessionId, ") due to full channel")
 		}
 	}
 }
