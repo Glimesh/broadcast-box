@@ -86,12 +86,18 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 		whipSession.WhepSessionsLock.RUnlock()
 
 		for _, whepSession := range whepSessions {
-			whepSession.SendAudioPacket(
-				rtpPkt,
-				id,
-				timeDiff,
-				sequenceDiff,
-				codec)
+			if whepSession.AudioLayerCurrent.Load() == id {
+				whepSession.AudioChannel <- whep.TrackPacket{
+					Layer: id,
+					Packet: &rtp.Packet{
+						Header:  rtpPkt.Header,
+						Payload: append([]byte(nil), rtpPkt.Payload...),
+					},
+					Codec:        codec,
+					TimeDiff:     timeDiff,
+					SequenceDiff: sequenceDiff,
+				}
+			}
 		}
 	}
 }
