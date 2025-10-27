@@ -53,6 +53,9 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		for {
 			select {
 			case packet := <-whepSession.VideoChannel:
+				if !packet.IsKeyframe && whepSession.IsWaitingForKeyframe.Load() {
+					return
+				}
 
 				if lastPacketSequence < packet.Packet.SequenceNumber+uint16(packet.SequenceDiff) {
 					lastPacketSequence = packet.Packet.SequenceNumber
