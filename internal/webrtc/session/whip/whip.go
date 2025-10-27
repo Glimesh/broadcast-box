@@ -21,7 +21,6 @@ func (whipSession *WhipSession) StartWhipSessionStatusLoop() {
 		// Whip session is shutting down
 		case <-whipSession.ActiveContext.Done():
 			log.Println("WhipSession.StartWhipSessionStatusLoop.Done")
-			ticker.Stop()
 			return
 
 		// Announce new layers available
