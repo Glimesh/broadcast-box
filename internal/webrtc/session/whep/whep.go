@@ -52,9 +52,14 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		var lastPacketSequence uint16 = 0
 		for {
 			select {
+			case <-whepSession.SessionClosedChannel:
+				return
 			case packet := <-whepSession.VideoChannel:
 				if !packet.IsKeyframe && whepSession.IsWaitingForKeyframe.Load() {
+					log.Println("WhepSession.SendVideoPacket: Waiting for keyframe")
 					return
+				} else {
+					whepSession.IsWaitingForKeyframe.Store(false)
 				}
 
 				if lastPacketSequence < packet.Packet.SequenceNumber+uint16(packet.SequenceDiff) {
@@ -66,18 +71,9 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 					whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)
 					whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + packet.TimeDiff)
 
-					packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
-					packet.Packet.Timestamp = whepSession.VideoTimestamp
+					// packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
+					// packet.Packet.Timestamp = whepSession.VideoTimestamp
 					whepSession.VideoLock.Unlock()
-
-					if whepSession.IsWaitingForKeyframe.Load() {
-						if !packet.IsKeyframe {
-							log.Println("WhepSession.SendVideoPacket: Waiting for keyframe")
-							return
-						}
-					}
-
-					whepSession.IsWaitingForKeyframe.Store(false)
 
 					if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 						if errors.Is(err, io.ErrClosedPipe) {
@@ -90,8 +86,6 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 				}
 			case packet := <-whepSession.AudioChannel:
 				whepSession.SendAudioPacket(packet)
-			case <-whepSession.SessionClosedChannel:
-				return
 			}
 		}
 	}()
