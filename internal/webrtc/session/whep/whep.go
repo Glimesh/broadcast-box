@@ -71,8 +71,8 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 					whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)
 					whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + packet.TimeDiff)
 
-					// packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
-					// packet.Packet.Timestamp = whepSession.VideoTimestamp
+					packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
+					packet.Packet.Timestamp = whepSession.VideoTimestamp
 					whepSession.VideoLock.Unlock()
 
 					if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
