@@ -17,6 +17,22 @@ import (
 // Prepare the Whip Session Manager
 func (manager *WhipSessionManager) Setup() {
 	manager.whipSessions = map[string]*whip.WhipSession{}
+
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			manager.whipSessionsLock.RLock()
+			for _, session := range manager.whipSessions {
+				if session.IsEmpty() {
+					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
+					manager.RemoveWhipSession(session.StreamKey)
+				}
+			}
+			manager.whipSessionsLock.RUnlock()
+		}
+	}()
+
 }
 
 // Get Whip stream by stream key
@@ -109,6 +125,7 @@ func (manager *WhipSessionManager) UpdateProfile(profile *authorization.Personal
 }
 
 func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) (result []StreamSession) {
+	log.Println("SessionManager.GetSessionStates: IsAdmin", includePrivateStreams)
 	SessionManager.whipSessionsLock.RLock()
 	copiedSessions := make(map[string]*whip.WhipSession)
 	maps.Copy(copiedSessions, SessionManager.whipSessions)
@@ -212,7 +229,7 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 
 		// Remove session if no host or whep sessions are present
 		if whipSession.IsEmpty() {
-			log.Println("WhipSessionManager.WhipSession.Remove", profile.StreamKey)
+			log.Println("WhipSessionManager.WhipSession.IsEmpty.Remove", profile.StreamKey)
 			manager.RemoveWhipSession(profile.StreamKey)
 		}
 	}()
@@ -248,7 +265,7 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 			webrtc.ICEConnectionStateFailed,
 			webrtc.ICEConnectionStateClosed,
 			webrtc.ICEConnectionStateDisconnected:
-			log.Println("WhepSession.OnICEConnectionStateChange.Trigger.RemoveSession")
+			log.Println("WhepSession.OnICEConnectionStateChange.Trigger.ConnectionState.RemoveWhepSession:", state)
 			whipSession.RemoveWhepSession(whepSessionId)
 		}
 	})
