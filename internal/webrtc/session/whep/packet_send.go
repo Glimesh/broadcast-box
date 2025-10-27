@@ -4,13 +4,10 @@ import (
 	"errors"
 	"io"
 	"log"
-
-	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
-	"github.com/pion/rtp"
 )
 
 // Sends provided audio packet to the Whep session
-func (whepSession *WhepSession) SendAudioPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec codecs.TrackCodeType) {
+func (whepSession *WhepSession) SendAudioPacket(packet TrackPacket) {
 	whepSession.AudioLock.RLock()
 	audioTrack := whepSession.AudioTrack
 	whepSession.AudioLock.RUnlock()
@@ -19,25 +16,17 @@ func (whepSession *WhepSession) SendAudioPacket(rtpPkt *rtp.Packet, layer string
 		return
 	}
 
-	currentLayer := whepSession.AudioLayerCurrent.Load()
-
-	if currentLayer == "" {
-		whepSession.AudioLayerCurrent.Store(layer)
-	} else if layer != currentLayer {
-		return
-	}
-
 	// Convert to WhepSession Function
 	whepSession.AudioLock.Lock()
 	whepSession.AudioPacketsWritten += 1
-	whepSession.AudioSequenceNumber = uint16(whepSession.AudioSequenceNumber) + uint16(sequenceDiff)
-	whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + timeDiff)
+	whepSession.AudioSequenceNumber = uint16(whepSession.AudioSequenceNumber) + uint16(packet.SequenceDiff)
+	whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + packet.TimeDiff)
 
-	rtpPkt.SequenceNumber = whepSession.AudioSequenceNumber
-	rtpPkt.Timestamp = whepSession.AudioTimestamp
+	packet.Packet.SequenceNumber = whepSession.AudioSequenceNumber
+	packet.Packet.Timestamp = whepSession.AudioTimestamp
 	whepSession.AudioLock.Unlock()
 
-	if err := whepSession.AudioTrack.WriteRTP(rtpPkt, codec); err != nil {
+	if err := whepSession.AudioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
 			log.Println("WhepSession.SendAudioPacket.ConnectionDropped")
 			whepSession.Close()
@@ -48,23 +37,30 @@ func (whepSession *WhepSession) SendAudioPacket(rtpPkt *rtp.Packet, layer string
 }
 
 // Sends provided video packet to the Whep session
-func (whepSession *WhepSession) SendVideoPacket(rtpPkt *rtp.Packet, layer string, timeDiff int64, sequenceDiff int, codec codecs.TrackCodeType, isKeyframe bool) {
+func (whepSession *WhepSession) SendVideoPacket(packet TrackPacket) {
+
+	if whepSession.IsSessionClosed.Load() {
+		log.Println("WhepSession.SendVideoPacket.SessionClosed")
+		return
+	}
+
 	whepSession.VideoLock.RLock()
 	videoTrack := whepSession.VideoTrack
 	whepSession.VideoLock.RUnlock()
-
-	if whepSession.IsSessionClosed.Load() || videoTrack == nil {
+	if videoTrack == nil {
+		log.Println("WhepSession.SendVideoPacket.NoVideoTrack")
 		return
 	}
 
 	currentLayer := whepSession.VideoLayerCurrent.Load()
 
 	if currentLayer == "" {
-		whepSession.VideoLayerCurrent.Store(layer)
-	} else if layer != currentLayer {
+		whepSession.VideoLayerCurrent.Store(packet.Layer)
+	} else if packet.Layer != currentLayer {
 		return
 	} else if whepSession.IsWaitingForKeyframe.Load() {
-		if !isKeyframe {
+		if !packet.IsKeyframe {
+			log.Println("WhepSession.SendVideoPacket: Waiting for keyframe")
 			return
 		}
 
@@ -74,14 +70,14 @@ func (whepSession *WhepSession) SendVideoPacket(rtpPkt *rtp.Packet, layer string
 	// Convert to WhepSession Function
 	whepSession.VideoLock.Lock()
 	whepSession.VideoPacketsWritten += 1
-	whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(sequenceDiff)
-	whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + timeDiff)
+	whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)
+	whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + packet.TimeDiff)
 
-	rtpPkt.SequenceNumber = whepSession.VideoSequenceNumber
-	rtpPkt.Timestamp = whepSession.VideoTimestamp
+	packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
+	packet.Packet.Timestamp = whepSession.VideoTimestamp
 	whepSession.VideoLock.Unlock()
 
-	if err := whepSession.VideoTrack.WriteRTP(rtpPkt, codec); err != nil {
+	if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
 			log.Println("WhepSession.SendVideoPacket.ConnectionDropped")
 			whepSession.Close()

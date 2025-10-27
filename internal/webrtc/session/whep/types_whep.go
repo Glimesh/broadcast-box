@@ -5,8 +5,18 @@ import (
 	"sync/atomic"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 )
+
+type TrackPacket struct {
+	Layer        string
+	Packet       *rtp.Packet
+	TimeDiff     int64
+	SequenceDiff int
+	Codec        codecs.TrackCodeType
+	IsKeyframe   bool
+}
 
 type (
 	WhepSession struct {
@@ -28,6 +38,7 @@ type (
 		VideoPacketsWritten uint64
 		VideoSequenceNumber uint16
 		VideoLayerCurrent   atomic.Value
+		VideoChannel        chan TrackPacket
 
 		// Protects AudioTrack, AudioTimestamp, AudioPacketsWritten, AudioSequenceNumber
 		AudioLock           sync.RWMutex
@@ -36,6 +47,7 @@ type (
 		AudioPacketsWritten uint64
 		AudioSequenceNumber uint16
 		AudioLayerCurrent   atomic.Value
+		AudioChannel        chan TrackPacket
 	}
 )
 
