@@ -7,7 +7,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 )
 
-// Returns true is no WHIP streams are present, and not WHEP sessions are waiting for incoming streams
+// Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
 func (whipSession *WhipSession) IsEmpty() bool {
 	if whipSession.HasWhepSessions() {
 		log.Println("WhipSession.IsEmpty.HasWhepSessions (false):", whipSession.StreamKey)
@@ -23,6 +23,7 @@ func (whipSession *WhipSession) IsEmpty() bool {
 	return true
 }
 
+// Returns true if any tracks are available for the session
 func (whipSession *WhipSession) IsActive() bool {
 	whipSession.TracksLock.RLock()
 
