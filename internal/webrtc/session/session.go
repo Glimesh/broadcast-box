@@ -17,22 +17,20 @@ import (
 // Prepare the Whip Session Manager
 func (manager *WhipSessionManager) Setup() {
 	manager.whipSessions = map[string]*whip.WhipSession{}
-
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			manager.whipSessionsLock.RLock()
-			for _, session := range manager.whipSessions {
-				if session.IsEmpty() {
-					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
-					manager.RemoveWhipSession(session.StreamKey)
-				}
-			}
-			manager.whipSessionsLock.RUnlock()
-		}
-	}()
-
+	//	go func() {
+	//		ticker := time.NewTicker(5 * time.Second)
+	//		defer ticker.Stop()
+	//		for range ticker.C {
+	//			manager.whipSessionsLock.RLock()
+	//			for _, session := range manager.whipSessions {
+	//				if session.IsEmpty() {
+	//					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
+	//					manager.RemoveWhipSession(session.StreamKey)
+	//				}
+	//			}
+	//			manager.whipSessionsLock.RUnlock()
+	//		}
+	//	}()
 }
 
 // Get Whip stream by stream key
