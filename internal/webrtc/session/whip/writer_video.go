@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	pionCodecs "github.com/pion/rtp/codecs"
@@ -33,14 +32,6 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 
 	go whipStreamVideoWriterChannels(remoteTrack, whipSession, peerConnection)
 
-	var rtpBufPool = sync.Pool{
-		New: func() any {
-			return make([]byte, 2000)
-		},
-	}
-
-	rtpBuf := rtpBufPool.Get().([]byte)
-	defer rtpBufPool.Put(rtpBuf)
 	rtpPkt := &rtp.Packet{}
 
 	var depacketizer rtp.Depacketizer
@@ -65,7 +56,14 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
+	var rtpBufPool = sync.Pool{
+		New: func() any {
+			return make([]byte, 4096)
+		},
+	}
+
 	for {
+		rtpBuf := rtpBufPool.Get().([]byte)
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 
 		if rtpRead == len(rtpBuf) {
@@ -89,7 +87,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 
 		isKeyframe := false
 		if codec == codecs.VideoTrackCodecH264 {
-			isKeyframe := isPacketKeyframe(rtpPkt, codec, depacketizer)
+			isKeyframe = isPacketKeyframe(rtpPkt, codec, depacketizer)
 			if isKeyframe {
 				track.LastKeyFrame.Store(time.Now())
 			}
@@ -121,21 +119,26 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 
 		whipSession.WhepSessionsLock.RLock()
 		for _, whepSession := range whipSession.WhepSessions {
-			if whepSession.VideoLayerCurrent.Load() == id {
-				whepSession.VideoChannel <- whep.TrackPacket{
-					Layer: id,
-					Packet: &rtp.Packet{
-						Header:  rtpPkt.Header,
-						Payload: append([]byte(nil), rtpPkt.Payload...),
-					},
-					Codec:        codec,
-					IsKeyframe:   isKeyframe,
-					TimeDiff:     timeDiff,
-					SequenceDiff: sequenceDiff,
-				}
+
+			select {
+			case whepSession.VideoChannel <- codecs.TrackPacket{
+				Layer: id,
+				Packet: &rtp.Packet{
+					Header:  rtpPkt.Header,
+					Payload: append([]byte(nil), rtpPkt.Payload...),
+				},
+				Codec:        codec,
+				IsKeyframe:   isKeyframe,
+				TimeDiff:     timeDiff,
+				SequenceDiff: sequenceDiff,
+			}:
+			default:
+				log.Println("WhepSession.VideoWriter.TrackStreamChannel: Channel overflow, skipping packet")
 			}
 		}
 		whipSession.WhepSessionsLock.RUnlock()
+
+		rtpBufPool.Put(rtpBuf)
 	}
 }
 
@@ -175,6 +178,7 @@ func whipStreamVideoWriterChannels(remoteTrack *webrtc.TrackRemote, whipSession 
 			case <-whipActiveContext.Done():
 				return
 			case <-whipSession.PacketLossIndicationChannel:
+				log.Println("whipStreamVideoWriterChannels.Trigger.PLI")
 				if sendError := peerConnection.WriteRTCP([]rtcp.Packet{
 					&rtcp.PictureLossIndication{
 						MediaSSRC: uint32(remoteTrack.SSRC()),
@@ -185,4 +189,5 @@ func whipStreamVideoWriterChannels(remoteTrack *webrtc.TrackRemote, whipSession 
 			}
 		}
 	}
+
 }

@@ -1,8 +1,6 @@
 package whep
 
 import (
-	"errors"
-	"io"
 	"log"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -18,17 +16,19 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		VideoTrack:           videoTrack,
 		AudioTimestamp:       5000,
 		VideoTimestamp:       5000,
-		AudioChannel:         make(chan TrackPacket, 100),
-		VideoChannel:         make(chan TrackPacket, 100),
+		AudioChannel:         make(chan codecs.TrackPacket, 100),
+		VideoChannel:         make(chan codecs.TrackPacket, 100),
 		WhipEventsChannel:    make(chan any, 100),
 		SseEventsChannel:     make(chan any, 100),
 		SessionClosedChannel: make(chan struct{}, 1),
 		PeerConnection:       peerConnection,
 	}
 
+	log.Println("WhepSession.CreateNewWhep.AudioLayer", audioLayer)
+	log.Println("WhepSession.CreateNewWhep.VideoLayer", videoLayer)
 	whepSession.AudioLayerCurrent.Store(audioLayer)
 	whepSession.VideoLayerCurrent.Store(videoLayer)
-	whepSession.IsWaitingForKeyframe.Store(false)
+	whepSession.IsWaitingForKeyframe.Store(true)
 	whepSession.IsSessionClosed.Store(false)
 
 	// Handle WHEP Events
@@ -47,45 +47,26 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		}
 	}()
 
-	// Handle WHEP Incoming stream
+	// Handle WHEP Incoming streams
 	go func() {
-		var lastPacketSequence uint16 = 0
+		// TODO: Include a timer to check for change in current audio/video layer
+		currentAudioLayer := whepSession.AudioLayerCurrent.Load()
+		currentVideoLayer := whepSession.VideoLayerCurrent.Load()
+
 		for {
 			select {
 			case <-whepSession.SessionClosedChannel:
 				return
+
 			case packet := <-whepSession.VideoChannel:
-				if !packet.IsKeyframe && whepSession.IsWaitingForKeyframe.Load() {
-					log.Println("WhepSession.SendVideoPacket: Waiting for keyframe")
-					return
-				} else {
-					whepSession.IsWaitingForKeyframe.Store(false)
+				if packet.Layer == currentVideoLayer {
+					whepSession.SendVideoPacket(packet)
 				}
 
-				if lastPacketSequence < packet.Packet.SequenceNumber+uint16(packet.SequenceDiff) {
-					lastPacketSequence = packet.Packet.SequenceNumber
-
-					// Convert to WhepSession Function
-					whepSession.VideoLock.Lock()
-					whepSession.VideoPacketsWritten += 1
-					whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)
-					whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + packet.TimeDiff)
-
-					packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
-					packet.Packet.Timestamp = whepSession.VideoTimestamp
-					whepSession.VideoLock.Unlock()
-
-					if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
-						if errors.Is(err, io.ErrClosedPipe) {
-							log.Println("WhepSession.SendVideoPacket.ConnectionDropped")
-							whepSession.Close()
-						} else {
-							log.Println("WhepSession.SendVideoPacket.Error", err)
-						}
-					}
-				}
 			case packet := <-whepSession.AudioChannel:
-				whepSession.SendAudioPacket(packet)
+				if packet.Layer == currentAudioLayer {
+					whepSession.SendAudioPacket(packet)
+				}
 			}
 		}
 	}()

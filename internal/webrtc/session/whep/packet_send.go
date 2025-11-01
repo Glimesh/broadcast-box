@@ -4,10 +4,12 @@ import (
 	"errors"
 	"io"
 	"log"
+
+	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 )
 
 // Sends provided audio packet to the Whep session
-func (whepSession *WhepSession) SendAudioPacket(packet TrackPacket) {
+func (whepSession *WhepSession) SendAudioPacket(packet codecs.TrackPacket) {
 	whepSession.AudioLock.RLock()
 	audioTrack := whepSession.AudioTrack
 	whepSession.AudioLock.RUnlock()
@@ -37,37 +39,21 @@ func (whepSession *WhepSession) SendAudioPacket(packet TrackPacket) {
 }
 
 // Sends provided video packet to the Whep session
-func (whepSession *WhepSession) SendVideoPacket(packet TrackPacket) {
+func (whepSession *WhepSession) SendVideoPacket(packet codecs.TrackPacket) {
 
 	if whepSession.IsSessionClosed.Load() {
 		log.Println("WhepSession.SendVideoPacket.SessionClosed")
 		return
 	}
 
-	whepSession.VideoLock.RLock()
-	videoTrack := whepSession.VideoTrack
-	whepSession.VideoLock.RUnlock()
-	if videoTrack == nil {
-		log.Println("WhepSession.SendVideoPacket.NoVideoTrack")
-		return
-	}
-
-	currentLayer := whepSession.VideoLayerCurrent.Load()
-
-	if currentLayer == "" {
-		whepSession.VideoLayerCurrent.Store(packet.Layer)
-	} else if packet.Layer != currentLayer {
-		return
-	} else if whepSession.IsWaitingForKeyframe.Load() {
+	if whepSession.IsWaitingForKeyframe.Load() {
 		if !packet.IsKeyframe {
-			log.Println("WhepSession.SendVideoPacket: Waiting for keyframe")
 			return
 		}
 
 		whepSession.IsWaitingForKeyframe.Store(false)
 	}
 
-	// Convert to WhepSession Function
 	whepSession.VideoLock.Lock()
 	whepSession.VideoPacketsWritten += 1
 	whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)

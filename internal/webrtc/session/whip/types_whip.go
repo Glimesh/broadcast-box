@@ -37,8 +37,8 @@ type (
 
 		// Protects AudioTrack, VideoTracks
 		TracksLock  sync.RWMutex
-		VideoTracks []*VideoTrack
-		AudioTracks []*AudioTrack
+		VideoTracks map[string]*VideoTrack
+		AudioTracks map[string]*AudioTrack
 
 		// Protects WhepSessions
 		WhepSessionsLock sync.RWMutex
@@ -54,6 +54,8 @@ type (
 		LastRecieved    atomic.Value
 		LastKeyFrame    atomic.Value
 		Track           *codecs.TrackMultiCodec
+
+		TrackStreamChannel chan codecs.TrackPacket
 	}
 	AudioTrack struct {
 		Rid             string
@@ -63,5 +65,7 @@ type (
 		PacketsReceived atomic.Uint64
 		LastRecieved    atomic.Value
 		Track           *codecs.TrackMultiCodec
+
+		TrackStreamChannel chan codecs.TrackPacket
 	}
 )

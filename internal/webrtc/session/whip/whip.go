@@ -83,18 +83,25 @@ func (whipSession *WhipSession) statusTick() {
 // Currently this is only supported when being set through the simulcast
 // property in the offer made by the whip connection
 func (whipSession *WhipSession) GetHighestPrioritizedAudioTrack() string {
-	if len(whipSession.AudioTracks) != 0 {
-		highestPriorityAudioTrack := whipSession.AudioTracks[0]
-		for _, trackPriority := range whipSession.AudioTracks[1:] {
-			if trackPriority.Priority < highestPriorityAudioTrack.Priority {
-				highestPriorityAudioTrack = trackPriority
-			}
-		}
-
-		return highestPriorityAudioTrack.Rid
+	if len(whipSession.AudioTracks) == 0 {
+		log.Println("No Audio tracks was found for", whipSession.StreamKey)
+		return ""
 	}
 
-	return ""
+	var highestPriorityAudioTrack *AudioTrack
+	for _, trackPriority := range whipSession.AudioTracks {
+		if highestPriorityAudioTrack == nil {
+			highestPriorityAudioTrack = trackPriority
+			continue
+		}
+
+		if trackPriority.Priority < highestPriorityAudioTrack.Priority {
+			highestPriorityAudioTrack = trackPriority
+		}
+	}
+
+	return highestPriorityAudioTrack.Rid
+
 }
 
 // Get highest prioritized video track in the whip session
@@ -102,16 +109,22 @@ func (whipSession *WhipSession) GetHighestPrioritizedAudioTrack() string {
 // Currently this is only supported when being set through the simulcast
 // property in the offer made by the whip connection
 func (whipSession *WhipSession) GetHighestPrioritizedVideoTrack() string {
-	if len(whipSession.VideoTracks) != 0 {
-		highestPriorityVideoTrack := whipSession.VideoTracks[0]
-		for _, trackPriority := range whipSession.VideoTracks[1:] {
-			if trackPriority.Priority < highestPriorityVideoTrack.Priority {
-				highestPriorityVideoTrack = trackPriority
-			}
-		}
-
-		return highestPriorityVideoTrack.Rid
+	if len(whipSession.VideoTracks) == 0 {
+		log.Println("No Video tracks was found for", whipSession.StreamKey)
 	}
 
-	return ""
+	var highestPriorityVideoTrack *VideoTrack
+
+	for _, trackPriority := range whipSession.VideoTracks {
+		if highestPriorityVideoTrack == nil {
+			highestPriorityVideoTrack = trackPriority
+			continue
+		}
+
+		if trackPriority.Priority < highestPriorityVideoTrack.Priority {
+			highestPriorityVideoTrack = trackPriority
+		}
+	}
+
+	return highestPriorityVideoTrack.Rid
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/pion/webrtc/v4"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 )
 
 func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, peerConnection *webrtc.PeerConnection) {
@@ -79,25 +78,24 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
 		whipSession.WhepSessionsLock.RLock()
-		whepSessions := make([]*whep.WhepSession, 0, len(whipSession.WhepSessions))
-		for _, s := range whipSession.WhepSessions {
-			whepSessions = append(whepSessions, s)
+		for _, whepSession := range whipSession.WhepSessions {
+
+			select {
+			case whepSession.AudioChannel <- codecs.TrackPacket{
+				Layer: id,
+				Packet: &rtp.Packet{
+					Header:  rtpPkt.Header,
+					Payload: append([]byte(nil), rtpPkt.Payload...),
+				},
+				Codec:        codec,
+				TimeDiff:     timeDiff,
+				SequenceDiff: sequenceDiff,
+			}:
+			default:
+				log.Println("WhepSession.AudioWriter.TrackStreamChannel: Channel overflow, skipping packet")
+			}
 		}
 		whipSession.WhepSessionsLock.RUnlock()
 
-		for _, whepSession := range whepSessions {
-			if whepSession.AudioLayerCurrent.Load() == id {
-				whepSession.AudioChannel <- whep.TrackPacket{
-					Layer: id,
-					Packet: &rtp.Packet{
-						Header:  rtpPkt.Header,
-						Payload: append([]byte(nil), rtpPkt.Payload...),
-					},
-					Codec:        codec,
-					TimeDiff:     timeDiff,
-					SequenceDiff: sequenceDiff,
-				}
-			}
-		}
 	}
 }

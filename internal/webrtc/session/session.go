@@ -208,8 +208,8 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 		OnTrackChangeChannel:        make(chan struct{}, 50),
 		EventsChannel:               make(chan any, 50),
 
-		AudioTracks: []*whip.AudioTrack{},
-		VideoTracks: []*whip.VideoTrack{},
+		AudioTracks: make(map[string]*whip.AudioTrack),
+		VideoTracks: make(map[string]*whip.VideoTrack),
 
 		WhepSessions: map[string]*whep.WhepSession{},
 	}
