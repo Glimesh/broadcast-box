@@ -133,8 +133,9 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 				SequenceDiff: sequenceDiff,
 			}:
 			default:
-				log.Println("WhepSession.VideoWriter.TrackStreamChannel: Channel overflow, skipping packet")
+				// Drop packet
 			}
+
 		}
 		whipSession.WhepSessionsLock.RUnlock()
 
