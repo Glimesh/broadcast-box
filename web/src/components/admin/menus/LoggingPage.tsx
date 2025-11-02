@@ -24,7 +24,8 @@ const LoggingPage = () => {
         return result.text();
       })
       .then((result) => {
-        setResponse(() => result)
+        const reversed: string[] = result?.split('\n').reverse() ?? [""]
+        setResponse(() => reversed.join('\n').toString())
       });
   };
 
