@@ -18,8 +18,8 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		VideoTrack:          videoTrack,
 		AudioTimestamp:      5000,
 		VideoTimestamp:      5000,
-		AudioChannel:        make(chan codecs.TrackPacket, 1000),
-		VideoChannel:        make(chan codecs.TrackPacket, 1000),
+		AudioChannel:        make(chan codecs.TrackPacket, 2500),
+		VideoChannel:        make(chan codecs.TrackPacket, 2500),
 		WhipEventsChannel:   make(chan any, 100),
 		SseEventsChannel:    make(chan any, 100),
 		PeerConnection:      peerConnection,
@@ -41,6 +41,7 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 	return whepSession
 }
 
+// Handle events for SSE to the WHEP sessions
 func (whepSession *WhepSession) handleEvents() {
 	for {
 		select {
@@ -57,6 +58,7 @@ func (whepSession *WhepSession) handleEvents() {
 	}
 }
 
+// Handles incoming stream packets
 func (whepSession *WhepSession) handleStream() {
 	for {
 		select {
