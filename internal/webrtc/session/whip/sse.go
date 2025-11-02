@@ -44,9 +44,6 @@ func (whipSession *WhipSession) AnnounceStreamStartToWhepClients() {
 	maps.Copy(whepSessionsCopy, whipSession.WhepSessions)
 	whipSession.WhepSessionsLock.RUnlock()
 
-	log.Println("WhipSession.AnnounceStreamStartToWhepClients: Announce Stream Start to clients", whipSession.StreamKey)
-	log.Println("WhipSession.AnnounceStreamStartToWhepClients: Count", len(whepSessionsCopy))
-
 	// Generate layer info outside lock
 	streamStartMessage := "event: streamStart\ndata:\n"
 
