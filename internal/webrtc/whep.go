@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"log"
+	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -66,6 +67,8 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 					}
 				}
 			}
+
+			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 
