@@ -109,10 +109,10 @@ func (manager *WhipSessionManager) GetOrAddStream(profile authorization.PublicPr
 	session, ok := manager.GetWhipStream(profile.StreamKey)
 
 	if !ok {
-		log.Println("GetOrAddStream.AddWhipSession", profile.StreamKey, "was not found, adding")
+		log.Println("WhipSessionManager.GetOrAddStream.AddWhipSession", profile.StreamKey, "was not found, adding")
 		session = manager.AddWhipSession(profile)
 	} else if isWhip {
-		log.Println("GetOrAddStream.UpdateStreamStatus", profile.StreamKey)
+		log.Println("WhipSessionManager.GetOrAddStream.UpdateStreamStatus", profile.StreamKey)
 		session.UpdateStreamStatus(profile)
 	}
 
@@ -263,7 +263,6 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 	whipSession.WhepSessions[whepSessionId] = whepSession
 	whipSession.WhepSessionsLock.Unlock()
 
-	// TODO: Move to WhepSession as its own events file
 	whepSession.PeerConnection.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
 		log.Println("WhepSession.OnICEConnectionStateChange", state)
 		switch state {
@@ -305,7 +304,6 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 			time.Sleep(500 * time.Millisecond)
 		}
 	}()
-
 }
 
 // Remove Whip session completely
@@ -339,4 +337,5 @@ func (manager *WhipSessionManager) RemoveWhepSession(whipSession *whip.WhipSessi
 		log.Println("WhipSessionManager.RemoveWhepSession: WhipSession empty, closing")
 		manager.RemoveWhipSession(whipSession.StreamKey)
 	}
+
 }

@@ -2,22 +2,6 @@ import { parseLinkHeader } from "@web3-storage/parse-link-header";
 import { StreamStatus } from "../../../providers/StatusProvider";
 import toBase64Utf8 from "../../../utilities/base64";
 
-export function waitForIceGatheringComplete(peerConnection: RTCPeerConnection) {
-  return new Promise(resolve => {
-    if (peerConnection.iceGatheringState === 'complete') {
-      resolve(true);
-    } else {
-      const checkState = () => {
-        if (peerConnection.iceGatheringState === 'complete') {
-          peerConnection.removeEventListener('icegatheringstatechange', checkState);
-          resolve(true);
-        }
-      };
-      peerConnection.addEventListener('icegatheringstatechange', checkState);
-    }
-  });
-}
-
 export interface CurrentLayersMessage {
 	id: string,
 	audioLayerCurrent: string
@@ -96,7 +80,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	.setLocalDescription(offer)
 	.catch((err) => console.error("PeerConnection.SetLocalDescription", err));
 
-	// await waitForIceGatheringComplete(peerConnection)
+	await waitForIceGatheringComplete(peerConnection)
 
 	const whepResponse = await fetch(`/api/whep`, {
 		method: 'POST',
@@ -177,5 +161,21 @@ async function createPeerConnection(): Promise<RTCPeerConnection> {
 			console.error("Error calling Ice-Servers endpoint. Ignoring STUN/TURN configuration")
 			return new RTCPeerConnection();
 		})
+}
+
+export function waitForIceGatheringComplete(peerConnection: RTCPeerConnection) {
+  return new Promise(resolve => {
+    if (peerConnection.iceGatheringState === 'complete') {
+      resolve(true);
+    } else {
+      const checkState = () => {
+        if (peerConnection.iceGatheringState === 'complete') {
+          peerConnection.removeEventListener('icegatheringstatechange', checkState);
+          resolve(true);
+        }
+      };
+      peerConnection.addEventListener('icegatheringstatechange', checkState);
+    }
+  });
 }
 

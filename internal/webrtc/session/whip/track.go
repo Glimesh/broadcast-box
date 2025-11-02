@@ -94,6 +94,7 @@ func (whipSession *WhipSession) GetHighestPrioritizedAudioTrack() string {
 		return ""
 	}
 
+	whipSession.TracksLock.RLock()
 	var highestPriorityAudioTrack *AudioTrack
 	for _, trackPriority := range whipSession.AudioTracks {
 		if highestPriorityAudioTrack == nil {
@@ -104,6 +105,11 @@ func (whipSession *WhipSession) GetHighestPrioritizedAudioTrack() string {
 		if trackPriority.Priority < highestPriorityAudioTrack.Priority {
 			highestPriorityAudioTrack = trackPriority
 		}
+	}
+	whipSession.TracksLock.RUnlock()
+
+	if highestPriorityAudioTrack == nil {
+		return ""
 	}
 
 	return highestPriorityAudioTrack.Rid
@@ -121,6 +127,7 @@ func (whipSession *WhipSession) GetHighestPrioritizedVideoTrack() string {
 
 	var highestPriorityVideoTrack *VideoTrack
 
+	whipSession.TracksLock.RLock()
 	for _, trackPriority := range whipSession.VideoTracks {
 		if highestPriorityVideoTrack == nil {
 			highestPriorityVideoTrack = trackPriority
@@ -130,6 +137,11 @@ func (whipSession *WhipSession) GetHighestPrioritizedVideoTrack() string {
 		if trackPriority.Priority < highestPriorityVideoTrack.Priority {
 			highestPriorityVideoTrack = trackPriority
 		}
+	}
+	whipSession.TracksLock.RUnlock()
+
+	if highestPriorityVideoTrack == nil {
+		return ""
 	}
 
 	return highestPriorityVideoTrack.Rid

@@ -318,8 +318,10 @@ func (whipSession *WhipSession) getPrioritizedStreamingLayer(layer string, sdpDe
 		for _, attribute := range description.Attributes {
 			if attribute.Key == "simulcast" && strings.HasPrefix(attribute.Value, "send ") {
 				layers := strings.TrimPrefix(attribute.Value, "send")
+				log.Println("WhipSession.VideoWriter.TrackPriority:", layers)
 				for simulcastLayer := range strings.SplitSeq(strings.TrimSpace(layers), ";") {
 					if simulcastLayer != "" && strings.EqualFold(simulcastLayer, layer) {
+						log.Println("WhipSession.VideoWriter.TrackPriority:", layer)
 						return priority
 					} else {
 						priority++
