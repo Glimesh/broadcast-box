@@ -68,10 +68,6 @@ func disconnected(isWhip bool, streamKey string, sessionId string) {
 	if isWhip {
 		log.Println("WhipSession.Disconnected: Removing tracks", sessionId)
 		whipSession.RemoveTracks()
-	} else {
-		log.Println("WhepSession.Disconnected: Removing session", sessionId)
-		//TODO: Find a way to use the SSE connection to be considdered the tether to an open connection
-		// whipSession.RemoveWhepSession(sessionId)
 	}
 
 	// Do not conclude stream if whep sessions are still listening, or the host is still active
