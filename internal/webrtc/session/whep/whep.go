@@ -67,7 +67,6 @@ func (whepSession *WhepSession) Close() {
 
 		whepSession.VideoLock.Unlock()
 		whepSession.AudioLock.Unlock()
-
 	})
 }
 

@@ -28,8 +28,4 @@ func (whipSession *WhipSession) RemoveWhepSession(whepSessionId string) {
 
 	whipSession.WhepSessionsLock.Unlock()
 
-	if whipSession.IsEmpty() {
-		log.Println("WhipSession.RemoveWhepSession.Concluded:", whipSession.StreamKey)
-		whipSession.ActiveContextCancel()
-	}
 }

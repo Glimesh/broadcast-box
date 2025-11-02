@@ -64,7 +64,7 @@ func onConnectionStateChange(whipSession *whip.WhipSession) func(webrtc.PeerConn
 		log.Println("WhipSession.PeerConnection.OnConnectionStateChange", state)
 
 		if state == webrtc.PeerConnectionStateDisconnected || state == webrtc.PeerConnectionStateClosed || state == webrtc.PeerConnectionStateFailed {
-			whipSession.ActiveContextCancel()
+			whipSession.HasHost.Store(true)
 		}
 	}
 }

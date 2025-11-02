@@ -11,6 +11,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session/whip"
 	"github.com/google/uuid"
+	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -43,7 +44,6 @@ func (manager *WhipSessionManager) GetWhipStream(streamKey string) (session *whi
 	manager.whipSessionsLock.RLock()
 	stream, ok := manager.whipSessions[streamKey]
 	manager.whipSessionsLock.RUnlock()
-	log.Println("WhipSessionManager.GetWhipStream.Done")
 
 	return stream, ok
 }
@@ -114,6 +114,7 @@ func (manager *WhipSessionManager) GetOrAddStream(profile authorization.PublicPr
 	} else if isWhip {
 		log.Println("WhipSessionManager.GetOrAddStream.UpdateStreamStatus", profile.StreamKey)
 		session.UpdateStreamStatus(profile)
+		go manager.handleWhipShutdown(session, profile)
 	}
 
 	return session, nil
@@ -229,26 +230,28 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 	manager.whipSessionsLock.Unlock()
 
 	// Setup Whip session shutdown handling
-	go func() {
-		<-whipSession.ActiveContext.Done()
-		log.Println("WhipSessionManager.WhipSession.ActiveContext.Done()", profile.StreamKey)
-
-		// Remove Whip host
-		whipSession.RemovePeerConnection()
-		whipSession.RemoveTracks()
-
-		// Remove session if no host or whep sessions are present
-		if whipSession.IsEmpty() {
-			log.Println("WhipSessionManager.WhipSession.IsEmpty.Remove", profile.StreamKey)
-			manager.RemoveWhipSession(profile.StreamKey)
-		}
-	}()
+	go manager.handleWhipShutdown(whipSession, profile)
 
 	return whipSession
 }
 
+func (manager *WhipSessionManager) handleWhipShutdown(whipSession *whip.WhipSession, profile authorization.PublicProfile) {
+	<-whipSession.ActiveContext.Done()
+	log.Println("WhipSessionManager.WhipSession.ActiveContext.Done()", profile.StreamKey)
+
+	// Remove Whip host
+	whipSession.RemovePeerConnection()
+	whipSession.RemoveTracks()
+
+	// Remove session if no host or whep sessions are present
+	if whipSession.IsEmpty() {
+		log.Println("WhipSessionManager.WhipSession.IsEmpty.Remove", profile.StreamKey)
+		manager.RemoveWhipSession(profile.StreamKey)
+	}
+}
+
 // Add WHEP session to existing WHIP session
-func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSession *whip.WhipSession, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec) {
+func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSession *whip.WhipSession, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec, videoRtcpSender *webrtc.RTPSender) {
 	log.Println("WhipSessionManager.WhipSession.AddWhepSession")
 
 	whepSession := whep.CreateNewWhep(
@@ -304,6 +307,30 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 			time.Sleep(500 * time.Millisecond)
 		}
 	}()
+
+	// Handle picture loss indication packages
+	go func() {
+		for {
+			select {
+			case <-whipSession.ActiveContext.Done():
+				return
+			default:
+				rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
+				if rtcpErr != nil {
+					return
+				}
+				for _, packet := range rtcpPackets {
+					if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
+						select {
+						case whipSession.PacketLossIndicationChannel <- true:
+						default:
+						}
+					}
+				}
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+	}()
 }
 
 // Remove Whip session completely
@@ -333,9 +360,9 @@ func (manager *WhipSessionManager) RemoveWhepSession(whipSession *whip.WhipSessi
 	delete(whipSession.WhepSessions, whepSessionId)
 	whipSession.WhepSessionsLock.Unlock()
 
-	if whipSession.IsEmpty() {
-		log.Println("WhipSessionManager.RemoveWhepSession: WhipSession empty, closing")
-		manager.RemoveWhipSession(whipSession.StreamKey)
-	}
+	// if whipSession.IsEmpty() {
+	// 	log.Println("WhipSessionManager.RemoveWhepSession: WhipSession empty, closing")
+	// 	manager.RemoveWhipSession(whipSession.StreamKey)
+	// }
 
 }

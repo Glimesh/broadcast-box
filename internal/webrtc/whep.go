@@ -2,7 +2,6 @@ package webrtc
 
 import (
 	"log"
-	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -11,7 +10,6 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 
 	"github.com/google/uuid"
-	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -47,31 +45,6 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		return "", "", err
 	}
 
-	go func() {
-		for {
-			select {
-			case <-whipSession.ActiveContext.Done():
-				return
-			default:
-				rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
-				if rtcpErr != nil {
-					return
-				}
-
-				for _, packet := range rtcpPackets {
-					if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
-						select {
-						case whipSession.PacketLossIndicationChannel <- true:
-						default:
-						}
-					}
-				}
-			}
-
-			time.Sleep(10 * time.Millisecond)
-		}
-	}()
-
 	peerconnection.RegisterWhepHandlers(whipSession, peerConnection, whepSessionId)
 
 	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
@@ -93,7 +66,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	<-gatherComplete
 	log.Println("WhepSession.GatheringCompletePromise: Completed Gathering for", streamKey)
 
-	session.SessionManager.AddWhepSession(whepSessionId, whipSession, peerConnection, audioTrack, videoTrack)
+	session.SessionManager.AddWhepSession(whepSessionId, whipSession, peerConnection, audioTrack, videoTrack, videoRtcpSender)
 
 	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
 }

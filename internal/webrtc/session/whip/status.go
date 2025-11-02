@@ -45,9 +45,8 @@ func (whipSession *WhipSession) IsActive() bool {
 }
 
 func (whipSession *WhipSession) HasWhepSessions() bool {
-	log.Println("WhipSession.HasWhepSessions:", len(whipSession.WhepSessions))
-
 	whipSession.WhepSessionsLock.RLock()
+	log.Println("WhipSession.HasWhepSessions:", len(whipSession.WhepSessions))
 
 	if len(whipSession.WhepSessions) == 0 {
 		whipSession.WhepSessionsLock.RUnlock()
@@ -60,13 +59,17 @@ func (whipSession *WhipSession) HasWhepSessions() bool {
 
 func (whipSession *WhipSession) UpdateStreamStatus(profile authorization.PublicProfile) {
 	whipSession.StatusLock.Lock()
-	whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
 
 	whipSession.HasHost.Store(true)
 	whipSession.MOTD = profile.MOTD
 	whipSession.IsPublic = profile.IsPublic
+
+	whipSession.ContextLock.Lock()
+	whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
+
 	whipSession.ActiveContext = whipActiveContext
 	whipSession.ActiveContextCancel = whipActiveContextCancel
+	whipSession.ContextLock.Unlock()
 
 	whipSession.StatusLock.Unlock()
 }
@@ -90,26 +93,10 @@ func (whipSession *WhipSession) GetStreamStatus() (status WhipSessionStatus) {
 	return
 }
 func (whipSession *WhipSession) handleStatus() {
-	// Lock, copy session data, then unlock
-	whipSession.WhepSessionsLock.RLock()
-	whepSessionsCopy := make(map[string]*whep.WhepSession)
-	maps.Copy(whepSessionsCopy, whipSession.WhepSessions)
-	whipSession.WhepSessionsLock.RUnlock()
+	whipSession.HasHost.Store(whipSession.IsActive())
 
-	whipSession.TracksLock.RLock()
-	videoTrackCount := len(whipSession.VideoTracks)
-	audioTrackCount := len(whipSession.AudioTracks)
-	whipSession.TracksLock.RUnlock()
-
-	hasActiveHost := videoTrackCount != 0 || audioTrackCount != 0
-	if hasActiveHost {
-		whipSession.HasHost.Store(true)
-	} else {
-		whipSession.HasHost.Store(false)
-		whipSession.ActiveContextCancel()
-	}
-
-	if len(whepSessionsCopy) == 0 {
+	whepSessions := whipSession.WhepSessionsSnapshot.Load().(map[string]*whep.WhepSession)
+	if len(whepSessions) == 0 {
 		return
 	}
 
@@ -117,7 +104,7 @@ func (whipSession *WhipSession) handleStatus() {
 	currentStatus := whipSession.GetSessionStatsEvent()
 
 	// Send status to each WHEP session
-	for _, whepSession := range whepSessionsCopy {
+	for _, whepSession := range whepSessions {
 		if whepSession.IsSessionClosed.Load() {
 			continue
 		}

@@ -26,6 +26,7 @@ type (
 		HasHost    atomic.Bool
 		IsPublic   bool
 
+		ContextLock         sync.RWMutex
 		ActiveContext       context.Context
 		ActiveContextCancel func()
 		PeerConnection      *webrtc.PeerConnection
@@ -41,8 +42,12 @@ type (
 		AudioTracks map[string]*AudioTrack
 
 		// Protects WhepSessions
-		WhepSessionsLock     sync.RWMutex
-		WhepSessions         map[string]*whep.WhepSession
+		WhepSessionsLock sync.RWMutex
+		WhepSessions     map[string]*whep.WhepSession
+
+		//TODO: WhepSessionsSnapshot should only contain information about the current state of the session, not
+		// references to chans and other types that cannot be json serialized.
+		// Create interface for the purpose and use that with the atomic specifically
 		WhepSessionsSnapshot atomic.Value
 	}
 
