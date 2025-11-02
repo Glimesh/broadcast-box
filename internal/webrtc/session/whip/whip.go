@@ -36,7 +36,7 @@ func (whipSession *WhipSession) StartWhipSessionStatusLoop() {
 	}
 }
 
-func (whipSession *WhipSession) SnapShot() {
+func (whipSession *WhipSession) Snapshot() {
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	defer ticker.Stop()
 

@@ -28,7 +28,7 @@ func WHIP(offer string, profile authorization.PublicProfile) (sdp string, sessio
 	peerconnection.RegisterWhipHandlers(whipSession, peerConnection, whipSession.SessionId)
 
 	go whipSession.StartWhipSessionStatusLoop()
-	go whipSession.SnapShot()
+	go whipSession.Snapshot()
 
 	sdp = utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP))
 	sessionId = whipSession.SessionId
