@@ -38,14 +38,13 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
+	droppedPackets := 0
 	for {
 		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
 		if sessionsAny == nil {
 			time.Sleep(50 * time.Millisecond)
 			continue
 		}
-
-		sessions := sessionsAny.(map[string]*whep.WhepSession)
 
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 
@@ -61,6 +60,8 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 			log.Println(err)
 			return
 		}
+
+		sessions := sessionsAny.(map[string]*whep.WhepSession)
 
 		track.PacketsReceived.Add(1)
 
@@ -101,7 +102,11 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 				SequenceDiff: sequenceDiff,
 			}:
 			default:
-				// Drop packet
+				droppedPackets += 1
+
+				if droppedPackets%100 == 0 {
+					log.Println("WhipSession.AudioWriter.DroppedPackets:", droppedPackets)
+				}
 			}
 
 		}

@@ -63,6 +63,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 		},
 	}
 
+	droppedPackets := 0
 	for {
 		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
 
@@ -142,6 +143,12 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 				SequenceDiff: sequenceDiff,
 			}:
 			default:
+				droppedPackets += 1
+
+				if droppedPackets%100 == 0 {
+					log.Println("WhipSession.VideoWriter.DroppedPackets:", droppedPackets)
+				}
+
 				// Drop packet
 			}
 		}
