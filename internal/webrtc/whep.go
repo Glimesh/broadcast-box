@@ -10,6 +10,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 
 	"github.com/google/uuid"
+	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -40,10 +41,28 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		return "", "", err
 	}
 
-	_, err = peerConnection.AddTrack(videoTrack)
+	videoRtcpSender, err := peerConnection.AddTrack(videoTrack)
 	if err != nil {
 		return "", "", err
 	}
+
+	go func() {
+		for {
+			rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
+			if rtcpErr != nil {
+				return
+			}
+
+			for _, packet := range rtcpPackets {
+				if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
+					select {
+					case whipSession.PacketLossIndicationChannel <- true:
+					default:
+					}
+				}
+			}
+		}
+	}()
 
 	peerconnection.RegisterWhepHandlers(whipSession, peerConnection, whepSessionId)
 
