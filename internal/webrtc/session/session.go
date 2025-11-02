@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"maps"
-	"runtime"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -36,7 +35,6 @@ func (manager *WhipSessionManager) Setup() {
 			manager.whipSessionsLock.RUnlock()
 		}
 	}()
-
 }
 
 // Get Whip stream by stream key
@@ -121,20 +119,6 @@ func (manager *WhipSessionManager) GetOrAddStream(profile authorization.PublicPr
 	return session, nil
 }
 
-func (manager *WhipSessionManager) UpdateProfile(profile *authorization.PersonalProfile) {
-	log.Println("WhipSessionManager.UpdateProfile")
-	manager.whipSessionsLock.RLock()
-	whipSession, ok := manager.whipSessions[profile.StreamKey]
-	manager.whipSessionsLock.RUnlock()
-
-	if ok {
-		whipSession.StatusLock.Lock()
-		whipSession.MOTD = profile.MOTD
-		whipSession.IsPublic = profile.IsPublic
-		whipSession.StatusLock.Unlock()
-	}
-}
-
 func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) (result []StreamSession) {
 	log.Println("SessionManager.GetSessionStates: IsAdmin", includePrivateStreams)
 	SessionManager.whipSessionsLock.RLock()
@@ -200,6 +184,20 @@ func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) 
 	}
 
 	return
+}
+
+func (manager *WhipSessionManager) UpdateProfile(profile *authorization.PersonalProfile) {
+	log.Println("WhipSessionManager.UpdateProfile")
+	manager.whipSessionsLock.RLock()
+	whipSession, ok := manager.whipSessions[profile.StreamKey]
+	manager.whipSessionsLock.RUnlock()
+
+	if ok {
+		whipSession.StatusLock.Lock()
+		whipSession.MOTD = profile.MOTD
+		whipSession.IsPublic = profile.IsPublic
+		whipSession.StatusLock.Unlock()
+	}
 }
 
 // Add new Whip session

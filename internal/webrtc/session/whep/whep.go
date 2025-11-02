@@ -8,6 +8,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
+// Create and start a new WHEP session
 func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, audioLayer string, videoTrack *codecs.TrackMultiCodec, videoLayer string, peerConnection *webrtc.PeerConnection) (whepSession *WhepSession) {
 	log.Println("WhepSession.CreateNewWhep", whepSessionId)
 
@@ -34,47 +35,80 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 	whepSession.IsWaitingForKeyframe.Store(true)
 	whepSession.IsSessionClosed.Store(false)
 
-	// Handle WHEP Streams and Events
+	// Start WHEP go routines
 	go whepSession.handleEvents()
 	go whepSession.handleStream()
 
 	return whepSession
 }
 
-// Handle events for SSE to the WHEP sessions
-func (whepSession *WhepSession) handleEvents() {
-	for {
-		select {
-		case <-whepSession.ActiveContext.Done():
-			log.Println("WhepSession.HandleEventsLoop.Close")
-			return
-		case msg, ok := <-whepSession.WhipEventsChannel:
-			if !ok {
-				log.Println("WhepSession.Event.Whip: Channel closed - exiting")
-			} else {
-				log.Println("WhepSession.Event.Whip:", msg)
-			}
+// Closes down the WHEP session completely
+func (whepSession *WhepSession) Close() {
+	// Close WHEP channels
+	whepSession.SessionClose.Do(func() {
+		log.Println("WhepSession.Close")
+		whepSession.IsSessionClosed.Store(true)
+
+		// Close PeerConnection
+		err := whepSession.PeerConnection.Close()
+		if err != nil {
+			log.Println("WhepSession.Close.PeerConnection.Error", err)
 		}
-	}
+
+		// Notify WHIP about closure
+		whepSession.ActiveContextCancel()
+
+		// Empty tracks
+		whepSession.AudioLock.Lock()
+		whepSession.VideoLock.Lock()
+
+		whepSession.AudioTrack = nil
+		whepSession.VideoTrack = nil
+
+		whepSession.VideoLock.Unlock()
+		whepSession.AudioLock.Unlock()
+
+	})
 }
 
-// Handles incoming stream packets
-func (whepSession *WhepSession) handleStream() {
-	for {
-		select {
-		case <-whepSession.ActiveContext.Done():
-			log.Println("WhepSession.HandleStreamLoop.Close")
-			return
+// Get the current status of the WHEP session
+func (whepSession *WhepSession) GetWhepSessionStatus() (state WhepSessionState) {
+	whepSession.AudioLock.RLock()
+	whepSession.VideoLock.RLock()
 
-		case packet := <-whepSession.VideoChannel:
-			if packet.Layer == whepSession.VideoLayerCurrent.Load() {
-				whepSession.SendVideoPacket(packet)
-			}
+	currentAudioLayer := whepSession.AudioLayerCurrent.Load().(string)
+	currentVideoLayer := whepSession.VideoLayerCurrent.Load().(string)
 
-		case packet := <-whepSession.AudioChannel:
-			if packet.Layer == whepSession.AudioLayerCurrent.Load() {
-				whepSession.SendAudioPacket(packet)
-			}
-		}
+	state = WhepSessionState{
+		Id: whepSession.SessionId,
+
+		AudioLayerCurrent:   currentAudioLayer,
+		AudioTimestamp:      whepSession.AudioTimestamp,
+		AudioPacketsWritten: whepSession.AudioPacketsWritten,
+		AudioSequenceNumber: uint64(whepSession.AudioSequenceNumber),
+
+		VideoLayerCurrent:   currentVideoLayer,
+		VideoTimestamp:      whepSession.VideoTimestamp,
+		VideoPacketsWritten: whepSession.VideoPacketsWritten,
+		VideoSequenceNumber: uint64(whepSession.VideoSequenceNumber),
 	}
+
+	whepSession.VideoLock.RUnlock()
+	whepSession.AudioLock.RUnlock()
+
+	return
+}
+
+// Finds the corresponding Whip session to the Whep session id and sets the requested audio layer
+func (whepSession *WhepSession) SetAudioLayer(encodingId string) {
+	log.Println("Setting Audio Layer")
+	whepSession.AudioLayerCurrent.Store(encodingId)
+	whepSession.IsWaitingForKeyframe.Store(true)
+}
+
+// Finds the corresponding Whip session to the Whep session id and sets the requested video layer
+func (whepSession *WhepSession) SetVideoLayer(encodingId string) {
+	log.Println("Setting Video Layer")
+	whepSession.VideoLayerCurrent.Store(encodingId)
+	whepSession.IsWaitingForKeyframe.Store(true)
 }

@@ -3,8 +3,10 @@ package whip
 import (
 	"context"
 	"log"
+	"maps"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
+	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 )
 
 // Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
@@ -86,4 +88,73 @@ func (whipSession *WhipSession) GetStreamStatus() (status WhipSessionStatus) {
 	whipSession.StatusLock.RUnlock()
 
 	return
+}
+func (whipSession *WhipSession) handleStatus() {
+	// Lock, copy session data, then unlock
+	whipSession.WhepSessionsLock.RLock()
+	whepSessionsCopy := make(map[string]*whep.WhepSession)
+	maps.Copy(whepSessionsCopy, whipSession.WhepSessions)
+	whipSession.WhepSessionsLock.RUnlock()
+
+	whipSession.TracksLock.RLock()
+	videoTrackCount := len(whipSession.VideoTracks)
+	audioTrackCount := len(whipSession.AudioTracks)
+	whipSession.TracksLock.RUnlock()
+
+	hasActiveHost := videoTrackCount != 0 || audioTrackCount != 0
+	if hasActiveHost {
+		whipSession.HasHost.Store(true)
+	} else {
+		whipSession.HasHost.Store(false)
+		whipSession.ActiveContextCancel()
+	}
+
+	if len(whepSessionsCopy) == 0 {
+		return
+	}
+
+	// Generate status
+	currentStatus := whipSession.GetSessionStatsEvent()
+
+	// Send status to each WHEP session
+	for _, whepSession := range whepSessionsCopy {
+		if whepSession.IsSessionClosed.Load() {
+			continue
+		}
+
+		select {
+		case whepSession.SseEventsChannel <- currentStatus:
+		default:
+			log.Println("WhipSession.Loop.StatusTick: Status update skipped for session (", whepSession.SessionId, ") due to full channel")
+		}
+	}
+}
+
+func (whipSession *WhipSession) handleAnnounceOffline() {
+	// Lock, copy session data, then unlock
+	whipSession.WhepSessionsLock.RLock()
+	whepSessionsCopy := make(map[string]*whep.WhepSession)
+	maps.Copy(whepSessionsCopy, whipSession.WhepSessions)
+	whipSession.WhepSessionsLock.RUnlock()
+
+	if len(whepSessionsCopy) == 0 {
+		return
+	}
+
+	// Generate status
+	whipSession.HasHost.Store(false)
+	currentStatus := whipSession.GetSessionStatsEvent()
+
+	// Send status to each WHEP session
+	for _, whepSession := range whepSessionsCopy {
+		if whepSession.IsSessionClosed.Load() {
+			continue
+		}
+
+		select {
+		case whepSession.SseEventsChannel <- currentStatus:
+		default:
+			log.Println("WhipSession.handleAnnounceOffline: Offline Status update skipped for session (", whepSession.SessionId, ") due to full channel")
+		}
+	}
 }

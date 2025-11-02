@@ -83,3 +83,54 @@ func (whipSession *WhipSession) RemoveTracks() {
 	whipSession.OnTrackChangeChannel <- struct{}{}
 	whipSession.TracksLock.Unlock()
 }
+
+// Get highest prioritized audio track in the whip session
+// This only works if the priority has been set.
+// Currently this is only supported when being set through the simulcast
+// property in the offer made by the whip connection
+func (whipSession *WhipSession) GetHighestPrioritizedAudioTrack() string {
+	if len(whipSession.AudioTracks) == 0 {
+		log.Println("No Audio tracks was found for", whipSession.StreamKey)
+		return ""
+	}
+
+	var highestPriorityAudioTrack *AudioTrack
+	for _, trackPriority := range whipSession.AudioTracks {
+		if highestPriorityAudioTrack == nil {
+			highestPriorityAudioTrack = trackPriority
+			continue
+		}
+
+		if trackPriority.Priority < highestPriorityAudioTrack.Priority {
+			highestPriorityAudioTrack = trackPriority
+		}
+	}
+
+	return highestPriorityAudioTrack.Rid
+
+}
+
+// Get highest prioritized video track in the whip session
+// This only works if the priority has been set.
+// Currently this is only supported when being set through the simulcast
+// property in the offer made by the whip connection
+func (whipSession *WhipSession) GetHighestPrioritizedVideoTrack() string {
+	if len(whipSession.VideoTracks) == 0 {
+		log.Println("No Video tracks was found for", whipSession.StreamKey)
+	}
+
+	var highestPriorityVideoTrack *VideoTrack
+
+	for _, trackPriority := range whipSession.VideoTracks {
+		if highestPriorityVideoTrack == nil {
+			highestPriorityVideoTrack = trackPriority
+			continue
+		}
+
+		if trackPriority.Priority < highestPriorityVideoTrack.Priority {
+			highestPriorityVideoTrack = trackPriority
+		}
+	}
+
+	return highestPriorityVideoTrack.Rid
+}
