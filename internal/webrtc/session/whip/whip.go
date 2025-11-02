@@ -27,17 +27,36 @@ func (whipSession *WhipSession) StartWhipSessionStatusLoop() {
 		case <-whipSession.OnTrackChangeChannel:
 			log.Println("WhipSession.AnnounceLayersToWhepClients")
 			whipSession.AnnounceLayersToWhepClients()
-			log.Println("WhipSession.AnnounceLayersToWhepClients.Done")
 
 		// Send status every 5 seconds
 		case <-ticker.C:
 			//TODO: Make this more event based so that a 5 second trigger is not needed
-			whipSession.statusTick()
+			whipSession.handleStatus()
 		}
 	}
 }
 
-func (whipSession *WhipSession) statusTick() {
+func (whipSession *WhipSession) SnapShot() {
+	ticker := time.NewTicker(1000 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+
+			whipSession.WhepSessionsLock.RLock()
+			snapshot := make(map[string]*whep.WhepSession, len(whipSession.WhepSessions))
+			maps.Copy(snapshot, whipSession.WhepSessions)
+			whipSession.WhepSessionsLock.RUnlock()
+
+			whipSession.WhepSessionsSnapshot.Store(snapshot)
+		case <-whipSession.ActiveContext.Done():
+			return
+		}
+	}
+}
+
+func (whipSession *WhipSession) handleStatus() {
 	// Lock, copy session data, then unlock
 	whipSession.WhepSessionsLock.RLock()
 	whepSessionsCopy := make(map[string]*whep.WhepSession)

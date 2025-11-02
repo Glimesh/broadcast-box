@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"maps"
+	"runtime"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -16,33 +17,43 @@ import (
 
 // Prepare the Whip Session Manager
 func (manager *WhipSessionManager) Setup() {
+	log.Println("WhipSessionManager.Setup")
+
 	manager.whipSessions = map[string]*whip.WhipSession{}
-	//	go func() {
-	//		ticker := time.NewTicker(5 * time.Second)
-	//		defer ticker.Stop()
-	//		for range ticker.C {
-	//			manager.whipSessionsLock.RLock()
-	//			for _, session := range manager.whipSessions {
-	//				if session.IsEmpty() {
-	//					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
-	//					manager.RemoveWhipSession(session.StreamKey)
-	//				}
-	//			}
-	//			manager.whipSessionsLock.RUnlock()
-	//		}
-	//	}()
+
+	// Output curent session information
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			log.Println("Current Active Routines: ", runtime.NumGoroutine())
+			log.Println("Current Available CPU: ", runtime.NumCPU())
+			manager.whipSessionsLock.RLock()
+			for _, session := range manager.whipSessions {
+				if session.IsEmpty() {
+					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
+					manager.RemoveWhipSession(session.StreamKey)
+				}
+			}
+			manager.whipSessionsLock.RUnlock()
+		}
+	}()
+
 }
 
 // Get Whip stream by stream key
 func (manager *WhipSessionManager) GetWhipStream(streamKey string) (session *whip.WhipSession, foundSession bool) {
+	log.Println("WhipSessionManager.GetWhipStream")
 	manager.whipSessionsLock.RLock()
 	stream, ok := manager.whipSessions[streamKey]
 	manager.whipSessionsLock.RUnlock()
+	log.Println("WhipSessionManager.GetWhipStream.Done")
 
 	return stream, ok
 }
 
 func (manager *WhipSessionManager) GetWhipStreamBySessionId(sessionId string) (session *whip.WhipSession, foundSession bool) {
+	log.Println("WhipSessionManager.GetWhipStreamBySessionId")
 	manager.whipSessionsLock.RLock()
 	defer manager.whipSessionsLock.RUnlock()
 
@@ -57,7 +68,10 @@ func (manager *WhipSessionManager) GetWhipStreamBySessionId(sessionId string) (s
 
 // Find Whep session by session id
 func (manager *WhipSessionManager) GetWhepStream(sessionId string) (session *whep.WhepSession, foundSession bool) {
+	log.Println("WhipSessionManager.GetWhepStream")
 	manager.whipSessionsLock.RLock()
+	defer manager.whipSessionsLock.RUnlock()
+
 	for _, whipSession := range manager.whipSessions {
 		whipSession.WhepSessionsLock.RLock()
 
@@ -67,12 +81,12 @@ func (manager *WhipSessionManager) GetWhepStream(sessionId string) (session *whe
 		}
 		whipSession.WhepSessionsLock.RUnlock()
 	}
-	manager.whipSessionsLock.RUnlock()
 
 	return nil, false
 }
 
 func (manager *WhipSessionManager) GetWhepStreamBySessionId(sessionId string) (whepSession *whep.WhepSession, ok bool) {
+	log.Println("WhipSessionManager.GetWhepStreamBySessionId")
 	manager.whipSessionsLock.RLock()
 	defer manager.whipSessionsLock.RUnlock()
 
@@ -110,6 +124,7 @@ func (manager *WhipSessionManager) GetOrAddStream(profile authorization.PublicPr
 }
 
 func (manager *WhipSessionManager) UpdateProfile(profile *authorization.PersonalProfile) {
+	log.Println("WhipSessionManager.UpdateProfile")
 	manager.whipSessionsLock.RLock()
 	whipSession, ok := manager.whipSessions[profile.StreamKey]
 	manager.whipSessionsLock.RUnlock()
@@ -191,6 +206,7 @@ func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) 
 
 // Add new Whip session
 func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicProfile) (whipSession *whip.WhipSession) {
+	log.Println("SessionManager.AddWhipSession")
 	whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
 
 	whipSession = &whip.WhipSession{
@@ -202,7 +218,7 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 
 		ActiveContext:               whipActiveContext,
 		ActiveContextCancel:         whipActiveContextCancel,
-		PacketLossIndicationChannel: make(chan any, 250),
+		PacketLossIndicationChannel: make(chan bool, 250),
 		OnTrackChangeChannel:        make(chan struct{}, 50),
 		EventsChannel:               make(chan any, 50),
 
@@ -237,6 +253,7 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 
 // Add WHEP session to existing WHIP session
 func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSession *whip.WhipSession, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec) {
+	log.Println("WhipSessionManager.WhipSession.AddWhepSession")
 
 	whepSession := whep.CreateNewWhep(
 		whepSessionId,
@@ -265,6 +282,8 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 			webrtc.ICEConnectionStateDisconnected:
 			log.Println("WhepSession.OnICEConnectionStateChange.Trigger.ConnectionState.RemoveWhepSession:", state)
 			whipSession.RemoveWhepSession(whepSessionId)
+		default:
+			log.Println("WhepSession.OnICEConnectionStateChange.Default", state)
 		}
 	})
 
@@ -274,9 +293,21 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 		whepSession.SseEventsChannel <- whipSession.GetSessionStatsEvent()
 		whepSession.SseEventsChannel <- whipSession.GetAvailableLayersEvent()
 
-		<-whepSession.SessionClosedChannel
+		<-whepSession.ActiveContext.Done()
 		log.Println("WhipSessionManager.WhepSession.Close")
 		manager.RemoveWhepSession(whipSession, whepSessionId)
+	}()
+
+	// Handle WHEP Layer changes and trigger keyframe from WHIP
+	go func() {
+		for {
+			if whepSession.IsWaitingForKeyframe.Load() {
+				whipSession.PacketLossIndicationChannel <- true
+			} else if whepSession.IsSessionClosed.Load() {
+				return
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
 	}()
 }
 

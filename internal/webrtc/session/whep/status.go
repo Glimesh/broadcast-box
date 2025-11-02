@@ -45,10 +45,7 @@ func (whepSession *WhepSession) Close() {
 		}
 
 		// Notify WHIP about closure
-		whepSession.SessionClosedChannel <- struct{}{}
-
-		// Should this fire on close, or be triggered when the Whip session is disposed?
-		// whepSession.EventsChannel <- "close"
+		whepSession.ActiveContextCancel()
 
 		// Empty tracks
 		whepSession.AudioLock.Lock()

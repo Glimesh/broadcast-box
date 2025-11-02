@@ -18,7 +18,6 @@ func (whepSession *WhepSession) SendAudioPacket(packet codecs.TrackPacket) {
 		return
 	}
 
-	// Convert to WhepSession Function
 	whepSession.AudioLock.Lock()
 	whepSession.AudioPacketsWritten += 1
 	whepSession.AudioSequenceNumber = uint16(whepSession.AudioSequenceNumber) + uint16(packet.SequenceDiff)

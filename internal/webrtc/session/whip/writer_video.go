@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 	"github.com/pion/rtcp"
 	"github.com/pion/rtp"
 	pionCodecs "github.com/pion/rtp/codecs"
@@ -63,6 +64,15 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 	}
 
 	for {
+		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
+
+		if sessionsAny == nil {
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
+		sessions := sessionsAny.(map[string]*whep.WhepSession)
+
 		rtpBuf := rtpBufPool.Get().([]byte)
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 
@@ -83,6 +93,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 			return
 		}
 
+		// Consider using a variable that occassionaly updates the atomic instead
 		track.PacketsReceived.Add(1)
 
 		isKeyframe := false
@@ -117,9 +128,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 		lastTimestamp = rtpPkt.Timestamp
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
-		whipSession.WhepSessionsLock.RLock()
-		for _, whepSession := range whipSession.WhepSessions {
-
+		for _, whepSession := range sessions {
 			select {
 			case whepSession.VideoChannel <- codecs.TrackPacket{
 				Layer: id,
@@ -135,9 +144,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 			default:
 				// Drop packet
 			}
-
 		}
-		whipSession.WhepSessionsLock.RUnlock()
 
 		rtpBufPool.Put(rtpBuf)
 	}
@@ -166,20 +173,15 @@ func isPacketKeyframe(pkt *rtp.Packet, codec codecs.TrackCodeType, depacketizer 
 	return true
 }
 
-// Triggers a request for a new key frame to be sent to the client
+// Triggers a request for a new key frame
 func whipStreamVideoWriterChannels(remoteTrack *webrtc.TrackRemote, whipSession *WhipSession, peerConnection *webrtc.PeerConnection) {
-
-	whipSession.StatusLock.RLock()
-	whipActiveContext := whipSession.ActiveContext
-	whipSession.StatusLock.RUnlock()
-
 	for {
 		{
 			select {
-			case <-whipActiveContext.Done():
+			case <-whipSession.ActiveContext.Done():
 				return
 			case <-whipSession.PacketLossIndicationChannel:
-				log.Println("whipStreamVideoWriterChannels.Trigger.PLI")
+				log.Println("WhipSession.WhipStreamVideoWriterChannels.Trigger.PLI")
 				if sendError := peerConnection.WriteRTCP([]rtcp.Packet{
 					&rtcp.PictureLossIndication{
 						MediaSSRC: uint32(remoteTrack.SSRC()),

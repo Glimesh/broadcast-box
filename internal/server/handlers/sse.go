@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
@@ -45,7 +47,9 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Println("API.SSE: Client disconnected")
 			return
+
 		case msg, ok := <-sseChannel:
 			if debugSseMessages {
 				log.Println("API.SSE Sending:", msg)
@@ -56,11 +60,30 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				return
 			}
 
-			if _, err := fmt.Fprintf(responseWriter, "%s\n", msg); err != nil {
-				log.Println("API.SSE Error:", err)
-			}
+			// Write with timeout
+			writeCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+			done := make(chan error, 1)
 
-			flusher.Flush()
+			go func() {
+				_, err := fmt.Fprintf(responseWriter, "%s\n", msg)
+				if err == nil {
+					flusher.Flush()
+				}
+				done <- err
+			}()
+
+			select {
+			case err := <-done:
+				cancel()
+				if err != nil {
+					log.Println("API.SSE Write error:", err)
+					return
+				}
+			case <-writeCtx.Done():
+				cancel()
+				log.Println("API.SSE Write timeout")
+				return
+			}
 		}
 	}
 }

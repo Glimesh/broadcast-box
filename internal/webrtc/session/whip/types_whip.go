@@ -33,7 +33,7 @@ type (
 
 		OnTrackChangeChannel        chan struct{}
 		EventsChannel               chan any
-		PacketLossIndicationChannel chan any
+		PacketLossIndicationChannel chan bool
 
 		// Protects AudioTrack, VideoTracks
 		TracksLock  sync.RWMutex
@@ -41,8 +41,9 @@ type (
 		AudioTracks map[string]*AudioTrack
 
 		// Protects WhepSessions
-		WhepSessionsLock sync.RWMutex
-		WhepSessions     map[string]*whep.WhepSession
+		WhepSessionsLock     sync.RWMutex
+		WhepSessions         map[string]*whep.WhepSession
+		WhepSessionsSnapshot atomic.Value
 	}
 
 	VideoTrack struct {

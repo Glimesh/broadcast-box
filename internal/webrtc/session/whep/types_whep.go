@@ -1,6 +1,7 @@
 package whep
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -14,10 +15,11 @@ type (
 		IsWaitingForKeyframe atomic.Bool
 		IsSessionClosed      atomic.Bool
 
-		WhipEventsChannel    chan any
-		SseEventsChannel     chan any
-		SessionClose         sync.Once
-		SessionClosedChannel chan struct{}
+		WhipEventsChannel   chan any
+		SseEventsChannel    chan any
+		SessionClose        sync.Once
+		ActiveContext       context.Context
+		ActiveContextCancel func()
 
 		PeerConnection *webrtc.PeerConnection
 

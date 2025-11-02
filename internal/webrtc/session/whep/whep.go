@@ -1,6 +1,7 @@
 package whep
 
 import (
+	"context"
 	"log"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -10,18 +11,20 @@ import (
 func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, audioLayer string, videoTrack *codecs.TrackMultiCodec, videoLayer string, peerConnection *webrtc.PeerConnection) (whepSession *WhepSession) {
 	log.Println("WhepSession.CreateNewWhep", whepSessionId)
 
+	activeContext, activeContextCancel := context.WithCancel(context.Background())
 	whepSession = &WhepSession{
-		SessionId:            whepSessionId,
-		AudioTrack:           audioTrack,
-		VideoTrack:           videoTrack,
-		AudioTimestamp:       5000,
-		VideoTimestamp:       5000,
-		AudioChannel:         make(chan codecs.TrackPacket, 1000),
-		VideoChannel:         make(chan codecs.TrackPacket, 1000),
-		WhipEventsChannel:    make(chan any, 100),
-		SseEventsChannel:     make(chan any, 100),
-		SessionClosedChannel: make(chan struct{}, 1),
-		PeerConnection:       peerConnection,
+		SessionId:           whepSessionId,
+		AudioTrack:          audioTrack,
+		VideoTrack:          videoTrack,
+		AudioTimestamp:      5000,
+		VideoTimestamp:      5000,
+		AudioChannel:        make(chan codecs.TrackPacket, 1000),
+		VideoChannel:        make(chan codecs.TrackPacket, 1000),
+		WhipEventsChannel:   make(chan any, 100),
+		SseEventsChannel:    make(chan any, 100),
+		PeerConnection:      peerConnection,
+		ActiveContext:       activeContext,
+		ActiveContextCancel: activeContextCancel,
 	}
 
 	log.Println("WhepSession.CreateNewWhep.AudioLayer", audioLayer)
@@ -31,45 +34,45 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 	whepSession.IsWaitingForKeyframe.Store(true)
 	whepSession.IsSessionClosed.Store(false)
 
-	// Handle WHEP Events
-	go func() {
-		for {
-			select {
-			case msg, ok := <-whepSession.WhipEventsChannel:
-				if !ok {
-					log.Println("WhepSession.Event.Whip: Channel closed - exiting")
-				} else {
-					log.Println("WhepSession.Event.Whip:", msg)
-				}
-			case <-whepSession.SessionClosedChannel:
-				return
-			}
-		}
-	}()
-
-	// Handle WHEP Incoming streams
-	go func() {
-		// TODO: Include a timer to check for change in current audio/video layer
-		currentAudioLayer := whepSession.AudioLayerCurrent.Load()
-		currentVideoLayer := whepSession.VideoLayerCurrent.Load()
-
-		for {
-			select {
-			case <-whepSession.SessionClosedChannel:
-				return
-
-			case packet := <-whepSession.VideoChannel:
-				if packet.Layer == currentVideoLayer {
-					whepSession.SendVideoPacket(packet)
-				}
-
-			case packet := <-whepSession.AudioChannel:
-				if packet.Layer == currentAudioLayer {
-					whepSession.SendAudioPacket(packet)
-				}
-			}
-		}
-	}()
+	// Handle WHEP Streams and Events
+	go whepSession.handleEvents()
+	go whepSession.handleStream()
 
 	return whepSession
+}
+
+func (whepSession *WhepSession) handleEvents() {
+	for {
+		select {
+		case <-whepSession.ActiveContext.Done():
+			log.Println("WhepSession.HandleEventsLoop.Close")
+			return
+		case msg, ok := <-whepSession.WhipEventsChannel:
+			if !ok {
+				log.Println("WhepSession.Event.Whip: Channel closed - exiting")
+			} else {
+				log.Println("WhepSession.Event.Whip:", msg)
+			}
+		}
+	}
+}
+
+func (whepSession *WhepSession) handleStream() {
+	for {
+		select {
+		case <-whepSession.ActiveContext.Done():
+			log.Println("WhepSession.HandleStreamLoop.Close")
+			return
+
+		case packet := <-whepSession.VideoChannel:
+			if packet.Layer == whepSession.VideoLayerCurrent.Load() {
+				whepSession.SendVideoPacket(packet)
+			}
+
+		case packet := <-whepSession.AudioChannel:
+			if packet.Layer == whepSession.AudioLayerCurrent.Load() {
+				whepSession.SendAudioPacket(packet)
+			}
+		}
+	}
 }

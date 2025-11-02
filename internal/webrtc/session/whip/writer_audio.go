@@ -5,11 +5,13 @@ import (
 	"io"
 	"log"
 	"math"
+	"time"
 
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 )
 
 func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, peerConnection *webrtc.PeerConnection) {
@@ -37,6 +39,14 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumberSet := false
 
 	for {
+		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
+		if sessionsAny == nil {
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
+		sessions := sessionsAny.(map[string]*whep.WhepSession)
+
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 
 		switch {
@@ -77,8 +87,7 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 		lastTimestamp = rtpPkt.Timestamp
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
-		whipSession.WhepSessionsLock.RLock()
-		for _, whepSession := range whipSession.WhepSessions {
+		for _, whepSession := range sessions {
 
 			select {
 			case whepSession.AudioChannel <- codecs.TrackPacket{
@@ -96,7 +105,6 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 			}
 
 		}
-		whipSession.WhepSessionsLock.RUnlock()
 
 	}
 }
