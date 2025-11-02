@@ -17,7 +17,7 @@ func main() {
 	environment.LoadEnvironmentVariables()
 	console.HandleConsoleFlags()
 
-	log.Println("Booting up Broadcast")
+	log.Println("Booting up Broadcast", time.Now().Format("20060102"))
 	webrtc.Setup()
 
 	if shouldNetworkTest := os.Getenv(environment.NETWORK_TEST_ON_START); strings.EqualFold(shouldNetworkTest, "true") {
