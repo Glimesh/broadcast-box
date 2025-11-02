@@ -28,14 +28,14 @@ func (manager *WhipSessionManager) Setup() {
 		for range ticker.C {
 			log.Println("Current Active Routines: ", runtime.NumGoroutine())
 			log.Println("Current Available CPU: ", runtime.NumCPU())
-			manager.whipSessionsLock.RLock()
-			for _, session := range manager.whipSessions {
-				if session.IsEmpty() {
-					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
-					manager.RemoveWhipSession(session.StreamKey)
-				}
-			}
-			manager.whipSessionsLock.RUnlock()
+			// manager.whipSessionsLock.RLock()
+			// for _, session := range manager.whipSessions {
+			// 	if session.IsEmpty() {
+			// 		log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
+			// 		manager.RemoveWhipSession(session.StreamKey)
+			// 	}
+			// }
+			// manager.whipSessionsLock.RUnlock()
 		}
 	}()
 
