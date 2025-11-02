@@ -253,7 +253,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 			}
 		}
 
-		rtpBufPool.Put(&rtpBuf)
+		rtpBufPool.Put(rtpBuf)
 	}
 }
 
