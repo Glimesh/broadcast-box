@@ -35,7 +35,6 @@ func (whipSession *WhipSession) StartWhipSessionStatusLoop() {
 
 		// Send status every 5 seconds
 		case <-ticker.C:
-			//TODO: Make this more event based so that a 5 second trigger is not needed
 			whipSession.handleStatus()
 		}
 	}
