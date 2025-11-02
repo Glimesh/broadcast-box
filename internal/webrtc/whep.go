@@ -48,16 +48,21 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 
 	go func() {
 		for {
-			rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
-			if rtcpErr != nil {
+			select {
+			case <-whipSession.ActiveContext.Done():
 				return
-			}
+			default:
+				rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
+				if rtcpErr != nil {
+					return
+				}
 
-			for _, packet := range rtcpPackets {
-				if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
-					select {
-					case whipSession.PacketLossIndicationChannel <- true:
-					default:
+				for _, packet := range rtcpPackets {
+					if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
+						select {
+						case whipSession.PacketLossIndicationChannel <- true:
+						default:
+						}
 					}
 				}
 			}

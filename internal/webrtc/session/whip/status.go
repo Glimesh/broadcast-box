@@ -45,9 +45,9 @@ func (whipSession *WhipSession) IsActive() bool {
 }
 
 func (whipSession *WhipSession) HasWhepSessions() bool {
-	whipSession.WhepSessionsLock.RLock()
-
 	log.Println("WhipSession.HasWhepSessions:", len(whipSession.WhepSessions))
+
+	whipSession.WhepSessionsLock.RLock()
 
 	if len(whipSession.WhepSessions) == 0 {
 		whipSession.WhepSessionsLock.RUnlock()
