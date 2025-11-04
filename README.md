@@ -20,7 +20,7 @@
   - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
-## What is Broadcast Box
+## What is Broadcast Box 
 
 Broadcast Box lets you broadcast to others in sub-second time. It was designed
 to be simple to use and easily modifiable. We wrote Broadcast Box to show off some
