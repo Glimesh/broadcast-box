@@ -32,8 +32,10 @@ type (
 		PeerConnection      *webrtc.PeerConnection
 		PeerConnectionLock  sync.RWMutex
 
-		OnTrackChangeChannel        chan struct{}
-		EventsChannel               chan any
+		OnTrackChangeChannel chan struct{}
+		EventsChannel        chan any
+
+		// TODO: Moving this to the individual video track might be better
 		PacketLossIndicationChannel chan bool
 
 		// Protects AudioTrack, VideoTracks
@@ -61,6 +63,7 @@ type (
 		LastKeyFrame    atomic.Value
 		Track           *codecs.TrackMultiCodec
 
+		// TODO: Maybe no longer in use
 		TrackStreamChannel chan codecs.TrackPacket
 	}
 	AudioTrack struct {
@@ -72,6 +75,7 @@ type (
 		LastRecieved    atomic.Value
 		Track           *codecs.TrackMultiCodec
 
+		// TODO: Maybe no longer in use
 		TrackStreamChannel chan codecs.TrackPacket
 	}
 )

@@ -55,6 +55,8 @@ func onWhipTrackHandler(whipSession *whip.WhipSession, peerConnection *webrtc.Pe
 
 		// Fires when track has stopped
 		whipSession.OnTrackChangeChannel <- struct{}{}
+		peerConnection.Close()
+
 		log.Println("WhipSession.onWhipTrackHandler.TrackStopped", remoteTrack.RID())
 	}
 }
@@ -64,7 +66,9 @@ func onConnectionStateChange(whipSession *whip.WhipSession) func(webrtc.PeerConn
 		log.Println("WhipSession.PeerConnection.OnConnectionStateChange", state)
 
 		if state == webrtc.PeerConnectionStateDisconnected || state == webrtc.PeerConnectionStateClosed || state == webrtc.PeerConnectionStateFailed {
-			whipSession.HasHost.Store(true)
+			log.Println("WhipSession.PeerConnection.OnConnectionStateChange: Host removed")
+			whipSession.ActiveContextCancel()
+			whipSession.HasHost.Store(false)
 		}
 	}
 }

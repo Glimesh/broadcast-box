@@ -75,13 +75,10 @@ func (whipSession *WhipSession) RemoveTracks() {
 	whipSession.AudioTracks = make(map[string]*AudioTrack)
 	whipSession.VideoTracks = make(map[string]*VideoTrack)
 
-	// If no more tracks are available, notify that the stream has no host
-	if len(whipSession.AudioTracks) == 0 && len(whipSession.VideoTracks) == 0 {
-		whipSession.HasHost.Store(false)
-	}
+	whipSession.HasHost.Store(false)
+	whipSession.TracksLock.Unlock()
 
 	whipSession.OnTrackChangeChannel <- struct{}{}
-	whipSession.TracksLock.Unlock()
 }
 
 // Get highest prioritized audio track in the whip session

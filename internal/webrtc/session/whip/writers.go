@@ -1,12 +1,12 @@
 package whip
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log"
 	"math"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -33,7 +33,6 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 	}
 	track.Priority = whipSession.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
-	rtpBuf := make([]byte, 1500)
 	rtpPkt := &rtp.Packet{}
 
 	lastTimestamp := uint32(0)
@@ -43,78 +42,95 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumberSet := false
 
 	droppedPackets := 0
+	rtpChannel := startRTPReader(whipSession.ActiveContext, remoteTrack)
 	for {
-		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
-		if sessionsAny == nil {
-			time.Sleep(50 * time.Millisecond)
-			continue
-		}
 
-		rtpRead, _, err := remoteTrack.Read(rtpBuf)
-
-		switch {
-		case errors.Is(err, io.EOF):
+		select {
+		case <-whipSession.ActiveContext.Done():
+			peerConnection.Close()
 			return
-		case err != nil:
-			log.Println(err)
-			return
-		}
+		case rtpResult, ok := <-rtpChannel:
 
-		if err = rtpPkt.Unmarshal(rtpBuf[:rtpRead]); err != nil {
-			log.Println(err)
-			return
-		}
+			if !ok {
+				log.Println("WhipSession.AudioWriter.RTPReader.SessionClosed: ")
+				return
+			}
 
-		sessions := sessionsAny.(map[string]*whep.WhepSession)
+			if rtpResult.err != nil {
+				log.Println("WhipSession.AudioWriter.RTPReader.Error:", rtpResult.err)
+				return
+			}
 
-		track.PacketsReceived.Add(1)
+			sessionsAny := whipSession.WhepSessionsSnapshot.Load()
+			if sessionsAny == nil {
+				time.Sleep(50 * time.Millisecond)
+				continue
+			}
 
-		rtpPkt.Extension = false
-		rtpPkt.Extensions = nil
+			switch {
+			case errors.Is(err, io.EOF):
+				return
+			case err != nil:
+				log.Println(err)
+				return
+			}
 
-		timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
-		switch {
-		case !lastTimestampSet:
-			timeDiff = 0
-			lastTimestampSet = true
-		case timeDiff < -(math.MaxUint32 / 10):
-			timeDiff += (math.MaxUint32 + 1)
-		}
+			if err = rtpPkt.Unmarshal(rtpResult.buffer[:rtpResult.read]); err != nil {
+				log.Println(err)
+				return
+			}
 
-		sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
-		switch {
-		case !lastSequenceNumberSet:
-			lastSequenceNumberSet = true
-		case sequenceDiff < -(math.MaxUint16 / 10):
-			sequenceDiff += (math.MaxUint32 + 1)
-		}
+			sessions := sessionsAny.(map[string]*whep.WhepSession)
 
-		lastTimestamp = rtpPkt.Timestamp
-		lastSequenceNumber = rtpPkt.SequenceNumber
+			track.PacketsReceived.Add(1)
 
-		for _, whepSession := range sessions {
+			rtpPkt.Extension = false
+			rtpPkt.Extensions = nil
 
-			select {
-			case whepSession.AudioChannel <- codecs.TrackPacket{
-				Layer: id,
-				Packet: &rtp.Packet{
-					Header:  rtpPkt.Header,
-					Payload: append([]byte(nil), rtpPkt.Payload...),
-				},
-				Codec:        codec,
-				TimeDiff:     timeDiff,
-				SequenceDiff: sequenceDiff,
-			}:
-			default:
-				droppedPackets += 1
+			timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
+			switch {
+			case !lastTimestampSet:
+				timeDiff = 0
+				lastTimestampSet = true
+			case timeDiff < -(math.MaxUint32 / 10):
+				timeDiff += (math.MaxUint32 + 1)
+			}
 
-				if droppedPackets%100 == 0 {
-					log.Println("WhipSession.AudioWriter.DroppedPackets:", droppedPackets)
+			sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
+			switch {
+			case !lastSequenceNumberSet:
+				lastSequenceNumberSet = true
+			case sequenceDiff < -(math.MaxUint16 / 10):
+				sequenceDiff += (math.MaxUint32 + 1)
+			}
+
+			lastTimestamp = rtpPkt.Timestamp
+			lastSequenceNumber = rtpPkt.SequenceNumber
+
+			for _, whepSession := range sessions {
+
+				select {
+				case whepSession.AudioChannel <- codecs.TrackPacket{
+					Layer: id,
+					Packet: &rtp.Packet{
+						Header:  rtpPkt.Header,
+						Payload: append([]byte(nil), rtpPkt.Payload...),
+					},
+					Codec:        codec,
+					TimeDiff:     timeDiff,
+					SequenceDiff: sequenceDiff,
+				}:
+				default:
+					droppedPackets += 1
+
+					if droppedPackets%100 == 0 {
+						log.Println("WhipSession.AudioWriter.DroppedPackets:", droppedPackets)
+					}
 				}
+
 			}
 
 		}
-
 	}
 }
 
@@ -159,102 +175,137 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
-	var rtpBufPool = sync.Pool{
-		New: func() any {
-			return make([]byte, 4096)
-		},
-	}
-
 	droppedPackets := 0
+
+	rtpChannel := startRTPReader(whipSession.ActiveContext, remoteTrack)
 	for {
-		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
-
-		if sessionsAny == nil {
-			time.Sleep(50 * time.Millisecond)
-			continue
-		}
-
-		sessions := sessionsAny.(map[string]*whep.WhepSession)
-
-		rtpBuf := rtpBufPool.Get().([]byte)
-		rtpRead, _, err := remoteTrack.Read(rtpBuf)
-
-		if rtpRead == len(rtpBuf) {
-			log.Println("WhipSession.VideoWriter.Warning: RTP Packet may be truncated")
-		}
-
-		switch {
-		case errors.Is(err, io.EOF):
-			log.Println("WhipSession.VideoWriter.RtpPkt.EndOfStream")
+		select {
+		case <-whipSession.ActiveContext.Done():
+			log.Println("WhipSession.VideoWriter.SessionClosed: Stopping peerconnection")
+			peerConnection.Close()
 			return
-		case err != nil:
-			log.Println("WhipSession.VideoWriter.RtpPkt.Unmarshal.Error", err)
-		}
+		case rtpResult, ok := <-rtpChannel:
 
-		if err = rtpPkt.Unmarshal(rtpBuf[:rtpRead]); err != nil {
-			log.Println("WhipSession.VideoWriter.RtpPkt.Unmarshal.Error", err)
-			return
-		}
-
-		// Consider using a variable that occassionaly updates the atomic instead
-		track.PacketsReceived.Add(1)
-
-		isKeyframe := false
-		if codec == codecs.VideoTrackCodecH264 {
-			isKeyframe = isPacketKeyframe(rtpPkt, codec, depacketizer)
-			if isKeyframe {
-				track.LastKeyFrame.Store(time.Now())
+			if !ok {
+				log.Println("WhipSession.VideoWriter.RTPReader.SessionClosed: ")
+				return
 			}
-		}
 
-		rtpPkt.Extension = false
-		rtpPkt.Extensions = nil
+			if rtpResult.err != nil {
+				log.Println("WhipSession.VideoWriter.RTPReader.Error:", rtpResult.err)
+				return
+			}
 
-		timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
-		switch {
-		case !lastTimestampSet:
-			timeDiff = 0
-			lastTimestampSet = true
-		case timeDiff < -(math.MaxUint32 / 10):
-			timeDiff += (math.MaxUint32 + 1)
-		}
+			sessionsAny := whipSession.WhepSessionsSnapshot.Load()
 
-		sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
-		switch {
-		case !lastSequenceNumberSet:
-			lastSequenceNumberSet = true
-			sequenceDiff = 0
-		case sequenceDiff < -(math.MaxUint16 / 10):
-			sequenceDiff += (math.MaxUint16 + 1)
-		}
+			if sessionsAny == nil {
+				time.Sleep(50 * time.Millisecond)
+				continue
+			}
 
-		lastTimestamp = rtpPkt.Timestamp
-		lastSequenceNumber = rtpPkt.SequenceNumber
+			sessions := sessionsAny.(map[string]*whep.WhepSession)
 
-		for _, whepSession := range sessions {
-			select {
-			case whepSession.VideoChannel <- codecs.TrackPacket{
-				Layer: id,
-				Packet: &rtp.Packet{
-					Header:  rtpPkt.Header,
-					Payload: append([]byte(nil), rtpPkt.Payload...),
-				},
-				Codec:        codec,
-				IsKeyframe:   isKeyframe,
-				TimeDiff:     timeDiff,
-				SequenceDiff: sequenceDiff,
-			}:
-			default:
-				droppedPackets += 1
+			switch {
+			case errors.Is(err, io.EOF):
+				log.Println("WhipSession.VideoWriter.RtpPkt.EndOfStream")
+				return
+			case err != nil:
+				log.Println("WhipSession.VideoWriter.RtpPkt.Unmarshal.Error", err)
+			}
 
-				if droppedPackets%100 == 0 {
-					log.Println("WhipSession.VideoWriter.DroppedPackets:", droppedPackets)
+			if err = rtpPkt.Unmarshal(rtpResult.buffer[:rtpResult.read]); err != nil {
+				log.Println("WhipSession.VideoWriter.RtpPkt.Unmarshal.Error", err)
+				return
+			}
+
+			// Consider using a variable that occassionaly updates the atomic instead
+			track.PacketsReceived.Add(1)
+
+			isKeyframe := false
+			if codec == codecs.VideoTrackCodecH264 {
+				isKeyframe = isPacketKeyframe(rtpPkt, codec, depacketizer)
+				if isKeyframe {
+					track.LastKeyFrame.Store(time.Now())
+				}
+			}
+
+			rtpPkt.Extension = false
+			rtpPkt.Extensions = nil
+
+			timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
+			switch {
+			case !lastTimestampSet:
+				timeDiff = 0
+				lastTimestampSet = true
+			case timeDiff < -(math.MaxUint32 / 10):
+				timeDiff += (math.MaxUint32 + 1)
+			}
+
+			sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
+			switch {
+			case !lastSequenceNumberSet:
+				lastSequenceNumberSet = true
+				sequenceDiff = 0
+			case sequenceDiff < -(math.MaxUint16 / 10):
+				sequenceDiff += (math.MaxUint16 + 1)
+			}
+
+			lastTimestamp = rtpPkt.Timestamp
+			lastSequenceNumber = rtpPkt.SequenceNumber
+
+			for _, whepSession := range sessions {
+				select {
+				case whepSession.VideoChannel <- codecs.TrackPacket{
+					Layer: id,
+					Packet: &rtp.Packet{
+						Header:  rtpPkt.Header,
+						Payload: append([]byte(nil), rtpPkt.Payload...),
+					},
+					Codec:        codec,
+					IsKeyframe:   isKeyframe,
+					TimeDiff:     timeDiff,
+					SequenceDiff: sequenceDiff,
+				}:
+				default:
+					droppedPackets += 1
+
+					if droppedPackets%100 == 0 {
+						log.Println("WhipSession.VideoWriter.DroppedPackets:", droppedPackets)
+					}
 				}
 			}
 		}
-
-		rtpBufPool.Put(rtpBuf)
 	}
+}
+
+type rtpResult struct {
+	buffer []byte
+	read   int
+	err    error
+}
+
+func startRTPReader(whipActiveContext context.Context, remoteTrack *webrtc.TrackRemote) <-chan rtpResult {
+	result := make(chan rtpResult)
+
+	go func() {
+		defer close(result)
+
+		for {
+			buf := make([]byte, 4096)
+			rtpRead, _, err := remoteTrack.Read(buf)
+
+			select {
+			case result <- rtpResult{buffer: buf, read: rtpRead, err: err}:
+				if err != nil {
+					return
+				}
+			case <-whipActiveContext.Done():
+				return
+			}
+		}
+	}()
+
+	return result
 }
 
 const (

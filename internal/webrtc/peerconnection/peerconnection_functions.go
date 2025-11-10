@@ -68,14 +68,14 @@ func disconnected(isWhip bool, streamKey string, sessionId string) {
 	if isWhip {
 		log.Println("WhipSession.Disconnected: Removing tracks", sessionId)
 		whipSession.RemoveTracks()
+
+		// Remove Whip session from manager if its empty
+		log.Println("WhipSession.RemoveWhipSession: No Whep session, closing down")
+		whipSession.ActiveContextCancel()
 	}
 
 	// Do not conclude stream if whep sessions are still listening, or the host is still active
 	if whipSession.HasWhepSessions() {
 		return
 	}
-
-	// Remove Whip session from manager if its empty
-	log.Println("WhipSession.RemoveWhipSession: No Whep session, closing down")
-	whipSession.ActiveContextCancel()
 }

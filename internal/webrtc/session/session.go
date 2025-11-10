@@ -122,10 +122,10 @@ func (manager *WhipSessionManager) GetOrAddStream(profile authorization.PublicPr
 
 func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) (result []StreamSession) {
 	log.Println("SessionManager.GetSessionStates: IsAdmin", includePrivateStreams)
-	SessionManager.whipSessionsLock.RLock()
+	manager.whipSessionsLock.RLock()
 	copiedSessions := make(map[string]*whip.WhipSession)
-	maps.Copy(copiedSessions, SessionManager.whipSessions)
-	SessionManager.whipSessionsLock.RUnlock()
+	maps.Copy(copiedSessions, manager.whipSessions)
+	manager.whipSessionsLock.RUnlock()
 
 	for _, whipSession := range copiedSessions {
 		whipSession.StatusLock.RLock()
