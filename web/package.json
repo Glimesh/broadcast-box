@@ -42,7 +42,7 @@
     "@vitejs/plugin-react": "^5.1.0",
     "postcss": "^8.5.6",
     "react-router-dom": "^7.9.5",
-    "tailwindcss": "^4.1.16",
+    "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"
   }
