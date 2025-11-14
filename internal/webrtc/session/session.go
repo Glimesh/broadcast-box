@@ -27,13 +27,15 @@ func (manager *WhipSessionManager) Setup() {
 		defer ticker.Stop()
 		for range ticker.C {
 			manager.whipSessionsLock.RLock()
-			for _, session := range manager.whipSessions {
+			whipSessionCopies := make(map[string]*whip.WhipSession)
+			maps.Copy(whipSessionCopies, manager.whipSessions)
+			manager.whipSessionsLock.RUnlock()
+			for _, session := range whipSessionCopies {
 				if session.IsEmpty() {
 					log.Println("WhipSessionManager.Loop.RemoveEmptySessions")
 					manager.RemoveWhipSession(session.StreamKey)
 				}
 			}
-			manager.whipSessionsLock.RUnlock()
 		}
 	}()
 }
@@ -299,10 +301,14 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 	// Handle WHEP Layer changes and trigger keyframe from WHIP
 	go func() {
 		for {
-			if whepSession.IsWaitingForKeyframe.Load() {
-				whipSession.PacketLossIndicationChannel <- true
-			} else if whepSession.IsSessionClosed.Load() {
+			if whepSession.IsSessionClosed.Load() {
 				return
+			} else if whepSession.IsWaitingForKeyframe.Load() {
+				select {
+				case whipSession.PacketLossIndicationChannel <- true:
+				default:
+					log.Println("WhepSession.PictureLossIndication.Channel: Full channel, skipping")
+				}
 			}
 			time.Sleep(500 * time.Millisecond)
 		}
@@ -310,13 +316,17 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 
 	// Handle picture loss indication packages
 	go func() {
+		ticker := time.NewTicker(10 * time.Millisecond)
+		defer ticker.Stop()
+
 		for {
 			select {
 			case <-whipSession.ActiveContext.Done():
 				return
-			default:
+			case <-ticker.C:
 				rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
 				if rtcpErr != nil {
+					log.Println("WhepSession.ReadRTCP.Error:", rtcpErr)
 					return
 				}
 				for _, packet := range rtcpPackets {
@@ -328,7 +338,6 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 					}
 				}
 			}
-			time.Sleep(10 * time.Millisecond)
 		}
 	}()
 }
