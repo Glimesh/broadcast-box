@@ -65,6 +65,11 @@ func (whipSession *WhipSession) UpdateStreamStatus(profile authorization.PublicP
 	whipSession.IsPublic = profile.IsPublic
 
 	whipSession.ContextLock.Lock()
+
+	if whipSession.ActiveContext != nil {
+		whipSession.ActiveContextCancel()
+	}
+
 	whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
 
 	whipSession.ActiveContext = whipActiveContext
