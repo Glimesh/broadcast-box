@@ -4,6 +4,7 @@ import "log"
 
 // Remove all WHEP sessions from the WHIP session.
 func (whipSession *WhipSession) RemoveWhepSessions() {
+	log.Println("WhipSession.RemoveWhepSessions:", whipSession.StreamKey)
 	whipSession.WhepSessionsLock.Lock()
 
 	for _, whepSession := range whipSession.WhepSessions {
