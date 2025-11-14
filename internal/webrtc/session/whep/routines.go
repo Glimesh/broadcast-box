@@ -12,6 +12,7 @@ func (whepSession *WhepSession) handleEvents() {
 		case msg, ok := <-whepSession.WhipEventsChannel:
 			if !ok {
 				log.Println("WhepSession.Event.Whip: Channel closed - exiting")
+				return
 			} else {
 				log.Println("WhepSession.Event.Whip:", msg)
 			}
@@ -27,12 +28,22 @@ func (whepSession *WhepSession) handleStream() {
 			log.Println("WhepSession.HandleStreamLoop.Close")
 			return
 
-		case packet := <-whepSession.VideoChannel:
+		case packet, ok := <-whepSession.VideoChannel:
+			if !ok {
+				log.Println("WhepSession.HandleStream.VideoChannel.Error")
+				return
+			}
+
 			if packet.Layer == whepSession.VideoLayerCurrent.Load() {
 				whepSession.SendVideoPacket(packet)
 			}
 
-		case packet := <-whepSession.AudioChannel:
+		case packet, ok := <-whepSession.AudioChannel:
+			if !ok {
+				log.Println("WhepSession.HandleStream.VideoChannel.Error")
+				return
+			}
+
 			if packet.Layer == whepSession.AudioLayerCurrent.Load() {
 				whepSession.SendAudioPacket(packet)
 			}
