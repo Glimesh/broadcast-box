@@ -217,7 +217,7 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 
 		ActiveContext:               whipActiveContext,
 		ActiveContextCancel:         whipActiveContextCancel,
-		PacketLossIndicationChannel: make(chan bool, 250),
+		PacketLossIndicationChannel: make(chan bool, 1),
 		OnTrackChangeChannel:        make(chan struct{}, 50),
 		EventsChannel:               make(chan any, 50),
 
@@ -298,25 +298,26 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 		manager.RemoveWhepSession(whipSession, whepSessionId)
 	}()
 
-	// Handle WHEP Layer changes and trigger keyframe from WHIP
-	go func() {
-		for {
-			if whepSession.IsSessionClosed.Load() {
-				return
-			} else if whepSession.IsWaitingForKeyframe.Load() {
-				select {
-				case whipSession.PacketLossIndicationChannel <- true:
-				default:
-					log.Println("WhepSession.PictureLossIndication.Channel: Full channel, skipping")
-				}
-			}
-			time.Sleep(500 * time.Millisecond)
-		}
-	}()
+	// // Handle WHEP Layer changes and trigger keyframe from WHIP
+	// go func() {
+	// 	for {
+	// 		if whepSession.IsSessionClosed.Load() {
+	// 			return
+	// 		} else if whepSession.IsWaitingForKeyframe.Load() {
+	// 			log.Println("WhepSession.PictureLossIndication.IsWaitingForKeyframe")
+	// 			select {
+	// 			case whipSession.PacketLossIndicationChannel <- true:
+	// 			default:
+	// 				log.Println("WhepSession.PictureLossIndication.Channel: Full channel, skipping")
+	// 			}
+	// 		}
+	// 		time.Sleep(500 * time.Millisecond)
+	// 	}
+	// }()
 
 	// Handle picture loss indication packages
 	go func() {
-		ticker := time.NewTicker(10 * time.Millisecond)
+		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
 
 		for {
@@ -329,11 +330,15 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 					log.Println("WhepSession.ReadRTCP.Error:", rtcpErr)
 					return
 				}
-				for _, packet := range rtcpPackets {
-					if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
-						select {
-						case whipSession.PacketLossIndicationChannel <- true:
-						default:
+
+				if whipSession.HasHost.Load() {
+					for _, packet := range rtcpPackets {
+						if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
+							log.Println("WhepSession.ReadRTCP.RequestingPLI:", rtcpErr)
+							select {
+							case whipSession.PacketLossIndicationChannel <- true:
+							default:
+							}
 						}
 					}
 				}

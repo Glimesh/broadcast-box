@@ -187,7 +187,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 		case rtpResult, ok := <-rtpChannel:
 
 			if !ok {
-				log.Println("WhipSession.VideoWriter.RTPReader.SessionClosed: ")
+				log.Println("WhipSession.VideoWriter.RTPReader.SessionClosed")
 				return
 			}
 
@@ -199,7 +199,7 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 			sessionsAny := whipSession.WhepSessionsSnapshot.Load()
 
 			if sessionsAny == nil {
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 

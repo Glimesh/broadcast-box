@@ -55,10 +55,6 @@ func (whepSession *WhepSession) Close() {
 			log.Println("WhepSession.Close.PeerConnection.Error", err)
 		}
 
-		// Close channels
-		close(whepSession.AudioChannel)
-		close(whepSession.VideoChannel)
-
 		// Notify WHIP about closure
 		whepSession.ActiveContextCancel()
 

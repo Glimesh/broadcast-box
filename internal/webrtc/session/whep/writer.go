@@ -65,7 +65,7 @@ func (whepSession *WhepSession) SendVideoPacket(packet codecs.TrackPacket) {
 	if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
 			log.Println("WhepSession.SendVideoPacket.ConnectionDropped")
-			whepSession.Close()
+			whepSession.ActiveContextCancel()
 		} else {
 			log.Println("WhepSession.SendVideoPacket.Error", err)
 		}
