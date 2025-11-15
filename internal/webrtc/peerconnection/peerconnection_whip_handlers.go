@@ -55,7 +55,10 @@ func onWhipTrackHandler(whipSession *whip.WhipSession, peerConnection *webrtc.Pe
 
 		// Fires when track has stopped
 		whipSession.OnTrackChangeChannel <- struct{}{}
-		peerConnection.Close()
+		err := peerConnection.Close()
+		if err != nil {
+			log.Println("WhipSession.AudioWriter.PeerConnection.Close.Error:", err)
+		}
 
 		log.Println("WhipSession.onWhipTrackHandler.TrackStopped", remoteTrack.RID())
 	}

@@ -62,9 +62,6 @@ type (
 		LastRecieved    atomic.Value
 		LastKeyFrame    atomic.Value
 		Track           *codecs.TrackMultiCodec
-
-		// TODO: Maybe no longer in use
-		TrackStreamChannel chan codecs.TrackPacket
 	}
 	AudioTrack struct {
 		Rid             string
@@ -74,8 +71,5 @@ type (
 		PacketsReceived atomic.Uint64
 		LastRecieved    atomic.Value
 		Track           *codecs.TrackMultiCodec
-
-		// TODO: Maybe no longer in use
-		TrackStreamChannel chan codecs.TrackPacket
 	}
 )

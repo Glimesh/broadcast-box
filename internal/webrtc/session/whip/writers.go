@@ -47,7 +47,10 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 
 		select {
 		case <-whipSession.ActiveContext.Done():
-			peerConnection.Close()
+			err := peerConnection.Close()
+			if err != nil {
+				log.Println("WhipSession.AudioWriter.PeerConnection.Close.Error:", err)
+			}
 			return
 		case rtpResult, ok := <-rtpChannel:
 
@@ -182,7 +185,10 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 		select {
 		case <-whipSession.ActiveContext.Done():
 			log.Println("WhipSession.VideoWriter.SessionClosed: Stopping peerconnection")
-			peerConnection.Close()
+			err := peerConnection.Close()
+			if err != nil {
+				log.Println("WhipSession.AudioWriter.PeerConnection.Close.Error:", err)
+			}
 			return
 		case rtpResult, ok := <-rtpChannel:
 

@@ -20,9 +20,8 @@ func (whipSession *WhipSession) AddAudioTrack(rid string, codec codecs.TrackCode
 	}
 
 	track := &AudioTrack{
-		Rid:                rid,
-		SessionId:          whipSession.SessionId,
-		TrackStreamChannel: make(chan codecs.TrackPacket, 1000),
+		Rid:       rid,
+		SessionId: whipSession.SessionId,
 		Track: codecs.CreateTrackMultiCodec(
 			"audio-"+uuid.New().String(),
 			rid,
@@ -49,9 +48,8 @@ func (whipSession *WhipSession) AddVideoTrack(rid string, codec codecs.TrackCode
 	}
 
 	track := &VideoTrack{
-		Rid:                rid,
-		SessionId:          whipSession.SessionId,
-		TrackStreamChannel: make(chan codecs.TrackPacket, 1000),
+		Rid:       rid,
+		SessionId: whipSession.SessionId,
 		Track: codecs.CreateTrackMultiCodec(
 			"video-"+uuid.New().String(),
 			rid,
