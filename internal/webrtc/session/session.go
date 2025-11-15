@@ -298,25 +298,32 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 		manager.RemoveWhepSession(whipSession, whepSessionId)
 	}()
 
-	// // Handle WHEP Layer changes and trigger keyframe from WHIP
-	// go func() {
-	// 	for {
-	// 		if whepSession.IsSessionClosed.Load() {
-	// 			return
-	// 		} else if whepSession.IsWaitingForKeyframe.Load() {
-	// 			log.Println("WhepSession.PictureLossIndication.IsWaitingForKeyframe")
-	// 			select {
-	// 			case whipSession.PacketLossIndicationChannel <- true:
-	// 			default:
-	// 				log.Println("WhepSession.PictureLossIndication.Channel: Full channel, skipping")
-	// 			}
-	// 		}
-	// 		time.Sleep(500 * time.Millisecond)
-	// 	}
-	// }()
+	// Handle WHEP Layer changes and trigger keyframe from WHIP
+	go func() {
+		for {
+			select {
+			case <-whipSession.ActiveContext.Done():
+				return
+			default:
+				if whepSession.IsSessionClosed.Load() {
+					return
+				} else if whepSession.IsWaitingForKeyframe.Load() {
+					log.Println("WhepSession.PictureLossIndication.IsWaitingForKeyframe")
+					select {
+					case whipSession.PacketLossIndicationChannel <- true:
+					default:
+						log.Println("WhepSession.PictureLossIndication.Channel: Full channel, skipping")
+					}
+				}
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
+	}()
 
 	// Handle picture loss indication packages
 	go func() {
+		// TODO: This can cause PLI to be delayed with 500ms, which causes minor stutters.
+		// Refactor to be more event driven
 		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
 
