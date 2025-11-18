@@ -1,6 +1,8 @@
 package whep
 
-import "log"
+import (
+	"log"
+)
 
 // Handle events for SSE to the WHEP sessions
 func (whepSession *WhepSession) handleEvents() {
@@ -26,6 +28,7 @@ func (whepSession *WhepSession) handleStream() {
 		select {
 		case <-whepSession.ActiveContext.Done():
 			log.Println("WhepSession.HandleStreamLoop.Close")
+			whepSession.Close()
 			return
 
 		case packet, ok := <-whepSession.VideoChannel:
@@ -34,9 +37,7 @@ func (whepSession *WhepSession) handleStream() {
 				return
 			}
 
-			if packet.Layer == whepSession.VideoLayerCurrent.Load() {
-				whepSession.SendVideoPacket(packet)
-			}
+			whepSession.SendVideoPacket(packet)
 
 		case packet, ok := <-whepSession.AudioChannel:
 			if !ok {
@@ -44,9 +45,7 @@ func (whepSession *WhepSession) handleStream() {
 				return
 			}
 
-			if packet.Layer == whepSession.AudioLayerCurrent.Load() {
-				whepSession.SendAudioPacket(packet)
-			}
+			whepSession.SendAudioPacket(packet)
 		}
 	}
 }
