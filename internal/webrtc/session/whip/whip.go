@@ -42,7 +42,7 @@ func (whipSession *WhipSession) StartWhipSessionStatusLoop() {
 
 // Start a routing that takes snapshots of the current whep sessions in the whip session.
 func (whipSession *WhipSession) Snapshot() {
-	ticker := time.NewTicker(1000 * time.Millisecond)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
