@@ -56,9 +56,9 @@ type (
 	VideoTrack struct {
 		Rid             string
 		SessionId       string
-		Codec           int
 		Priority        int
 		PacketsReceived atomic.Uint64
+		PacketsDropped  atomic.Uint64
 		LastRecieved    atomic.Value
 		LastKeyFrame    atomic.Value
 		Track           *codecs.TrackMultiCodec
@@ -66,9 +66,9 @@ type (
 	AudioTrack struct {
 		Rid             string
 		SessionId       string
-		Codec           int
 		Priority        int
 		PacketsReceived atomic.Uint64
+		PacketsDropped  atomic.Uint64
 		LastRecieved    atomic.Value
 		Track           *codecs.TrackMultiCodec
 	}
