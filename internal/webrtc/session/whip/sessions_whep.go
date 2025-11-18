@@ -8,7 +8,7 @@ func (whipSession *WhipSession) RemoveWhepSessions() {
 	whipSession.WhepSessionsLock.Lock()
 
 	for _, whepSession := range whipSession.WhepSessions {
-		whepSession.Close()
+		whepSession.ActiveContextCancel()
 		delete(whipSession.WhepSessions, whepSession.SessionId)
 	}
 
@@ -23,7 +23,7 @@ func (whipSession *WhipSession) RemoveWhepSession(whepSessionId string) {
 
 	if whepSession, ok := whipSession.WhepSessions[whepSessionId]; ok {
 		// Close out Whep session and remove
-		whepSession.Close()
+		whepSession.ActiveContextCancel()
 		delete(whipSession.WhepSessions, whepSessionId)
 	}
 
