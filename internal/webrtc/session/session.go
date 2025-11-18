@@ -155,6 +155,7 @@ func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) 
 				AudioTrackState{
 					Rid:             audioTrack.Rid,
 					PacketsReceived: audioTrack.PacketsReceived.Load(),
+					PacketsDropped:  audioTrack.PacketsDropped.Load(),
 				})
 		}
 
@@ -169,6 +170,7 @@ func (manager *WhipSessionManager) GetSessionStates(includePrivateStreams bool) 
 				VideoTrackState{
 					Rid:             videoTrack.Rid,
 					PacketsReceived: videoTrack.PacketsReceived.Load(),
+					PacketsDropped:  videoTrack.PacketsDropped.Load(),
 					LastKeyframe:    lastKeyFrame,
 				})
 		}
@@ -307,7 +309,7 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 			default:
 				if whepSession.IsSessionClosed.Load() {
 					return
-				} else if whepSession.IsWaitingForKeyframe.Load() {
+				} else if whipSession.HasHost.Load() && whepSession.IsWaitingForKeyframe.Load() {
 					log.Println("WhepSession.PictureLossIndication.IsWaitingForKeyframe")
 					select {
 					case whipSession.PacketLossIndicationChannel <- true:

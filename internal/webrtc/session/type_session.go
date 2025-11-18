@@ -45,10 +45,12 @@ type StreamSession struct {
 type AudioTrackState struct {
 	Rid             string `json:"rid"`
 	PacketsReceived uint64 `json:"packetsReceived"`
+	PacketsDropped  uint64 `json:"packetsDropped"`
 }
 
 type VideoTrackState struct {
 	Rid             string    `json:"rid"`
 	PacketsReceived uint64    `json:"packetsReceived"`
+	PacketsDropped  uint64    `json:"packetsDropped"`
 	LastKeyframe    time.Time `json:"lastKeyframe"`
 }
