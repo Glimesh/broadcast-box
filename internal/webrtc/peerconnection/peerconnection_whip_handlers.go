@@ -24,11 +24,7 @@ func RegisterWhipHandlers(whipSession *whip.WhipSession, peerConnection *webrtc.
 	whipSession.PeerConnection.OnConnectionStateChange(onConnectionStateChange(whipSession))
 }
 
-func onWhipICEConnectionStateChangeHandler(
-	streamKey string,
-	sessionId string,
-) func(webrtc.ICEConnectionState) {
-
+func onWhipICEConnectionStateChangeHandler(streamKey string, sessionId string) func(webrtc.ICEConnectionState) {
 	return func(state webrtc.ICEConnectionState) {
 		if state == webrtc.ICEConnectionStateFailed || state == webrtc.ICEConnectionStateClosed {
 
