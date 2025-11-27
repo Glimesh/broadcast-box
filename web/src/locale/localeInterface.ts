@@ -43,6 +43,7 @@ export interface localeInterface {
     rid: string,
     layer: string,
     packets_received: string,
+    packets_dropped: string,
     packets_written: string,
     last_key_frame: string
     timestamp: string

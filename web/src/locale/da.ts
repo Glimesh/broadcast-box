@@ -43,6 +43,7 @@ const locale_da: localeInterface = {
     rid: "RID",
     layer: "Lag",
     packets_received: "Modtagne pakker",
+    packets_dropped: "Tabte pakker",
     packets_written: "Sendte pakker",
     last_key_frame: "Sidste nøglebillede",
     timestamp: "Tidsstempel",
