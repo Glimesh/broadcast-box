@@ -1,47 +1,21 @@
-﻿import React, { useContext, useEffect, useState } from "react";
+﻿import React, { useContext, useState } from "react";
 import Player from "./Player";
 import { useNavigate } from "react-router-dom";
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
-import { StatusContext, StreamStatus } from "../../providers/StatusProvider";
 import Button from "../shared/Button";
 import AvailableStreams from "../selection/AvailableStreams";
 import { LocaleContext } from "../../providers/LocaleProvider";
 
 const PlayerPage = () => {
   const navigate = useNavigate();
-  const { locale } = useContext(LocaleContext)
+  const { locale } = useContext(LocaleContext);
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
-  const { currentStreamStatus } = useContext(StatusContext);
   const [streamKeys, setStreamKeys] = useState<string[]>([ window.location.pathname.substring(1) ]);
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
-  const [status, setStatus] = useState<StreamStatus>({
-    motd: "",
-    viewers: 0,
-    streamKey: "",
-    isOnline: false,
-  });
-
-  useEffect(() => {
-    if (currentStreamStatus === undefined) {
-      setStatus(() => ({
-        motd: "",
-        viewers: 0,
-        streamKey: "",
-        isOnline: false,
-      }));
-      return;
-    }
-
-    setStatus(() => currentStreamStatus);
-  }, [currentStreamStatus]);
 
   const addStream = (streamKey: string) => {
-    if (
-      streamKeys.some(
-        (key: string) => key.toLowerCase() === streamKey.toLowerCase(),
-      )
-    ) {
+    if (streamKeys.some((key: string) => key.toLowerCase() === streamKey.toLowerCase())) {
       return;
     }
     setStreamKeys((prev) => [...prev, streamKey]);
