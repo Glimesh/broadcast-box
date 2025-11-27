@@ -61,7 +61,7 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			}
 
 			// Write with timeout
-			writeCtx, cancel := context.WithTimeout(ctx, 100*time.Millisecond)
+			writeCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 			done := make(chan error, 1)
 
 			go func() {
