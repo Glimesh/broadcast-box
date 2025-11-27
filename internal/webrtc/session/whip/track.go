@@ -29,7 +29,7 @@ func (whipSession *WhipSession) AddAudioTrack(rid string, codec codecs.TrackCode
 			webrtc.RTPCodecTypeVideo,
 			codec),
 	}
-	track.LastRecieved.Store(time.Time{})
+	track.LastReceived.Store(time.Time{})
 
 	whipSession.AudioTracks[track.Rid] = track
 	whipSession.HasHost.Store(true)
@@ -57,7 +57,7 @@ func (whipSession *WhipSession) AddVideoTrack(rid string, codec codecs.TrackCode
 			webrtc.RTPCodecTypeVideo,
 			codec),
 	}
-	track.LastRecieved.Store(time.Time{})
+	track.LastReceived.Store(time.Time{})
 
 	whipSession.VideoTracks[rid] = track
 	whipSession.HasHost.Store(true)

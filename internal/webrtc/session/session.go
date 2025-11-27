@@ -219,7 +219,7 @@ func (manager *WhipSessionManager) AddWhipSession(profile authorization.PublicPr
 
 		ActiveContext:               whipActiveContext,
 		ActiveContextCancel:         whipActiveContextCancel,
-		PacketLossIndicationChannel: make(chan bool, 1),
+		PacketLossIndicationChannel: make(chan bool, 5),
 		OnTrackChangeChannel:        make(chan struct{}, 50),
 		EventsChannel:               make(chan any, 50),
 
@@ -324,16 +324,11 @@ func (manager *WhipSessionManager) AddWhepSession(whepSessionId string, whipSess
 
 	// Handle picture loss indication packages
 	go func() {
-		// TODO: This can cause PLI to be delayed with 500ms, which causes minor stutters.
-		// Refactor to be more event driven
-		ticker := time.NewTicker(500 * time.Millisecond)
-		defer ticker.Stop()
-
 		for {
 			select {
 			case <-whipSession.ActiveContext.Done():
 				return
-			case <-ticker.C:
+			default:
 				rtcpPackets, _, rtcpErr := videoRtcpSender.ReadRTCP()
 				if rtcpErr != nil {
 					log.Println("WhepSession.ReadRTCP.Error:", rtcpErr)
@@ -382,10 +377,4 @@ func (manager *WhipSessionManager) RemoveWhepSession(whipSession *whip.WhipSessi
 	whipSession.WhepSessionsLock.Lock()
 	delete(whipSession.WhepSessions, whepSessionId)
 	whipSession.WhepSessionsLock.Unlock()
-
-	// if whipSession.IsEmpty() {
-	// 	log.Println("WhipSessionManager.RemoveWhepSession: WhipSession empty, closing")
-	// 	manager.RemoveWhipSession(whipSession.StreamKey)
-	// }
-
 }

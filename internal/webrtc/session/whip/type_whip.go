@@ -59,7 +59,7 @@ type (
 		Priority        int
 		PacketsReceived atomic.Uint64
 		PacketsDropped  atomic.Uint64
-		LastRecieved    atomic.Value
+		LastReceived    atomic.Value
 		LastKeyFrame    atomic.Value
 		Track           *codecs.TrackMultiCodec
 	}
@@ -69,7 +69,7 @@ type (
 		Priority        int
 		PacketsReceived atomic.Uint64
 		PacketsDropped  atomic.Uint64
-		LastRecieved    atomic.Value
+		LastReceived    atomic.Value
 		Track           *codecs.TrackMultiCodec
 	}
 )

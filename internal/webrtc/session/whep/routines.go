@@ -21,31 +21,3 @@ func (whepSession *WhepSession) handleEvents() {
 		}
 	}
 }
-
-// Handles incoming stream packets
-func (whepSession *WhepSession) handleStream() {
-	for {
-		select {
-		case <-whepSession.ActiveContext.Done():
-			log.Println("WhepSession.HandleStreamLoop.Close")
-			whepSession.Close()
-			return
-
-		case packet, ok := <-whepSession.VideoChannel:
-			if !ok {
-				log.Println("WhepSession.HandleStream.VideoChannel.Error")
-				return
-			}
-
-			whepSession.SendVideoPacket(packet)
-
-		case packet, ok := <-whepSession.AudioChannel:
-			if !ok {
-				log.Println("WhepSession.HandleStream.VideoChannel.Error")
-				return
-			}
-
-			whepSession.SendAudioPacket(packet)
-		}
-	}
-}

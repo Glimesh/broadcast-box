@@ -3,7 +3,10 @@ package whep
 import (
 	"context"
 	"log"
+	"os"
+	"strconv"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/pion/webrtc/v4"
 )
@@ -11,6 +14,17 @@ import (
 // Create and start a new WHEP session
 func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, audioLayer string, videoTrack *codecs.TrackMultiCodec, videoLayer string, peerConnection *webrtc.PeerConnection) (whepSession *WhepSession) {
 	log.Println("WhepSession.CreateNewWhep", whepSessionId)
+	audioChannelSizeStr := os.Getenv(environment.WHEP_SESSION_AUDIOCHANNEL_SIZE)
+	videoChannelSizeStr := os.Getenv(environment.WHEP_SESSION_VIDEOCHANNEL_SIZE)
+
+	audioChannelSize, audioOk := strconv.Atoi(audioChannelSizeStr)
+	videoChannelSize, videoOk := strconv.Atoi(videoChannelSizeStr)
+
+	if audioOk != nil || videoOk != nil {
+		log.Println("WhepSession.CreateNewWhep.AudioVideoChannelSize: Audio/Video channel sizes must be a valid number")
+		audioChannelSize = 100
+		videoChannelSize = 100
+	}
 
 	activeContext, activeContextCancel := context.WithCancel(context.Background())
 	whepSession = &WhepSession{
@@ -19,8 +33,8 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		VideoTrack:          videoTrack,
 		AudioTimestamp:      5000,
 		VideoTimestamp:      5000,
-		AudioChannel:        make(chan codecs.TrackPacket, 2500),
-		VideoChannel:        make(chan codecs.TrackPacket, 2500),
+		AudioChannel:        make(chan codecs.TrackPacket, audioChannelSize),
+		VideoChannel:        make(chan codecs.TrackPacket, videoChannelSize),
 		WhipEventsChannel:   make(chan any, 100),
 		SseEventsChannel:    make(chan any, 100),
 		PeerConnection:      peerConnection,
@@ -37,7 +51,11 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 
 	// Start WHEP go routines
 	go whepSession.handleEvents()
-	go whepSession.handleStream()
+
+	go func() {
+		<-whepSession.ActiveContext.Done()
+		whepSession.Close()
+	}()
 
 	return whepSession
 }
