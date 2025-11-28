@@ -26,7 +26,7 @@ func (whipSession *WhipSession) AddAudioTrack(rid string, codec codecs.TrackCode
 			"audio-"+uuid.New().String(),
 			rid,
 			whipSession.StreamKey,
-			webrtc.RTPCodecTypeVideo,
+			webrtc.RTPCodecTypeAudio,
 			codec),
 	}
 	track.LastReceived.Store(time.Time{})
