@@ -52,7 +52,11 @@ func (whipSession *WhipSession) Snapshot() {
 
 			whipSession.WhepSessionsLock.RLock()
 			snapshot := make(map[string]*whep.WhepSession, len(whipSession.WhepSessions))
-			maps.Copy(snapshot, whipSession.WhepSessions)
+			for _, whepSession := range whipSession.WhepSessions {
+				if whepSession.IsSessionClosed.Load() == false {
+					snapshot[whepSession.SessionId] = whepSession
+				}
+			}
 			whipSession.WhepSessionsLock.RUnlock()
 
 			whipSession.WhepSessionsSnapshot.Store(snapshot)
