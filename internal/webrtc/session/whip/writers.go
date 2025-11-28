@@ -114,13 +114,21 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
+	rtpPkt := &rtp.Packet{}
+	pktBuf := make([]byte, 1500)
 	for {
-		rtpPkt, _, err := remoteTrack.ReadRTP()
+		rtpRead, _, err := remoteTrack.Read(pktBuf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Println("WhipSession.VideoWriter.RtpPkt.EndOfStream")
 				return
 			}
+		}
+
+		err = rtpPkt.Unmarshal(pktBuf[:rtpRead])
+		if err != nil {
+			log.Println("WhipSession.VideoWriter.RtpPkt.Unmarshal", err)
+			continue
 		}
 
 		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
@@ -131,7 +139,6 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 
 		sessions := sessionsAny.(map[string]*whep.WhepSession)
 
-		// Consider using a variable that occassionaly updates the atomic instead
 		track.PacketsReceived.Add(1)
 
 		isKeyframe := false
