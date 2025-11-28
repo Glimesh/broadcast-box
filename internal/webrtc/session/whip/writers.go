@@ -33,8 +33,10 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 
 	track.Priority = whipSession.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
+	rtpPkt := &rtp.Packet{}
+	rtpBuf := make([]byte, 1500)
 	for {
-		rtpPkt, _, err := remoteTrack.ReadRTP()
+		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Println("WhipSession.AudioWriter.RtpPkt.EndOfStream")
@@ -42,6 +44,8 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 			}
 		}
 
+		// TODO
+		// Consider creating the snapshot in upper scope and update every 1 sec instead of loading every iteration
 		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
 		if sessionsAny == nil {
 			continue
@@ -50,6 +54,12 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 		sessions := sessionsAny.(map[string]*whep.WhepSession)
 
 		track.PacketsReceived.Add(1)
+
+		err = rtpPkt.Unmarshal(rtpBuf[:rtpRead])
+		if err != nil {
+			log.Println("WhipSession.AudioWriter.RtpPkt.Error", err)
+			continue
+		}
 
 		packet := codecs.TrackPacket{
 			Layer:  id,
