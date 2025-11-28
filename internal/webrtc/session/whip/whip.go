@@ -9,6 +9,7 @@ import (
 )
 
 // Start a status loop for the whip session.
+//
 // - Initializes by announcing stream start to potentially awaiting clients
 // - Announces layers changes to clients when layers are added or removed from the session
 // - Triggers a status update every 5 seconds to send to all listening WHEP sessions
@@ -56,6 +57,7 @@ func (whipSession *WhipSession) Snapshot() {
 
 			whipSession.WhepSessionsSnapshot.Store(snapshot)
 		case <-whipSession.ActiveContext.Done():
+			whipSession.WhepSessionsSnapshot.Store(nil)
 			return
 		}
 	}
