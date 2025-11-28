@@ -4,7 +4,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session/whip"
 	"github.com/pion/webrtc/v4"
 )
