@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/webrtc/session/whip"
 	"github.com/pion/webrtc/v4"
 )
@@ -27,11 +28,7 @@ func RegisterWhipHandlers(whipSession *whip.WhipSession, peerConnection *webrtc.
 func onWhipICEConnectionStateChangeHandler(streamKey string, sessionId string) func(webrtc.ICEConnectionState) {
 	return func(state webrtc.ICEConnectionState) {
 		if state == webrtc.ICEConnectionStateFailed || state == webrtc.ICEConnectionStateClosed {
-
-			if strings.EqualFold("DEBUG_PEERCONNECTION_ENABLED", "true") {
-				log.Println("WhepSession: Disconnected", streamKey, sessionId)
-			}
-
+			log.Println("WhipSession.PeerConnection.OnICEConnectionStateChange", streamKey)
 			disconnected(true, streamKey, sessionId)
 		}
 	}
@@ -53,10 +50,10 @@ func onWhipTrackHandler(whipSession *whip.WhipSession, peerConnection *webrtc.Pe
 		whipSession.OnTrackChangeChannel <- struct{}{}
 		err := peerConnection.Close()
 		if err != nil {
-			log.Println("WhipSession.AudioWriter.PeerConnection.Close.Error:", err)
+			log.Println("WhipSession.OnTrackHandler.PeerConnection.Close.Error:", err)
 		}
 
-		log.Println("WhipSession.onWhipTrackHandler.TrackStopped", remoteTrack.RID())
+		log.Println("WhipSession.OnTrackHandler.TrackStopped", remoteTrack.RID())
 	}
 }
 
