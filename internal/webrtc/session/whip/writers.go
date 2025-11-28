@@ -32,23 +32,14 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 	}
 	track.Priority = whipSession.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
-	rtpPkt := &rtp.Packet{}
-
 	lastTimestamp := uint32(0)
 	lastTimestampSet := false
 
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
-	rtpBuf := make([]byte, 1500)
 	for {
-
-		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
-		if sessionsAny == nil {
-			continue
-		}
-
-		rtpRead, _, err := remoteTrack.Read(rtpBuf)
+		rtpPkt, _, err := remoteTrack.ReadRTP()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Println("WhipSession.AudioWriter.RtpPkt.EndOfStream")
@@ -56,9 +47,9 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 			}
 		}
 
-		if err = rtpPkt.Unmarshal(rtpBuf[:rtpRead]); err != nil {
-			log.Println("WhipSession.AudioWriter.RtpPkt.Unmarshal.Error", err)
-			return
+		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
+		if sessionsAny == nil {
+			continue
 		}
 
 		sessions := sessionsAny.(map[string]*whep.WhepSession)
@@ -89,11 +80,8 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 		lastSequenceNumber = rtpPkt.SequenceNumber
 
 		packet := codecs.TrackPacket{
-			Layer: id,
-			Packet: &rtp.Packet{
-				Header:  rtpPkt.Header,
-				Payload: append([]byte(nil), rtpPkt.Payload...),
-			},
+			Layer:        id,
+			Packet:       rtpPkt,
 			Codec:        codec,
 			TimeDiff:     timeDiff,
 			SequenceDiff: sequenceDiff,
@@ -124,8 +112,6 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 
 	go whipStreamVideoWriterChannels(remoteTrack, whipSession, peerConnection)
 
-	rtpPkt := &rtp.Packet{}
-
 	var depacketizer rtp.Depacketizer
 	switch codec {
 	case codecs.VideoTrackCodecH264:
@@ -148,17 +134,8 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
-	rtpBuf := make([]byte, 1500)
 	for {
-		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
-
-		if sessionsAny == nil {
-			continue
-		}
-
-		sessions := sessionsAny.(map[string]*whep.WhepSession)
-
-		rtpRead, _, err := remoteTrack.Read(rtpBuf)
+		rtpPkt, _, err := remoteTrack.ReadRTP()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				log.Println("WhipSession.VideoWriter.RtpPkt.EndOfStream")
@@ -166,10 +143,13 @@ func (whipSession *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, pee
 			}
 		}
 
-		if err = rtpPkt.Unmarshal(rtpBuf[:rtpRead]); err != nil {
-			log.Println("WhipSession.VideoWriter.RtpPkt.Unmarshal.Error", err)
-			return
+		sessionsAny := whipSession.WhepSessionsSnapshot.Load()
+
+		if sessionsAny == nil {
+			continue
 		}
+
+		sessions := sessionsAny.(map[string]*whep.WhepSession)
 
 		// Consider using a variable that occassionaly updates the atomic instead
 		track.PacketsReceived.Add(1)
