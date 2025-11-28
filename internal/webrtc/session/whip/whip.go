@@ -2,7 +2,6 @@ package whip
 
 import (
 	"log"
-	"maps"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
