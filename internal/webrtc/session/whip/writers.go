@@ -30,13 +30,8 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 		log.Println("AudioWriter.AddTrack.Error:", err)
 		return
 	}
+
 	track.Priority = whipSession.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
-
-	lastTimestamp := uint32(0)
-	lastTimestampSet := false
-
-	lastSequenceNumber := uint16(0)
-	lastSequenceNumberSet := false
 
 	for {
 		rtpPkt, _, err := remoteTrack.ReadRTP()
@@ -56,35 +51,10 @@ func (whipSession *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, pee
 
 		track.PacketsReceived.Add(1)
 
-		rtpPkt.Extension = false
-		rtpPkt.Extensions = nil
-
-		timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
-		switch {
-		case !lastTimestampSet:
-			timeDiff = 0
-			lastTimestampSet = true
-		case timeDiff < -(math.MaxUint32 / 10):
-			timeDiff += (math.MaxUint32 + 1)
-		}
-
-		sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
-		switch {
-		case !lastSequenceNumberSet:
-			lastSequenceNumberSet = true
-		case sequenceDiff < -(math.MaxUint16 / 10):
-			sequenceDiff += (math.MaxUint32 + 1)
-		}
-
-		lastTimestamp = rtpPkt.Timestamp
-		lastSequenceNumber = rtpPkt.SequenceNumber
-
 		packet := codecs.TrackPacket{
-			Layer:        id,
-			Packet:       rtpPkt,
-			Codec:        codec,
-			TimeDiff:     timeDiff,
-			SequenceDiff: sequenceDiff,
+			Layer:  id,
+			Packet: rtpPkt,
+			Codec:  codec,
 		}
 
 		for _, whepSession := range sessions {
