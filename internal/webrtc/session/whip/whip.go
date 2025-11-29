@@ -60,7 +60,7 @@ func (whipSession *WhipSession) Snapshot() {
 
 			whipSession.WhepSessionsSnapshot.Store(snapshot)
 		case <-whipSession.ActiveContext.Done():
-			whipSession.WhepSessionsSnapshot.Store(nil)
+			whipSession.WhepSessionsSnapshot.Store(make(map[string]*whep.WhepSession))
 			return
 		}
 	}
