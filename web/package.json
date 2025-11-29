@@ -37,7 +37,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@tailwindcss/postcss": "^4.1.17",
     "@tailwindcss/vite": "^4.1.17",
-    "@types/react": "^19.2.2",
+    "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.0",
     "postcss": "^8.5.6",
