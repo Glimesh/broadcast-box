@@ -16,7 +16,9 @@ func (whepSession *WhepSession) SendAudioPacket(packet codecs.TrackPacket) {
 
 	whepSession.AudioLock.Lock()
 	whepSession.AudioPacketsWritten += 1
-	whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + packet.TimeDiff)
+
+	// TODO: Currently not being used
+	// whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + packet.TimeDiff)
 	whepSession.AudioLock.Unlock()
 
 	if err := whepSession.AudioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
