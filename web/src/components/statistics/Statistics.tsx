@@ -55,7 +55,8 @@ const Statistics = () => {
                       <div key={index} className="rounded-md p-3 min-h-25 border border-indigo-100" >
                         <div><strong>{locale.statistics.rid}:</strong> {stream.rid}</div>
                         <div><strong>{locale.statistics.packets_received}:</strong> {stream.packetsReceived}</div>
-                        <div><strong>{locale.statistics.last_key_frame}:</strong> {stream.lastKeyframe}</div>
+                        <div><strong>{locale.statistics.packets_dropped}:</strong> {stream.packetsDropped}</div>
+                        <div><strong>{locale.statistics.last_key_frame}:</strong> {new Date(stream.lastKeyframe).toISOString()}</div>
                       </div>
                     ))}
                   </div>
@@ -72,6 +73,7 @@ const Statistics = () => {
                       <div key={index} className="rounded-md p-3 min-h-25 border border-indigo-100">
                         <div><strong>{locale.statistics.rid}:</strong> {stream.rid}</div>
                         <div><strong>{locale.statistics.packets_received}:</strong> {stream.packetsReceived}</div>
+                        <div><strong>{locale.statistics.packets_dropped}:</strong> {stream.packetsDropped}</div>
                       </div>
                     ))}
                   </div>

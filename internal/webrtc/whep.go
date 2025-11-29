@@ -40,7 +40,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		return "", "", err
 	}
 
-	_, err = peerConnection.AddTrack(videoTrack)
+	videoRtcpSender, err := peerConnection.AddTrack(videoTrack)
 	if err != nil {
 		return "", "", err
 	}
@@ -66,7 +66,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	<-gatherComplete
 	log.Println("WhepSession.GatheringCompletePromise: Completed Gathering for", streamKey)
 
-	session.SessionManager.AddWhepSession(whepSessionId, whipSession, peerConnection, audioTrack, videoTrack)
+	session.SessionManager.AddWhepSession(whepSessionId, whipSession, peerConnection, audioTrack, videoTrack, videoRtcpSender)
 
 	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
 }

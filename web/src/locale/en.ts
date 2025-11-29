@@ -43,6 +43,7 @@ const locale_en: localeInterface = {
     rid: "RID",
     layer: "Layers",
     packets_received: "Packets received",
+    packets_dropped: "Packets dropped",
     packets_written: "Packets written",
     last_key_frame: "Last key frame",
     timestamp: "Timestamp",

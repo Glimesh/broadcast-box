@@ -3,11 +3,13 @@ package whip
 import (
 	"context"
 	"log"
+	"maps"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
+	"github.com/glimesh/broadcast-box/internal/webrtc/session/whep"
 )
 
-// Returns true is no WHIP streams are present, and not WHEP sessions are waiting for incoming streams
+// Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
 func (whipSession *WhipSession) IsEmpty() bool {
 	if whipSession.HasWhepSessions() {
 		log.Println("WhipSession.IsEmpty.HasWhepSessions (false):", whipSession.StreamKey)
@@ -23,6 +25,7 @@ func (whipSession *WhipSession) IsEmpty() bool {
 	return true
 }
 
+// Returns true if any tracks are available for the session
 func (whipSession *WhipSession) IsActive() bool {
 	whipSession.TracksLock.RLock()
 
@@ -43,7 +46,6 @@ func (whipSession *WhipSession) IsActive() bool {
 
 func (whipSession *WhipSession) HasWhepSessions() bool {
 	whipSession.WhepSessionsLock.RLock()
-
 	log.Println("WhipSession.HasWhepSessions:", len(whipSession.WhepSessions))
 
 	if len(whipSession.WhepSessions) == 0 {
@@ -57,13 +59,22 @@ func (whipSession *WhipSession) HasWhepSessions() bool {
 
 func (whipSession *WhipSession) UpdateStreamStatus(profile authorization.PublicProfile) {
 	whipSession.StatusLock.Lock()
-	whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
 
 	whipSession.HasHost.Store(true)
 	whipSession.MOTD = profile.MOTD
 	whipSession.IsPublic = profile.IsPublic
+
+	whipSession.ContextLock.Lock()
+
+	if whipSession.ActiveContext != nil {
+		whipSession.ActiveContextCancel()
+	}
+
+	whipActiveContext, whipActiveContextCancel := context.WithCancel(context.Background())
+
 	whipSession.ActiveContext = whipActiveContext
 	whipSession.ActiveContextCancel = whipActiveContextCancel
+	whipSession.ContextLock.Unlock()
 
 	whipSession.StatusLock.Unlock()
 }
@@ -85,4 +96,57 @@ func (whipSession *WhipSession) GetStreamStatus() (status WhipSessionStatus) {
 	whipSession.StatusLock.RUnlock()
 
 	return
+}
+func (whipSession *WhipSession) handleStatus() {
+	whipSession.HasHost.Store(whipSession.IsActive())
+
+	whepSessions := whipSession.WhepSessionsSnapshot.Load().(map[string]*whep.WhepSession)
+	if len(whepSessions) == 0 {
+		return
+	}
+
+	// Generate status
+	currentStatus := whipSession.GetSessionStatsEvent()
+
+	// Send status to each WHEP session
+	for _, whepSession := range whepSessions {
+		if whepSession.IsSessionClosed.Load() {
+			continue
+		}
+
+		select {
+		case whepSession.SseEventsChannel <- currentStatus:
+		default:
+			log.Println("WhipSession.Loop.StatusTick: Status update skipped for session (", whepSession.SessionId, ") due to full channel")
+		}
+	}
+}
+
+func (whipSession *WhipSession) handleAnnounceOffline() {
+	// Lock, copy session data, then unlock
+	whipSession.WhepSessionsLock.RLock()
+	whepSessionsCopy := make(map[string]*whep.WhepSession)
+	maps.Copy(whepSessionsCopy, whipSession.WhepSessions)
+	whipSession.WhepSessionsLock.RUnlock()
+
+	if len(whepSessionsCopy) == 0 {
+		return
+	}
+
+	// Generate status
+	whipSession.HasHost.Store(false)
+	currentStatus := whipSession.GetSessionStatsEvent()
+
+	// Send status to each WHEP session
+	for _, whepSession := range whepSessionsCopy {
+		if whepSession.IsSessionClosed.Load() {
+			continue
+		}
+
+		select {
+		case whepSession.SseEventsChannel <- currentStatus:
+		default:
+			log.Println("WhipSession.handleAnnounceOffline: Offline Status update skipped for session (", whepSession.SessionId, ") due to full channel")
+		}
+	}
 }

@@ -37,12 +37,14 @@ export interface StatusResult {
 interface VideoTrack {
 	rid: string;
 	packetsReceived: number;
+	packetsDropped: number;
 	lastKeyframe: string;
 }
 
 interface AudioTrack {
 	rid: string;
 	packetsReceived: number;
+	packetsDropped: number;
 }
 
 interface StatusProviderProps {

@@ -7,6 +7,15 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
+type TrackPacket struct {
+	Layer        string
+	Packet       *rtp.Packet
+	TimeDiff     int64
+	SequenceDiff int
+	Codec        TrackCodeType
+	IsKeyframe   bool
+}
+
 type TrackMultiCodec struct {
 	id         string
 	rid        string

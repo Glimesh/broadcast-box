@@ -24,18 +24,10 @@ func RegisterWhipHandlers(whipSession *whip.WhipSession, peerConnection *webrtc.
 	whipSession.PeerConnection.OnConnectionStateChange(onConnectionStateChange(whipSession))
 }
 
-func onWhipICEConnectionStateChangeHandler(
-	streamKey string,
-	sessionId string,
-) func(webrtc.ICEConnectionState) {
-
+func onWhipICEConnectionStateChangeHandler(streamKey string, sessionId string) func(webrtc.ICEConnectionState) {
 	return func(state webrtc.ICEConnectionState) {
 		if state == webrtc.ICEConnectionStateFailed || state == webrtc.ICEConnectionStateClosed {
-
-			if strings.EqualFold("DEBUG_PEERCONNECTION_ENABLED", "true") {
-				log.Println("WhepSession: Disconnected", streamKey, sessionId)
-			}
-
+			log.Println("WhipSession.PeerConnection.OnICEConnectionStateChange", streamKey)
 			disconnected(true, streamKey, sessionId)
 		}
 	}
@@ -55,6 +47,12 @@ func onWhipTrackHandler(whipSession *whip.WhipSession, peerConnection *webrtc.Pe
 
 		// Fires when track has stopped
 		whipSession.OnTrackChangeChannel <- struct{}{}
+		err := peerConnection.Close()
+		if err != nil {
+			log.Println("WhipSession.OnTrackHandler.PeerConnection.Close.Error:", err)
+		}
+
+		log.Println("WhipSession.OnTrackHandler.TrackStopped", remoteTrack.RID())
 	}
 }
 
@@ -63,7 +61,9 @@ func onConnectionStateChange(whipSession *whip.WhipSession) func(webrtc.PeerConn
 		log.Println("WhipSession.PeerConnection.OnConnectionStateChange", state)
 
 		if state == webrtc.PeerConnectionStateDisconnected || state == webrtc.PeerConnectionStateClosed || state == webrtc.PeerConnectionStateFailed {
+			log.Println("WhipSession.PeerConnection.OnConnectionStateChange: Host removed")
 			whipSession.ActiveContextCancel()
+			whipSession.HasHost.Store(false)
 		}
 	}
 }

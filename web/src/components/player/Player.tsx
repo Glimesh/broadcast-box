@@ -46,7 +46,7 @@ const Player = (props: PlayerProps) => {
 		videoRef: videoRef,
 		layerEndpointRef: layerEndpointRef,
 		onStateChange: (state) => console.log("PeerConnectionState.Change", state),
-		onStreamRestart: () => console.log("PeerConnectionConfig.onStreamRestart: Missing setup"),
+		onStreamRestart: () => console.log("PeerConnection.onStreamRestart: Missing setup"),
 		onAudioLayerChange: (layers) => setAudioLayers(layers),
 		onVideoLayerChange: (layers) => setVideoLayers(layers),
 		onLayerStatus: (status) => setCurrentLayersStatus(status),
@@ -198,35 +198,40 @@ const Player = (props: PlayerProps) => {
 
 					{/* Status messages */}
 					{streamState === "Error" && (
-						<h2
-							className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-							{locale.player.message_error}
+						<h2 className="absolute w-full left-1/2 transform -translate-x-1/2 -translate-y-[calc(10%)] font-light leading-tight text-4xl text-center">
+							<div className='flex flex-col justify-center items-center h-screen'>
+								<VideoCameraSlashIcon className="w-32 h-32 " />
+								{streamKey} {locale.player.message_error}
+							</div>
 						</h2>
 					)}
 					{streamState === "Offline" && (
-						<h2
-							className="absolute w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-							{streamKey} {locale.player.message_is_not_online}
+						<h2 className="absolute w-full left-1/2 transform -translate-x-1/2 -translate-y-[calc(10%)] font-light leading-tight text-4xl text-center">
+							<div className='flex flex-col justify-center items-center h-screen'>
+								<VideoCameraSlashIcon className="w-32 h-32 " />
+								{streamKey} {locale.player.message_is_not_online}
+							</div>
 						</h2>
 					)}
 					{streamState === "Loading" && (
-						<h2
-							className="absolute animate-pulse w-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-light leading-tight text-4xl text-center">
-							{locale.player.message_loading_video}
+						<h2 className="absolute w-full left-1/2 transform -translate-x-1/2 -translate-y-[calc(10%)] font-light leading-tight text-4xl text-center">
+							<div className='flex flex-col justify-center items-center h-screen'>
+								<VideoCameraSlashIcon className="w-32 h-32 " />
+								{streamKey} {locale.player.message_loading_video}
+							</div>
 						</h2>
 					)}
-
 				</div>
-
-				<VideoCameraSlashIcon className="w-32 h-32 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
 				<video
 					ref={videoRef}
 					autoPlay
 					muted
 					playsInline
-					className="rounded-md w-full h-full relative bg-gray-950 "
+					className="rounded-md w-full h-full relative bg-gray-950"
 					onPlaying={() => setStreamState("Playing")}
+					onLoadStart={() => setStreamState("Loading")}
+					onEnded={() => setStreamState("Offline")}
 				/>
 
 			</div>
@@ -238,7 +243,9 @@ const Player = (props: PlayerProps) => {
 					</div>
 
 					<div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!currentStreamStatus?.isOnline ? "opacity-100" : "opacity-0"}`} >
+						<div className='flex space-x-4'>
 						{locale.player.stream_status_offline}
+						</div>
 					</div>
 				</div>
 			</div>

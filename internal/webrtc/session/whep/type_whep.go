@@ -1,6 +1,7 @@
 package whep
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 
@@ -14,10 +15,11 @@ type (
 		IsWaitingForKeyframe atomic.Bool
 		IsSessionClosed      atomic.Bool
 
-		WhipEventsChannel    chan any
-		SseEventsChannel     chan any
-		SessionClose         sync.Once
-		SessionClosedChannel chan struct{}
+		WhipEventsChannel   chan any
+		SseEventsChannel    chan any
+		SessionClose        sync.Once
+		ActiveContext       context.Context
+		ActiveContextCancel func()
 
 		PeerConnection *webrtc.PeerConnection
 
@@ -28,6 +30,7 @@ type (
 		VideoPacketsWritten uint64
 		VideoSequenceNumber uint16
 		VideoLayerCurrent   atomic.Value
+		VideoChannel        chan codecs.TrackPacket
 
 		// Protects AudioTrack, AudioTimestamp, AudioPacketsWritten, AudioSequenceNumber
 		AudioLock           sync.RWMutex
@@ -36,6 +39,7 @@ type (
 		AudioPacketsWritten uint64
 		AudioSequenceNumber uint16
 		AudioLayerCurrent   atomic.Value
+		AudioChannel        chan codecs.TrackPacket
 	}
 )
 

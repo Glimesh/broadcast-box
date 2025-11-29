@@ -44,9 +44,6 @@ func (whipSession *WhipSession) AnnounceStreamStartToWhepClients() {
 	maps.Copy(whepSessionsCopy, whipSession.WhepSessions)
 	whipSession.WhepSessionsLock.RUnlock()
 
-	log.Println("WhipSession.AnnounceStreamStartToWhepClients: Announce Stream Start to clients", whipSession.StreamKey)
-	log.Println("WhipSession.AnnounceStreamStartToWhepClients: Count", len(whepSessionsCopy))
-
 	// Generate layer info outside lock
 	streamStartMessage := "event: streamStart\ndata:\n"
 
@@ -72,6 +69,10 @@ func (whipSession *WhipSession) AnnounceStreamStartToWhepClients() {
 }
 
 func (whipSession *WhipSession) GetSessionStatsEvent() string {
+	//TODO: WhepSessionsSnapshot should only contain information about the current state of the session, not
+	// references to chans and other types that cannot be json serialized
+	// status, err := utils.ToJsonString(whipSession.WhepSessionsSnapshot.Load().(map[string]*whep.WhepSession))
+
 	status, err := utils.ToJsonString(whipSession.GetStreamStatus())
 	if err != nil {
 		log.Println("GetSessionStatsJsonString Error:", err)
