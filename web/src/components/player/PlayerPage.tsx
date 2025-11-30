@@ -42,7 +42,7 @@ const PlayerPage = () => {
       )}
 
       <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
-        <div className={`grid ${streamKeys.length !== 1 ? "grid-cols-2" : ""}  w-full gap-2`} >
+        <div className={`grid ${streamKeys.length !== 1 ? "grid-cols-2" : ""} w-full gap-2`} >
           {streamKeys.map((streamKey) => (
             <Player
               key={`${streamKey}_player`}
