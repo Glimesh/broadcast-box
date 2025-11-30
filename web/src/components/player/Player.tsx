@@ -6,8 +6,9 @@ import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
 import { LocaleContext } from '../../providers/LocaleProvider';
 import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
-import { ArrowsPointingOutIcon, Square2StackIcon, VideoCameraSlashIcon } from '@heroicons/react/20/solid';
+import { ArrowsPointingOutIcon, Square2StackIcon } from '@heroicons/react/20/solid';
 import VolumeComponent from './components/VolumeComponent';
+import { StatusMessageComponent } from './components/StatusMessageComponent';
 
 interface PlayerProps {
 	streamKey: string;
@@ -128,7 +129,7 @@ const Player = (props: PlayerProps) => {
 				maxWidth: '100vw',
 			} : {}}>
 
-			<div className="absolute rounded-md w-full h-full">
+			<div className="absolute flex rounded-md w-full h-full bg-red-500">
 
 				<div
 					onClick={handleVideoPlayerClick}
@@ -138,7 +139,7 @@ const Player = (props: PlayerProps) => {
 					rounded-md
 					w-full
 					h-full
-					z-10
+					z-20
 					${streamState !== "Playing" && "bg-gray-950"}
 					${streamState === "Playing" && `
 						transition-opacity
@@ -151,7 +152,7 @@ const Player = (props: PlayerProps) => {
 
 					{/*Buttons */}
 					{videoRef.current !== null && (
-						<div className="absolute bottom-0 h-8 w-full flex place-items-end z-20">
+						<div className="absolute bottom-0 h-8 w-full flex place-items-end z-30">
 							<div
 								onClick={(e) => e.stopPropagation()}
 								className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8 rounded-md">
@@ -196,32 +197,13 @@ const Player = (props: PlayerProps) => {
 						</button>
 					)}
 
-					{/* Status messages */}
-					{streamState === "Error" && (
-						<h2 className="absolute w-full left-1/2 transform -translate-x-1/2 -translate-y-[calc(10%)] font-light leading-tight text-4xl text-center">
-							<div className='flex flex-col justify-center items-center h-screen'>
-								<VideoCameraSlashIcon className="w-32 h-32 " />
-								{streamKey} {locale.player.message_error}
-							</div>
-						</h2>
-					)}
-					{streamState === "Offline" && (
-						<h2 className="absolute w-full left-1/2 transform -translate-x-1/2 -translate-y-[calc(10%)] font-light leading-tight text-4xl text-center">
-							<div className='flex flex-col justify-center items-center h-screen'>
-								<VideoCameraSlashIcon className="w-32 h-32 " />
-								{streamKey} {locale.player.message_is_not_online}
-							</div>
-						</h2>
-					)}
-					{streamState === "Loading" && (
-						<h2 className="absolute w-full left-1/2 transform -translate-x-1/2 -translate-y-[calc(10%)] font-light leading-tight text-4xl text-center">
-							<div className='flex flex-col justify-center items-center h-screen'>
-								<VideoCameraSlashIcon className="w-32 h-32 " />
-								{streamKey} {locale.player.message_loading_video}
-							</div>
-						</h2>
-					)}
 				</div>
+
+				{/* Status messages */}
+				<StatusMessageComponent
+					streamKey={streamKey}
+					state={streamState}
+				/>
 
 				<video
 					ref={videoRef}
@@ -251,7 +233,6 @@ const Player = (props: PlayerProps) => {
 			</div>
 
 		</div>
-
 	)
 }
 
