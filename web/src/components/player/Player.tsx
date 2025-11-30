@@ -129,7 +129,7 @@ const Player = (props: PlayerProps) => {
 				maxWidth: '100vw',
 			} : {}}>
 
-			<div className="absolute flex rounded-md w-full h-full bg-red-500">
+			<div className="absolute flex rounded-md w-full h-full">
 
 				<div
 					onClick={handleVideoPlayerClick}
