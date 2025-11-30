@@ -9,7 +9,7 @@ interface StatusMessageComponentProps{
 
 export const StatusMessageComponent = (props: StatusMessageComponentProps) => {
 	const { locale } = useContext(LocaleContext)
-  const { streamKey, state } = props
+	const { streamKey, state } = props
 
   if(state === "Playing"){
     return
