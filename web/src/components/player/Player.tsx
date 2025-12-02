@@ -9,6 +9,7 @@ import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } f
 import { ArrowsPointingOutIcon, Square2StackIcon } from '@heroicons/react/20/solid';
 import VolumeComponent from './components/VolumeComponent';
 import { StatusMessageComponent } from './components/StatusMessageComponent';
+import { StreamMOTD } from './components/StreamMOTD';
 
 interface PlayerProps {
 	streamKey: string;
@@ -176,7 +177,8 @@ const Player = (props: PlayerProps) => {
 								<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
 								<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()} />
 							</div>
-						</div>)}
+						</div>)
+					}
 
 					{!!props.onCloseStream && (
 						<button
@@ -186,8 +188,7 @@ const Player = (props: PlayerProps) => {
 								xmlns="http://www.w3.org/2000/svg"
 								className="h-6 w-6 text-gray-700"
 								viewBox="0 0 24 24"
-								fill="black"
-							>
+								fill="black">
 								<path
 									fillRule="evenodd"
 									d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
@@ -218,19 +219,11 @@ const Player = (props: PlayerProps) => {
 
 			</div>
 
-			<div className="absolute -bottom-5 w-full">
-				<div className="relative h-5 ml-4">
-					<div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${currentStreamStatus?.isOnline ? "opacity-100" : "opacity-0"}`} >
-						{currentStreamStatus.motd}
-					</div>
-
-					<div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!currentStreamStatus?.isOnline ? "opacity-100" : "opacity-0"}`} >
-						<div className='flex space-x-4'>
-						{locale.player.stream_status_offline}
-						</div>
-					</div>
-				</div>
-			</div>
+			{/* Stream MOTD*/}
+			<StreamMOTD
+				isOnline={currentStreamStatus.isOnline}
+				motd={currentStreamStatus.motd}
+			/>
 
 		</div>
 	)
