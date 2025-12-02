@@ -23,5 +23,4 @@ export const StreamMOTD = (props: StreamMOTDProps) =>{
 					</div>
 				</div>
 			</div>)
-
 }

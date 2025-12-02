@@ -1,10 +1,9 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
-import { LocaleContext } from '../../providers/LocaleProvider';
 import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
 import { ArrowsPointingOutIcon, Square2StackIcon } from '@heroicons/react/20/solid';
 import VolumeComponent from './components/VolumeComponent';
@@ -19,7 +18,6 @@ interface PlayerProps {
 
 const Player = (props: PlayerProps) => {
 	const { cinemaMode } = props;
-	const { locale } = useContext(LocaleContext)
 	const streamKey = decodeURIComponent(props.streamKey).replace(' ', '_')
 
 	const [currentStreamStatus, setCurrentStreamStatus] = useState<StreamStatus>({
