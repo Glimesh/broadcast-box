@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { VideoCameraSlashIcon } from "@heroicons/react/16/solid";
+import { VideoCameraIcon, VideoCameraSlashIcon } from "@heroicons/react/16/solid";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 
 interface StatusMessageComponentProps{ 
@@ -35,7 +35,7 @@ export const StatusMessageComponent = (props: StatusMessageComponentProps) => {
 					{state === "Loading" && (
 						<div className="relative flex z-25 w-full h-full font-light leading-tight text-4xl text-center justify-center">
 							<div className='flex flex-col justify-center items-center'>
-								<VideoCameraSlashIcon className="w-32 h-32" />
+								<VideoCameraIcon className="w-32 h-32" />
 								{streamKey} {locale.player.message_loading_video}
 							</div>
 						</div>
