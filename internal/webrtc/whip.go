@@ -140,21 +140,21 @@ func videoWriter(remoteTrack *webrtc.TrackRemote, stream *stream, peerConnection
 	}
 }
 
-func WHIP(offer, streamKey string) (string, error) {
+func WHIP(offer, streamKey string) (string, string, error) {
 	maybePrintOfferAnswer(offer, true)
 
 	whipSessionId := uuid.New().String()
 
 	peerConnection, err := newPeerConnection(apiWhip, whipSessionId)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	streamMapLock.Lock()
 	defer streamMapLock.Unlock()
 	stream, err := getStream(streamKey, whipSessionId)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
@@ -179,18 +179,18 @@ func WHIP(offer, streamKey string) (string, error) {
 		SDP:  string(offer),
 		Type: webrtc.SDPTypeOffer,
 	}); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	gatherComplete := webrtc.GatheringCompletePromise(peerConnection)
 	answer, err := peerConnection.CreateAnswer(nil)
 
 	if err != nil {
-		return "", err
+		return "", "", err
 	} else if err = peerConnection.SetLocalDescription(answer); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	<-gatherComplete
-	return maybePrintOfferAnswer(appendAnswer(peerConnection.LocalDescription().SDP), false), nil
+	return maybePrintOfferAnswer(appendAnswer(peerConnection.LocalDescription().SDP), false), whipSessionId, nil
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/webhook"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
+	pionWebrtc "github.com/pion/webrtc/v4"
 	"github.com/joho/godotenv"
 )
 
@@ -36,6 +37,9 @@ var (
 	errInvalidStreamKey    = errors.New("invalid stream key format")
 
 	streamKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\.~]+$`)
+	ufragRegex = regexp.MustCompile(`a=ice-ufrag:(.*)`)
+	pwdRegex = regexp.MustCompile(`a=ice-pwd:(.*)`)
+	candidatesRegex = regexp.MustCompile(`a=(candidate:.*)`)
 )
 
 type (
@@ -104,13 +108,13 @@ func whipPostHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer, err := webrtc.WHIP(string(offer), streamKey)
+	answer, sessionId, err := webrtc.WHIP(string(offer), streamKey)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	res.Header().Add("Location", "/api/whip")
+	res.Header().Add("Location", "/api/whip/"+sessionId)
 	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	if _, err = fmt.Fprint(res, answer); err != nil {
@@ -124,12 +128,8 @@ func whipPatchHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO: get session id through a ressource id
-	streamKey, err := getStreamKey("whip-connect", r)
-	if err != nil {
-		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
+	vals := strings.Split(r.URL.RequestURI(), "/")
+	whipSessionId := vals[len(vals)-1]
 
 	patch, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -137,20 +137,49 @@ func whipPatchHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// regex_ufrag, _ := regexp.Compile("a=ice-ufrag:(.*)")
-	// patch_ufrag := regex_ufrag.FindStringSubmatch(string(patch))[1]
-	// regex_pwd, _ := regexp.Compile("a=ice-pwd:(.*)")
-	// patch_pwd := regex_pwd.FindStringSubmatch(string(patch))[1]
+	patchUfragMatches := ufragRegex.FindAllStringSubmatch(string(patch), -1)
+	if len(patchUfragMatches) != 1 {
+		logHTTPError(res, "More than one ice-ufrag", http.StatusBadRequest)
+	}
+	patchUfrag := string(patchUfragMatches[0][1])
 
-	log.Println("Patch for streamKey: " + string(streamKey))
+	patchPwdMatches := pwdRegex.FindAllStringSubmatch(string(patch), -1)
+	if len(patchPwdMatches) != 1 {
+		logHTTPError(res, "More than one ice-pwd", http.StatusBadRequest)
+	}
+	patchPwd := string(patchPwdMatches[0][1])
 
-	regex_candidates, _ := regexp.Compile("a=(candidate:.*)")
-	patch_candidates := regex_candidates.FindAllStringSubmatch(string(patch), -1)[0:]
-	for i := range patch_candidates {
-		log.Println(patch_candidates[i])
+	patchCandidatesMatches := candidatesRegex.FindAllStringSubmatch(string(patch), -1)
+	if len(patchCandidatesMatches) == 0 {
+		return
 	}
 
-	// pc := getPeerConnection()
+	pc := webrtc.GetPeerConnection(whipSessionId)
+
+	localDescription := pc.RemoteDescription().SDP
+	currentUfragsMatches := ufragRegex.FindAllStringSubmatch(string(localDescription), -1)
+	if len(currentUfragsMatches) == 0 {
+		logHTTPError(res, "No remote ice-ufrag", http.StatusExpectationFailed)
+		return
+	}
+	currentPwdsMatches := pwdRegex.FindAllStringSubmatch(string(localDescription), -1)
+	if len(currentPwdsMatches) == 0 {
+		logHTTPError(res, "No remote ice-pwd", http.StatusExpectationFailed)
+		return
+	}
+	currentUfrags := currentUfragsMatches[len(currentUfragsMatches)-1]
+	currentUfrag := currentUfrags[1]
+	currentPwds := currentPwdsMatches[len(currentPwdsMatches)-1]
+	currentPwd :=  currentPwds[1]
+
+	if patchUfrag == currentUfrag && patchPwd == currentPwd {
+	for i := range patchCandidatesMatches {
+		log.Println("Adding candidate via Trickle ICE: " + patchCandidatesMatches[i][1])
+		pc.AddICECandidate(pionWebrtc.ICECandidateInit{Candidate: string(patchCandidatesMatches[i][1])})
+	}
+	} else {
+		//TODO: pc.RestartICE();
+	}
 
 	res.Header().Add("Content-Type", "application/trickle-ice-sdpfrag")
 	res.WriteHeader(http.StatusOK)
@@ -182,7 +211,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	apiPath := req.Host + strings.TrimSuffix(req.URL.RequestURI(), "whep")
 	res.Header().Add("Link", `<`+apiPath+"sse/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="layers"`)
 	res.Header().Add("Link", `<`+apiPath+"layer/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:layer"`)
-	res.Header().Add("Location", "/api/whep")
+	res.Header().Add("Location", "/api/whep/"+whepSessionId)
 	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	if _, err = fmt.Fprint(res, answer); err != nil {
@@ -342,7 +371,9 @@ func main() {
 		mux.Handle("/", indexHTMLWhenNotFound(http.Dir("./web/build")))
 	}
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
+	mux.HandleFunc("/api/whip/", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
+	mux.HandleFunc("/api/whep/", corsHandler(whepHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
 	mux.HandleFunc("/api/status", corsHandler(statusHandler))

@@ -123,7 +123,7 @@ func getStream(streamKey string, whipSessionId string) (*stream, error) {
 	return foundStream, nil
 }
 
-func getPeerConnection(streamKey string, whipSessionId string) *webrtc.PeerConnection {
+func GetPeerConnection(whipSessionId string) *webrtc.PeerConnection {
 	peerConnectionMapLock.Lock()
 	defer peerConnectionMapLock.Unlock()
 
@@ -383,7 +383,7 @@ func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 	return nil
 }
 
-func newPeerConnection(api *webrtc.API, session_id string) (*webrtc.PeerConnection, error) {
+func newPeerConnection(api *webrtc.API, sessionId string) (*webrtc.PeerConnection, error) {
 	cfg := webrtc.Configuration{}
 
 	if stunServers := os.Getenv("STUN_SERVERS"); stunServers != "" {
@@ -397,14 +397,14 @@ func newPeerConnection(api *webrtc.API, session_id string) (*webrtc.PeerConnecti
 	peerConnectionMapLock.Lock()
 	defer peerConnectionMapLock.Unlock()
 
-	_, ok := peerConnectionMap[session_id]
+	_, ok := peerConnectionMap[sessionId]
 	if ok {
 		return nil, nil
 	}
 
 	pc, err := api.NewPeerConnection(cfg)
-	peerConnectionMap[session_id] = pc
-
+	peerConnectionMap[sessionId] = pc
+	
 	return pc, err
 }
 
