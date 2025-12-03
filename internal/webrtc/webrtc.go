@@ -66,9 +66,11 @@ type (
 )
 
 var (
-	streamMap        map[string]*stream
-	streamMapLock    sync.Mutex
-	apiWhip, apiWhep *webrtc.API
+	streamMap             map[string]*stream
+	peerConnectionMap     map[string]*webrtc.PeerConnection
+	streamMapLock         sync.Mutex
+	peerConnectionMapLock sync.Mutex
+	apiWhip, apiWhep      *webrtc.API
 
 	// nolint
 	videoRTCPFeedback = []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
@@ -119,6 +121,18 @@ func getStream(streamKey string, whipSessionId string) (*stream, error) {
 	}
 
 	return foundStream, nil
+}
+
+func getPeerConnection(streamKey string, whipSessionId string) *webrtc.PeerConnection {
+	peerConnectionMapLock.Lock()
+	defer peerConnectionMapLock.Unlock()
+
+	peerConnection, ok := peerConnectionMap[whipSessionId]
+	if !ok {
+		return nil
+	}
+
+	return peerConnection
 }
 
 func peerConnectionDisconnected(forWHIP bool, streamKey string, sessionId string) {
@@ -369,7 +383,7 @@ func PopulateMediaEngine(m *webrtc.MediaEngine) error {
 	return nil
 }
 
-func newPeerConnection(api *webrtc.API) (*webrtc.PeerConnection, error) {
+func newPeerConnection(api *webrtc.API, session_id string) (*webrtc.PeerConnection, error) {
 	cfg := webrtc.Configuration{}
 
 	if stunServers := os.Getenv("STUN_SERVERS"); stunServers != "" {
@@ -380,7 +394,18 @@ func newPeerConnection(api *webrtc.API) (*webrtc.PeerConnection, error) {
 		}
 	}
 
-	return api.NewPeerConnection(cfg)
+	peerConnectionMapLock.Lock()
+	defer peerConnectionMapLock.Unlock()
+
+	_, ok := peerConnectionMap[session_id]
+	if ok {
+		return nil, nil
+	}
+
+	pc, err := api.NewPeerConnection(cfg)
+	peerConnectionMap[session_id] = pc
+
+	return pc, err
 }
 
 func appendAnswer(in string) string {
@@ -406,6 +431,7 @@ func maybePrintOfferAnswer(sdp string, isOffer bool) string {
 
 func Configure() {
 	streamMap = map[string]*stream{}
+	peerConnectionMap = map[string]*webrtc.PeerConnection{}
 
 	mediaEngine := &webrtc.MediaEngine{}
 	if err := PopulateMediaEngine(mediaEngine); err != nil {

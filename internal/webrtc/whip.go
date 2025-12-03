@@ -145,7 +145,7 @@ func WHIP(offer, streamKey string) (string, error) {
 
 	whipSessionId := uuid.New().String()
 
-	peerConnection, err := newPeerConnection(apiWhip)
+	peerConnection, err := newPeerConnection(apiWhip, whipSessionId)
 	if err != nil {
 		return "", err
 	}

@@ -77,10 +77,21 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 }
 
 func whipHandler(res http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	switch r.Method {
+	case "POST":
+		whipPostHandler(res, r)
+	case "OPTIONS":
+		return
+	case "PATCH":
+		whipPatchHandler(res, r)
+	case "DELETE":
+		return
+	default:
 		return
 	}
+}
 
+func whipPostHandler(res http.ResponseWriter, r *http.Request) {
 	streamKey, err := getStreamKey("whip-connect", r)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
@@ -105,6 +116,44 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 	if _, err = fmt.Fprint(res, answer); err != nil {
 		log.Println(err)
 	}
+}
+
+func whipPatchHandler(res http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Content-Type") != "application/trickle-ice-sdpfrag" {
+		logHTTPError(res, "Bad Content-Type", http.StatusBadRequest)
+		return
+	}
+
+	//TODO: get session id through a ressource id
+	streamKey, err := getStreamKey("whip-connect", r)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	patch, err := io.ReadAll(r.Body)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// regex_ufrag, _ := regexp.Compile("a=ice-ufrag:(.*)")
+	// patch_ufrag := regex_ufrag.FindStringSubmatch(string(patch))[1]
+	// regex_pwd, _ := regexp.Compile("a=ice-pwd:(.*)")
+	// patch_pwd := regex_pwd.FindStringSubmatch(string(patch))[1]
+
+	log.Println("Patch for streamKey: " + string(streamKey))
+
+	regex_candidates, _ := regexp.Compile("a=(candidate:.*)")
+	patch_candidates := regex_candidates.FindAllStringSubmatch(string(patch), -1)[0:]
+	for i := range patch_candidates {
+		log.Println(patch_candidates[i])
+	}
+
+	// pc := getPeerConnection()
+
+	res.Header().Add("Content-Type", "application/trickle-ice-sdpfrag")
+	res.WriteHeader(http.StatusOK)
 }
 
 func whepHandler(res http.ResponseWriter, req *http.Request) {
