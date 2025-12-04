@@ -161,7 +161,7 @@ const Player = (props: PlayerProps) => {
 								<VolumeComponent
 									isMuted={videoRef.current?.muted ?? false}
 									isDisabled={audioLayers.length === 0}
-									onVolumeChanged={(newValue) => videoRef.current!.volume = newValue}
+									onVolumeChanged={(newValue) => videoRef.current!.volume = newValue / 100}
 									onStateChanged={(newState) => videoRef.current!.muted = newState}
 								/>
 
