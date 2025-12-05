@@ -175,7 +175,11 @@ func whipPatchHandler(res http.ResponseWriter, r *http.Request) {
 	if patchUfrag == currentUfrag && patchPwd == currentPwd {
 		for i := range patchCandidatesMatches {
 			log.Println("Adding candidate via Trickle ICE: " + patchCandidatesMatches[i][1])
-			pc.AddICECandidate(pionWebrtc.ICECandidateInit{Candidate: string(patchCandidatesMatches[i][1])})
+			err := pc.AddICECandidate(pionWebrtc.ICECandidateInit{Candidate: string(patchCandidatesMatches[i][1])})
+			if err != nil {
+				logHTTPError(res, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	} else {
 		//TODO: pc.RestartICE();
