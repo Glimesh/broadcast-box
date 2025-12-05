@@ -18,8 +18,8 @@ import (
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/webhook"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
-	pionWebrtc "github.com/pion/webrtc/v4"
 	"github.com/joho/godotenv"
+	pionWebrtc "github.com/pion/webrtc/v4"
 )
 
 const (
@@ -36,9 +36,9 @@ var (
 	errAuthorizationNotSet = errors.New("authorization was not set")
 	errInvalidStreamKey    = errors.New("invalid stream key format")
 
-	streamKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\.~]+$`)
-	ufragRegex = regexp.MustCompile(`a=ice-ufrag:(.*)`)
-	pwdRegex = regexp.MustCompile(`a=ice-pwd:(.*)`)
+	streamKeyRegex  = regexp.MustCompile(`^[a-zA-Z0-9_\-\.~]+$`)
+	ufragRegex      = regexp.MustCompile(`a=ice-ufrag:(.*)`)
+	pwdRegex        = regexp.MustCompile(`a=ice-pwd:(.*)`)
 	candidatesRegex = regexp.MustCompile(`a=(candidate:.*)`)
 )
 
@@ -167,18 +167,18 @@ func whipPatchHandler(res http.ResponseWriter, r *http.Request) {
 		logHTTPError(res, "No remote ice-pwd", http.StatusExpectationFailed)
 		return
 	}
-	currentUfrags := currentUfragsMatches[len(currentUfragsMatches)-1]
-	currentUfrag := currentUfrags[1]
-	currentPwds := currentPwdsMatches[len(currentPwdsMatches)-1]
-	currentPwd :=  currentPwds[1]
+	currentUfrag := currentUfragsMatches[len(currentUfragsMatches)-1][1]
+	currentPwd := currentPwdsMatches[len(currentPwdsMatches)-1][1]
 
 	if patchUfrag == currentUfrag && patchPwd == currentPwd {
-	for i := range patchCandidatesMatches {
-		log.Println("Adding candidate via Trickle ICE: " + patchCandidatesMatches[i][1])
-		pc.AddICECandidate(pionWebrtc.ICECandidateInit{Candidate: string(patchCandidatesMatches[i][1])})
-	}
+		for i := range patchCandidatesMatches {
+			log.Println("Adding candidate via Trickle ICE: " + patchCandidatesMatches[i][1])
+			pc.AddICECandidate(pionWebrtc.ICECandidateInit{Candidate: string(patchCandidatesMatches[i][1])})
+		}
 	} else {
 		//TODO: pc.RestartICE();
+		logHTTPError(res, "", http.StatusUnprocessableEntity)
+		return
 	}
 
 	res.Header().Add("Content-Type", "application/trickle-ice-sdpfrag")
