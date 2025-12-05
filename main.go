@@ -140,12 +140,14 @@ func whipPatchHandler(res http.ResponseWriter, r *http.Request) {
 	patchUfragMatches := ufragRegex.FindAllStringSubmatch(string(patch), -1)
 	if len(patchUfragMatches) != 1 {
 		logHTTPError(res, "More than one ice-ufrag", http.StatusBadRequest)
+		return
 	}
 	patchUfrag := string(patchUfragMatches[0][1])
 
 	patchPwdMatches := pwdRegex.FindAllStringSubmatch(string(patch), -1)
 	if len(patchPwdMatches) != 1 {
 		logHTTPError(res, "More than one ice-pwd", http.StatusBadRequest)
+		return
 	}
 	patchPwd := string(patchPwdMatches[0][1])
 
