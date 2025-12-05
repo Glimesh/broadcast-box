@@ -48,7 +48,7 @@ func TestReconnect(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, firstPublisher.SetLocalDescription(offer))
 
-	answer, err := WHIP(offer.SDP, testStreamKey)
+	answer, _, err := WHIP(offer.SDP, testStreamKey)
 	require.NoError(t, err)
 
 	require.NoError(t, firstPublisher.SetRemoteDescription(webrtc.SessionDescription{
@@ -79,7 +79,7 @@ func TestReconnect(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, secondPublisher.SetLocalDescription(offer))
 
-	answer, err = WHIP(offer.SDP, testStreamKey)
+	answer, _, err = WHIP(offer.SDP, testStreamKey)
 	require.NoError(t, err)
 
 	require.NoError(t, secondPublisher.SetRemoteDescription(webrtc.SessionDescription{
