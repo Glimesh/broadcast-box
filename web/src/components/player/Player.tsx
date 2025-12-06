@@ -51,7 +51,7 @@ const Player = (props: PlayerProps) => {
 		onVideoLayerChange: (layers) => setVideoLayers(layers),
 		onLayerStatus: (status) => setCurrentLayersStatus(status),
 		onStreamStatus: (status) => {
-			if(!status.isOnline){
+			if (!status.isOnline) {
 				setStreamState("Offline")
 			}
 			setCurrentStreamStatus(status)
@@ -178,10 +178,16 @@ const Player = (props: PlayerProps) => {
 						</div>)
 					}
 
+					{/* Status messages */}
+					<StatusMessageComponent
+						streamKey={streamKey}
+						state={streamState}
+					/>
+
 					{!!props.onCloseStream && (
 						<button
 							onClick={props.onCloseStream}
-							className="absolute top-2 right-2 p-2 rounded-full bg-red-400 hover:bg-red-500 pointer-events-auto">
+							className="absolute top-2 right-2 p-2 rounded-full bg-red-400 hover:bg-red-500 pointer-events-auto z-60">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								className="h-6 w-6 text-gray-700"
@@ -197,12 +203,6 @@ const Player = (props: PlayerProps) => {
 					)}
 
 				</div>
-
-				{/* Status messages */}
-				<StatusMessageComponent
-					streamKey={streamKey}
-					state={streamState}
-				/>
 
 				<video
 					ref={videoRef}
