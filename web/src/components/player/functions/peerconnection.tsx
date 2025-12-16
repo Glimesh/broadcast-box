@@ -1,6 +1,8 @@
+/* eslint-disable no-unused-vars */
 import { parseLinkHeader } from "@web3-storage/parse-link-header";
 import { StreamStatus } from "../../../providers/StatusProvider";
 import toBase64Utf8 from "../../../utilities/base64";
+import { RefObject } from "react";
 
 export interface CurrentLayersMessage {
 	id: string,
@@ -24,8 +26,8 @@ enum SetupPeerConnectionStateChange {
 }
 export interface SetupPeerConnectionProps {
 	streamKey: string,
-	videoRef: React.RefObject<HTMLVideoElement | null>,
-	layerEndpointRef: React.RefObject<string>,
+	videoRef: RefObject<HTMLVideoElement | null>,
+	layerEndpointRef: RefObject<string>,
 
 	onError: (error: SetupPeerConnectionError) => void,
 	onStreamStatus: (status: StreamStatus) => void,
@@ -115,7 +117,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	}
 
 	// Receive current status of the whep stream
-	evtSource.addEventListener("streamStart", (_: MessageEvent) => {
+	evtSource.addEventListener("streamStart", () => {
 		console.log("PeerConnection.EventSource", "Reset Stream")
 		evtSource.close()
     peerConnection.close()

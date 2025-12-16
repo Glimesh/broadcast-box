@@ -7,7 +7,9 @@ interface Props<T extends string | number> {
 	placeholder?: string;
 	isSecret?: boolean;
 	children?: React.ReactNode;
+	// eslint-disable-next-line no-unused-vars
 	onAccept?: (result: T) => void;
+	// eslint-disable-next-line no-unused-vars
 	onChange?: (result: T) => void;
 	initialValue?: T;
 

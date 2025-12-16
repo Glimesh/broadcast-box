@@ -160,7 +160,7 @@ function BrowserBroadcaster() {
 
 						const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 
-						evtSource.onerror = _ => evtSource.close();
+						evtSource.onerror = () => evtSource.close();
 
 						// Receive current status of the stream
 						// evtSource.addEventListener("status", (event: MessageEvent) => setCurrentStreamStatus(JSON.parse(event.data)))
@@ -186,6 +186,7 @@ function BrowserBroadcaster() {
 					.forEach((streamTrack: MediaStreamTrack) => streamTrack.stop())
 			}
 		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [videoRef, useDisplayMedia, location.pathname])
 
 	useEffect(() => {

@@ -10,8 +10,10 @@ interface Props<T extends string | number> {
 	placeholder?: string;
 	children?: React.ReactNode;
 	isOpen: boolean;
+	// eslint-disable-next-line no-unused-vars
 	onAccept?: (result: T) => void;
 	onDeny?: () => void;
+	// eslint-disable-next-line no-unused-vars
 	onChange?: (result: T) => void;
 	onClose?: () => void;
 	initialValue?: T;
@@ -34,6 +36,7 @@ export default function ModalTextInput<T extends string | number>(
 		if (!isOpen) {
 			props.onClose?.()
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen])
 
 	if (!isOpen) {

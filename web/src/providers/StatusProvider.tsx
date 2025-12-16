@@ -61,7 +61,9 @@ class FetchError extends Error {
 }
 
 const fetchStatus = (
+	// eslint-disable-next-line no-unused-vars
 	onSuccess?: (statusResults: StatusResult[]) => void,
+	// eslint-disable-next-line no-unused-vars
 	onError?: (error: FetchError) => void
 ) =>
 	fetch(`/api/status`, {
@@ -88,6 +90,7 @@ interface StatusProviderContextProps {
 	subscribe: () => void
 	unsubscribe: () => void
 
+	// eslint-disable-next-line no-unused-vars
 	setCurrentStreamStatus: (status: StreamStatus) => void
 }
 
@@ -109,7 +112,7 @@ export function StatusProvider(props: StatusProviderProps) {
 	const subscribers = useRef<number>(0)
 
 	const fetchStatusResultHandler = (result: StatusResult[]) => {
-		setStreamStatus(_ => result);
+		setStreamStatus(() => result);
 	}
 	const fetchStatusErrorHandler = (error: FetchError) => {
 		if (error.status === 503) {
@@ -173,6 +176,7 @@ export function StatusProvider(props: StatusProviderProps) {
 		subscribe: subscribe,
 		unsubscribe: unsubscribe,
 		setCurrentStreamStatus: (value: StreamStatus) => setCurrentStreamStatus(() => value)
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}), [streamStatus, currentStreamStatus]);
 
 	return (

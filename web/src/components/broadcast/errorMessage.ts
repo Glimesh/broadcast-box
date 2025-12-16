@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { localeInterface } from "../../locale/localeInterface";
 
 export enum ErrorMessageEnum {
