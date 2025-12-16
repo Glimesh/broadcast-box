@@ -19,6 +19,7 @@ export function LocalesModal(props: Props) {
     if (!isOpen) {
       props.onClose?.()
     }
+	// eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   if (!isOpen) {

@@ -1,4 +1,6 @@
-﻿import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/16/solid";
+﻿/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/16/solid";
 import React, { useEffect, useRef, useState } from "react";
 
 interface VolumeComponentProps {
@@ -60,6 +62,7 @@ const VolumeSlider = (props: VolumeSliderProps) => {
 	const volumeRef = useRef<number>(50);
 
 	// Forces UI rendering
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const [_, setCurrentVolume] = useState<number>(volumeRef.current)
 
 	const setVolume = (value: number) => {

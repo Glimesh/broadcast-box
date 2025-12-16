@@ -2,7 +2,8 @@
 
 interface HeaderProviderContextProps {
 	title: string;
-	setTitle: (title: string) => void
+	// eslint-disable-next-line no-unused-vars
+	setTitle: (trtle: string) => void
 }
 
 export const HeaderContext = React.createContext<HeaderProviderContextProps>({

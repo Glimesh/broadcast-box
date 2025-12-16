@@ -1,4 +1,6 @@
-﻿import React, {useEffect, useState} from "react";
+﻿/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+import React, {useEffect, useState} from "react";
 import {PauseIcon, PlayIcon} from "@heroicons/react/16/solid";
 
 interface PlayPauseComponentProps {
@@ -7,10 +9,6 @@ interface PlayPauseComponentProps {
 
 const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 	const [isPaused, setIsPaused] = useState<boolean>(true);
-
-	if (props.videoRef.current === null) {
-		return <></>;
-	}
 
 	useEffect(() => {
 		if (props.videoRef.current === null) {
@@ -32,7 +30,7 @@ const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 				props.videoRef.current.removeEventListener("pause", pauseHandler);
 			}
 		}
-	}, []);
+	}, [props.videoRef.current]);
 
 	useEffect(() => {
 		if(isPaused){
@@ -42,6 +40,10 @@ const PlayPauseComponent = (props: PlayPauseComponentProps) => {
 			props.videoRef.current?.play().catch((err) => console.error("VideoError", err));
 		}
 	}, [isPaused]);
+
+	if (props.videoRef.current === null) {
+		return <></>;
+	}
 
 	if (isPaused) {
 		return <PlayIcon onClick={() => props.videoRef.current?.play()}/>

@@ -14,6 +14,7 @@ interface Profile {
 }
 
 interface ProfileSettingsProps {
+  // eslint-disable-next-line no-unused-vars
   stateHasChanged: (isActive: boolean, streamKey: string) => void;
 }
 
@@ -71,6 +72,7 @@ export default function ProfileSettings(props: ProfileSettingsProps) {
 
   useLayoutEffect(() => {
     getSettings()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (profileType === "Public") {

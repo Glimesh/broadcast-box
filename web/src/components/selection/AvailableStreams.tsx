@@ -11,6 +11,7 @@ interface StreamEntry {
 
 interface AvailableStreamsProps {
   showHeader?: boolean;
+	// eslint-disable-next-line no-unused-vars
   onClickOverride?: (streamKey: string) => void;
 }
 
@@ -28,6 +29,7 @@ const AvailableStreams = (props: AvailableStreamsProps) => {
     refreshStatus()
 
     return () => unsubscribe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
