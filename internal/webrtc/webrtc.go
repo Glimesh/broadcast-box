@@ -239,7 +239,12 @@ func createSettingEngine(isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefaul
 	}
 
 	if len(NAT1To1IPs) != 0 {
-		settingEngine.SetNAT1To1IPs(NAT1To1IPs, natICECandidateType)
+		if err := settingEngine.SetICEAddressRewriteRules(webrtc.ICEAddressRewriteRule{
+			External:        NAT1To1IPs,
+			AsCandidateType: natICECandidateType,
+		}); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if os.Getenv("INTERFACE_FILTER") != "" {
