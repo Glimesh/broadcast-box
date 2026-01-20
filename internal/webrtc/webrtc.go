@@ -53,6 +53,13 @@ type (
 
 		whepSessionsLock sync.RWMutex
 		whepSessions     map[string]*whepSession
+
+		subscriberDataChannels map[string]map[string]*webrtc.DataChannel
+		publisherDataChannels  map[string]*webrtc.DataChannel
+		dataChannelsLock       sync.RWMutex
+
+		subscriberConnections map[string]*webrtc.PeerConnection
+		publisherConnection   *webrtc.PeerConnection
 	}
 
 	videoTrack struct {
@@ -109,6 +116,9 @@ func getStream(streamKey string, whipSessionId string) (*stream, error) {
 			whipActiveContext:       whipActiveContext,
 			whipActiveContextCancel: whipActiveContextCancel,
 			firstSeenEpoch:          uint64(time.Now().Unix()),
+			subscriberDataChannels:  make(map[string]map[string]*webrtc.DataChannel),
+			publisherDataChannels:   make(map[string]*webrtc.DataChannel),
+			subscriberConnections:   make(map[string]*webrtc.PeerConnection),
 		}
 		streamMap[streamKey] = foundStream
 	}
@@ -134,8 +144,16 @@ func peerConnectionDisconnected(forWHIP bool, streamKey string, sessionId string
 	defer stream.whepSessionsLock.Unlock()
 
 	if !forWHIP {
+		stream.dataChannelsLock.Lock()
+		delete(stream.subscriberConnections, sessionId)
+		stream.dataChannelsLock.Unlock()
+
 		delete(stream.whepSessions, sessionId)
 	} else {
+		stream.dataChannelsLock.Lock()
+		stream.publisherConnection = nil
+		stream.dataChannelsLock.Unlock()
+
 		stream.videoTracks = slices.DeleteFunc(stream.videoTracks, func(v *videoTrack) bool {
 			return v.sessionId == sessionId
 		})
@@ -509,4 +527,89 @@ func GetStreamStatuses() []StreamStatus {
 	}
 
 	return out
+}
+
+func ensureDataChannelPair(label string, stream *stream, channel *webrtc.DataChannel, whepSessionId *string) error {
+	if channel != nil {
+		if whepSessionId == nil {
+			stream.publisherDataChannels[label] = channel
+		} else {
+			if stream.subscriberDataChannels[*whepSessionId] == nil {
+				stream.subscriberDataChannels[*whepSessionId] = make(map[string]*webrtc.DataChannel)
+			}
+			stream.subscriberDataChannels[*whepSessionId][label] = channel
+		}
+	}
+
+	if stream.publisherDataChannels[label] == nil {
+		var err error
+		stream.publisherDataChannels[label], err = stream.publisherConnection.CreateDataChannel(label, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	stream.publisherDataChannels[label].OnMessage(func(msg webrtc.DataChannelMessage) {
+		stream.dataChannelsLock.RLock()
+		defer stream.dataChannelsLock.RUnlock()
+
+		for _, channels := range stream.subscriberDataChannels {
+			if channel, ok := channels[label]; ok {
+				if err := channel.Send(msg.Data); err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	})
+
+	stream.publisherDataChannels[label].OnClose(func() {
+		stream.dataChannelsLock.Lock()
+		defer stream.dataChannelsLock.Unlock()
+
+		delete(stream.publisherDataChannels, label)
+		for _, channels := range stream.subscriberDataChannels {
+			if channel, ok := channels[label]; ok {
+				if err := channel.Close(); err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	})
+
+	for whepSessionId, peerConnection := range stream.subscriberConnections {
+		if stream.subscriberDataChannels[whepSessionId] == nil {
+			stream.subscriberDataChannels[whepSessionId] = make(map[string]*webrtc.DataChannel)
+		}
+
+		if stream.subscriberDataChannels[whepSessionId][label] == nil {
+			var err error
+			stream.subscriberDataChannels[whepSessionId][label], err = peerConnection.CreateDataChannel(label, nil)
+			if err != nil {
+				return err
+			}
+		}
+
+		stream.subscriberDataChannels[whepSessionId][label].OnMessage(func(msg webrtc.DataChannelMessage) {
+			stream.dataChannelsLock.RLock()
+			defer stream.dataChannelsLock.RUnlock()
+
+			if channel, ok := stream.publisherDataChannels[label]; ok {
+				if err := channel.Send(msg.Data); err != nil {
+					log.Println(err)
+				}
+			}
+		})
+
+		stream.subscriberDataChannels[whepSessionId][label].OnClose(func() {
+			stream.dataChannelsLock.Lock()
+			defer stream.dataChannelsLock.Unlock()
+
+			delete(stream.subscriberDataChannels[whepSessionId], label)
+			if len(stream.subscriberDataChannels[whepSessionId]) == 0 {
+				delete(stream.subscriberDataChannels, whepSessionId)
+			}
+		})
+	}
+
+	return nil
 }

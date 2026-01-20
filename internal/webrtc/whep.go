@@ -102,6 +102,24 @@ func WHEP(offer, streamKey string) (string, string, error) {
 		}
 	})
 
+	stream.dataChannelsLock.Lock()
+	stream.subscriberConnections[whepSessionId] = peerConnection
+
+	for label := range stream.publisherDataChannels {
+		if err := ensureDataChannelPair(label, stream, nil, &whepSessionId); err != nil {
+			return "", "", err
+		}
+	}
+	stream.dataChannelsLock.Unlock()
+
+	peerConnection.OnDataChannel(func(channel *webrtc.DataChannel) {
+		stream.dataChannelsLock.Lock()
+		if err := ensureDataChannelPair(channel.Label(), stream, channel, &whepSessionId); err != nil {
+			log.Println(err)
+		}
+		stream.dataChannelsLock.Unlock()
+	})
+
 	if _, err = peerConnection.AddTrack(stream.audioTrack); err != nil {
 		return "", "", err
 	}
