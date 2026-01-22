@@ -156,6 +156,7 @@ func WHIP(offer, streamKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	stream.peerConnection.Store(peerConnection)
 
 	peerConnection.OnTrack(func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
 		if strings.HasPrefix(remoteTrack.Codec().MimeType, "audio") {

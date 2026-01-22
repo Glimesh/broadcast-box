@@ -3,6 +3,7 @@ package webrtc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,7 +18,7 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v3/pkg/crypto/elliptic"
-	"github.com/pion/ice/v3"
+	"github.com/pion/ice/v4"
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
 )
@@ -51,6 +52,8 @@ type (
 		whipActiveContext       context.Context
 		whipActiveContextCancel func()
 
+		peerConnection atomic.Pointer[webrtc.PeerConnection]
+
 		whepSessionsLock sync.RWMutex
 		whepSessions     map[string]*whepSession
 	}
@@ -69,6 +72,9 @@ var (
 	streamMap        map[string]*stream
 	streamMapLock    sync.Mutex
 	apiWhip, apiWhep *webrtc.API
+
+	errNoPeerConnection       = errors.New("unable to find PeerConnection")
+	errICERestartNotSupported = errors.New("ice restart not supported")
 
 	// nolint
 	videoRTCPFeedback = []webrtc.RTCPFeedback{{"goog-remb", ""}, {"ccm", "fir"}, {"nack", ""}, {"nack", "pli"}}
@@ -509,4 +515,60 @@ func GetStreamStatuses() []StreamStatus {
 	}
 
 	return out
+}
+
+func HandlePatch(sessionId, body string, isWHIP bool) error {
+	valueForKey := func(sdp, key string) string {
+		for _, l := range strings.Split(sdp, "\n") {
+			expectedPrefix := "a=" + key + ":"
+			if strings.HasPrefix(l, expectedPrefix) {
+				return strings.TrimPrefix(l, expectedPrefix)
+			}
+		}
+
+		return ""
+	}
+
+	var peerConnection *webrtc.PeerConnection
+
+	streamMapLock.Lock()
+	if isWHIP {
+		if stream := streamMap[sessionId]; stream != nil {
+			peerConnection = stream.peerConnection.Load()
+		}
+	} else {
+		for _, s := range streamMap {
+			s.whepSessionsLock.Lock()
+			if whepSession := s.whepSessions[sessionId]; whepSession != nil {
+				peerConnection = whepSession.peerConnection
+			}
+			s.whepSessionsLock.Unlock()
+		}
+	}
+	streamMapLock.Unlock()
+
+	if peerConnection == nil {
+		return errNoPeerConnection
+	}
+
+	oldUfrag := valueForKey(peerConnection.CurrentRemoteDescription().SDP, "ice-ufrag")
+	oldPwd := valueForKey(peerConnection.CurrentRemoteDescription().SDP, "ice-pwd")
+	newUfrag, newPwd := valueForKey(body, "ice-ufrag"), valueForKey(body, "ice-pwd")
+	isICERestart := oldUfrag != newUfrag || oldPwd != newPwd
+	if isICERestart {
+		return errICERestartNotSupported
+	}
+
+	for _, l := range strings.Split(body, "\n") {
+		expectedPrefix := "a=candidate:"
+		if strings.HasPrefix(l, expectedPrefix) {
+			if err := peerConnection.AddICECandidate(webrtc.ICECandidateInit{
+				Candidate: strings.TrimSpace(strings.TrimPrefix(l, "a=")),
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
