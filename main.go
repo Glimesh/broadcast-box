@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path"
@@ -76,8 +77,23 @@ func logHTTPError(w http.ResponseWriter, err string, code int) {
 	http.Error(w, err, code)
 }
 
+func patchHandler(res http.ResponseWriter, r *http.Request, sessionId, body string, isWHIP bool) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/trickle-ice-sdpfrag" {
+		logHTTPError(res, "invalid content type", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	if err = webrtc.HandlePatch(sessionId, body, isWHIP); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusNoContent)
+}
+
 func whipHandler(res http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != "POST" && r.Method != "PATCH" {
 		return
 	}
 
@@ -87,13 +103,18 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	offer, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	answer, err := webrtc.WHIP(string(offer), streamKey)
+	if r.Method == "PATCH" {
+		patchHandler(res, r, streamKey, string(body), true)
+		return
+	}
+
+	answer, err := webrtc.WHIP(string(body), streamKey)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -108,7 +129,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 }
 
 func whepHandler(res http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
+	if req.Method != "POST" && req.Method != "PATCH" {
 		return
 	}
 
@@ -118,13 +139,18 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	offer, err := io.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	answer, whepSessionId, err := webrtc.WHEP(string(offer), streamKey)
+	if req.Method == "PATCH" {
+		patchHandler(res, req, "TODO", string(body), true)
+		return
+	}
+
+	answer, whepSessionId, err := webrtc.WHEP(string(body), streamKey)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
@@ -133,7 +159,7 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	apiPath := req.Host + strings.TrimSuffix(req.URL.RequestURI(), "whep")
 	res.Header().Add("Link", `<`+apiPath+"sse/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="layers"`)
 	res.Header().Add("Link", `<`+apiPath+"layer/"+whepSessionId+`>; rel="urn:ietf:params:whep:ext:core:layer"`)
-	res.Header().Add("Location", "/api/whep")
+	res.Header().Add("Location", "/api/whep/"+whepSessionId)
 	res.Header().Add("Content-Type", "application/sdp")
 	res.WriteHeader(http.StatusCreated)
 	if _, err = fmt.Fprint(res, answer); err != nil {

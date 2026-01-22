@@ -21,6 +21,7 @@ type (
 		sequenceNumber     uint16
 		timestamp          uint32
 		packetsWritten     uint64
+		peerConnection     *webrtc.PeerConnection
 	}
 
 	simulcastLayerResponse struct {
@@ -151,8 +152,9 @@ func WHEP(offer, streamKey string) (string, string, error) {
 	defer stream.whepSessionsLock.Unlock()
 
 	stream.whepSessions[whepSessionId] = &whepSession{
-		videoTrack: videoTrack,
-		timestamp:  50000,
+		videoTrack:     videoTrack,
+		timestamp:      50000,
+		peerConnection: peerConnection,
 	}
 	stream.whepSessions[whepSessionId].currentLayer.Store("")
 	stream.whepSessions[whepSessionId].waitingForKeyframe.Store(false)
