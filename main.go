@@ -129,7 +129,7 @@ func whipHandler(res http.ResponseWriter, r *http.Request) {
 }
 
 func whepHandler(res http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" && req.Method != "PATCH" {
+	if req.Method != http.MethodPost {
 		return
 	}
 
@@ -142,11 +142,6 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if req.Method == "PATCH" {
-		patchHandler(res, req, "TODO", string(body), true)
 		return
 	}
 
@@ -165,6 +160,26 @@ func whepHandler(res http.ResponseWriter, req *http.Request) {
 	if _, err = fmt.Fprint(res, answer); err != nil {
 		log.Println(err)
 	}
+}
+
+func whepSessionPatchHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPatch {
+		return
+	}
+
+	whepSessionId := strings.TrimPrefix(req.URL.Path, "/api/whep/")
+	if whepSessionId == "" {
+		logHTTPError(res, "missing WHEP session id", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	patchHandler(res, req, whepSessionId, string(body), false)
 }
 
 func whepServerSentEventsHandler(res http.ResponseWriter, req *http.Request) {
@@ -320,6 +335,7 @@ func main() {
 	}
 	mux.HandleFunc("/api/whip", corsHandler(whipHandler))
 	mux.HandleFunc("/api/whep", corsHandler(whepHandler))
+	mux.HandleFunc("/api/whep/", corsHandler(whepSessionPatchHandler))
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
 	mux.HandleFunc("/api/status", corsHandler(statusHandler))
