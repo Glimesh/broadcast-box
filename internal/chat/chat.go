@@ -12,6 +12,9 @@ const (
 	MaxHistory      = 10000
 	DefaultTTL      = 72 * time.Hour
 	CleanupInterval = 1 * time.Hour
+
+	EventTypeMessage   = "message"
+	EventTypeConnected = "connected"
 )
 
 type Message struct {
@@ -23,6 +26,7 @@ type Message struct {
 
 type Event struct {
 	ID      uint64  `json:"-"`
+	Type    string  `json:"type"`
 	Message Message `json:"message"`
 }
 
@@ -135,6 +139,7 @@ func (m *Manager) Subscribe(sessionID string, lastEventID uint64) (chan Event, f
 	room.lastActivity = now
 	subID := uuid.New().String()
 	ch := make(chan Event, 100)
+	ch <- Event{Type: EventTypeConnected}
 	sub := &subscriber{ch: ch}
 	room.subscribers[subID] = sub
 
@@ -182,7 +187,8 @@ func (m *Manager) Send(sessionID string, text string, displayName string) error 
 
 	room.lastActivity = now
 	event := Event{
-		ID: room.nextEventID,
+		ID:   room.nextEventID,
+		Type: EventTypeMessage,
 		Message: Message{
 			ID:          uuid.New().String(),
 			TS:          now.UnixMilli(),

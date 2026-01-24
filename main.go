@@ -291,6 +291,16 @@ func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
 			if !ok {
 				return
 			}
+
+			if event.Type == chat.EventTypeConnected {
+				if _, err := fmt.Fprintf(res, "event: connected\ndata: {}\n\n"); err != nil {
+					log.Println(err)
+					return
+				}
+				flusher.Flush()
+				continue
+			}
+
 			data, err := json.Marshal(event.Message)
 			if err != nil {
 				log.Println(err)
