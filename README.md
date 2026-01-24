@@ -18,6 +18,7 @@
   - [Environment variables](#environment-variables)
   - [Authentication and Logging](#authentication-and-logging)
   - [Network Test on Start](#network-test-on-start)
+- [Chat](#chat)
 - [Design](#design)
 
 ## What is Broadcast Box
@@ -76,6 +77,15 @@ or servers required anymore to get sub-second co-streams.
 Broadcast Box acts as a [SFU][applied-webrtc-article]. This means that
 every client connects to Broadcast Box. No direct connection is established between broadcasters/viewers.
 If you want a direct connection between OBS and your browser see [OBS2Browser][obs-2-browser-repo].
+
+### Real-time Chat
+
+Broadcast Box includes a built-in real-time chat system. It uses Server-Sent Events (SSE) for efficient message delivery and supports features like message history and session resumption.
+
+- **Low Latency**: Messages are delivered instantly via SSE.
+- **History**: New users can see the last 10,000 messages when they join.
+- **Resilient**: Supports `Last-Event-ID` for resuming chat after a disconnect without losing messages.
+- **Simple API**: Easy to integrate with any frontend using standard HTTP and SSE.
 
 [applied-webrtc-article]: https://webrtcforthecurious.com/docs/08-applied-webrtc/#selective-forwarding-unit
 [obs-2-browser-repo]: https://github.com/Sean-Der/OBS2Browser
@@ -283,13 +293,33 @@ Please see the README and join Discord for help
 
 If you wish to disable the test set the environment variable `NETWORK_TEST_ON_START` to false.
 
+## Chat
+
+Broadcast Box provides a simple API for real-time chat.
+
+### 1. Connect
+`POST /api/chat/connect`
+Request: `{ "streamKey": "myStream" }`
+Response: `{ "chatSessionId": "uuid" }`
+
+### 2. Subscribe (SSE)
+`GET /api/chat/sse/{chatSessionId}`
+Receive live messages and history via Server-Sent Events. Supports `Last-Event-ID` header for resumption.
+
+### 3. Send
+`POST /api/chat/send/{chatSessionId}`
+Request: `{ "text": "Hello world!", "displayName": "User123" }`
+
 ## Design
 
 The backend exposes three endpoints (the status page is optional, if hosting locally).
 
 - `/api/whip` - Start a WHIP Session. WHIP broadcasts video via WebRTC.
 - `/api/whep` - Start a WHEP Session. WHEP is video playback via WebRTC.
-- `/api/status` - Status of the all active WHIP streams
+- `/api/status` - Status of the all active WHIP streams.
+- `/api/chat/connect` - Initialize a chat session.
+- `/api/chat/sse/` - Subscribe to chat messages via SSE.
+- `/api/chat/send/` - Send a chat message.
 
 [license-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [license-url]: https://opensource.org/licenses/MIT
