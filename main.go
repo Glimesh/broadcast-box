@@ -212,6 +212,10 @@ func chatConnectHandler(res http.ResponseWriter, req *http.Request) {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if r.StreamKey == "" || !streamKeyRegex.MatchString(r.StreamKey) {
+		logHTTPError(res, errInvalidStreamKey.Error(), http.StatusBadRequest)
+		return
+	}
 
 	sessionID := chatManager.Connect(r.StreamKey)
 
@@ -227,13 +231,18 @@ func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Cache-Control", "no-cache")
 	res.Header().Set("Connection", "keep-alive")
 
-	vals := strings.Split(req.URL.RequestURI(), "/")
+	vals := strings.Split(strings.Trim(req.URL.Path, "/"), "/")
 	sessionID := vals[len(vals)-1]
 
 	lastEventIDStr := req.Header.Get("Last-Event-ID")
 	var lastEventID uint64
 	if lastEventIDStr != "" {
-		lastEventID, _ = strconv.ParseUint(lastEventIDStr, 10, 64)
+		var err error
+		lastEventID, err = strconv.ParseUint(lastEventIDStr, 10, 64)
+		if err != nil {
+			logHTTPError(res, "Invalid Last-Event-ID", http.StatusBadRequest)
+			return
+		}
 	}
 
 	ch, cleanup, history, err := chatManager.Subscribe(sessionID, lastEventID)
@@ -249,15 +258,19 @@ func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Send history
-	if len(history) > 0 {
-		data, _ := json.Marshal(history)
-		if _, err := fmt.Fprintf(res, "event: history\ndata: %s\n\n", string(data)); err != nil {
+	// Send history as normal message events for SSE resume support.
+	for _, event := range history {
+		data, err := json.Marshal(event.Message)
+		if err != nil {
 			log.Println(err)
 			return
 		}
-		flusher.Flush()
+		if _, err := fmt.Fprintf(res, "id: %d\nevent: message\ndata: %s\n\n", event.ID, string(data)); err != nil {
+			log.Println(err)
+			return
+		}
 	}
+	flusher.Flush()
 
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
@@ -265,13 +278,20 @@ func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
 	for {
 		select {
 		case event := <-ch:
-			data, _ := json.Marshal(event.Message)
+			data, err := json.Marshal(event.Message)
+			if err != nil {
+				log.Println(err)
+				return
+			}
 			if _, err := fmt.Fprintf(res, "id: %d\nevent: message\ndata: %s\n\n", event.ID, string(data)); err != nil {
 				log.Println(err)
 				return
 			}
 			flusher.Flush()
 		case <-ticker.C:
+			if ok := chatManager.TouchSession(sessionID); !ok {
+				return
+			}
 			if _, err := fmt.Fprintf(res, ": ping\n\n"); err != nil {
 				log.Println(err)
 				return
@@ -299,7 +319,7 @@ func chatSendHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	vals := strings.Split(req.URL.RequestURI(), "/")
+	vals := strings.Split(strings.Trim(req.URL.Path, "/"), "/")
 	sessionID := vals[len(vals)-1]
 
 	if err := chatManager.Send(sessionID, r.Text, r.DisplayName); err != nil {

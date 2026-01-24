@@ -1,9 +1,10 @@
 package chat
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestChat(t *testing.T) {
