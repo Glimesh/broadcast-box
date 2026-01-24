@@ -31,11 +31,17 @@ const QualitySelectorComponent = (props: QualityComponentProps) => {
 		layerList[0] = <option key="disabled" value="disabled">No Layer Selected</option>
 	}
 
+	const hasLayers = props.layers.length > 1;
+
 	return (
 		<div className="h-full flex">
 			<ChartBarIcon
-				className={props.hasPacketLoss ? "text-orange-600" :""}
-				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)}/>
+				className={`
+					${ props.hasPacketLoss ? "text-orange-600" : "" }
+					${ hasLayers ? "cursor-pointer" : "opacity-25" }
+				`}
+				onClick={() => setIsOpen((prev) => hasLayers && !prev)}
+			/>
 
 			{isOpen && (
 				
