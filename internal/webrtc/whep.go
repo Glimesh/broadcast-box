@@ -67,7 +67,10 @@ func WHEPChangeLayer(whepSessionId, layer string) error {
 		if _, ok := streamMap[streamKey].whepSessions[whepSessionId]; ok {
 			streamMap[streamKey].whepSessions[whepSessionId].currentLayer.Store(layer)
 			streamMap[streamKey].whepSessions[whepSessionId].waitingForKeyframe.Store(true)
-			streamMap[streamKey].pliChan <- true
+			select {
+			case streamMap[streamKey].pliChan <- true:
+			default:
+			}
 		}
 	}
 
