@@ -207,6 +207,11 @@ func statusHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func chatConnectHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		logHTTPError(res, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var r chatConnectRequestJSON
 	if err := json.NewDecoder(req.Body).Decode(&r); err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
@@ -227,6 +232,11 @@ func chatConnectHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		logHTTPError(res, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	res.Header().Set("Content-Type", "text/event-stream")
 	res.Header().Set("Cache-Control", "no-cache")
 	res.Header().Set("Connection", "keep-alive")
@@ -277,7 +287,10 @@ func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
 
 	for {
 		select {
-		case event := <-ch:
+		case event, ok := <-ch:
+			if !ok {
+				return
+			}
 			data, err := json.Marshal(event.Message)
 			if err != nil {
 				log.Println(err)
@@ -304,6 +317,11 @@ func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func chatSendHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		logHTTPError(res, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	var r chatSendRequestJSON
 	if err := json.NewDecoder(req.Body).Decode(&r); err != nil {
 		logHTTPError(res, err.Error(), http.StatusBadRequest)
