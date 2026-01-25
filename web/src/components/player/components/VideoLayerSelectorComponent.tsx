@@ -20,7 +20,7 @@ const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 			headers: {
 				'Content-Type': 'application/json'
 			}
-		}).catch((err) => console.error("onLayerChange", err))
+		}).catch((err) => console.error("VideoLayerSelectorComponent.onLayerChange", err))
 		setIsOpen(false)
 		setCurrentLayer(event.target.value)
 	}
@@ -45,7 +45,6 @@ const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 				onClick={() => setIsOpen((prev) => props.layers.length <= 1 ? false : !prev)} />
 
 			{isOpen && (
-
 				<select
 					onChange={onLayerChange}
 					value={currentLayer}

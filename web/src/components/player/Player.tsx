@@ -33,6 +33,8 @@ const Player = (props: PlayerProps) => {
 	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 
+	const [resetCounter, setResetCounter] = useState(0)
+
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
@@ -45,7 +47,7 @@ const Player = (props: PlayerProps) => {
 		streamKey: streamKey,
 		videoRef: videoRef,
 		layerEndpointRef: layerEndpointRef,
-		onStateChange: (state) => console.log("PeerConnectionState.Change", state),
+		onStateChange: (state) => console.log("PeerConnection.onStateChange", state),
 		onStreamRestart: () => console.log("PeerConnection.onStreamRestart: Missing setup"),
 		onAudioLayerChange: (layers) => setAudioLayers(layers),
 		onVideoLayerChange: (layers) => setVideoLayers(layers),
@@ -54,12 +56,9 @@ const Player = (props: PlayerProps) => {
 			if (!status.isOnline) {
 				setStreamState("Offline")
 			}
-			setCurrentStreamStatus(status)
+			setCurrentStreamStatus(() => status)
 		},
-		onError: (error) => {
-			console.log("PeerConnection.Error", error)
-			setStreamState("Error")
-		},
+		onError: () => setStreamState("Error"),
 	}
 
 	const resetTimer = (isVisible: boolean) => {
@@ -103,11 +102,22 @@ const Player = (props: PlayerProps) => {
 		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
 		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
 
-		peerConnectionConfig.onStreamRestart = () => PeerConnectionSetup(peerConnectionConfig)
+		peerConnectionConfig.onStreamRestart = () => {
+			// setCurrentLayersStatus(undefined)
+			setResetCounter((prev) => prev + 1)
+
+			PeerConnectionSetup(peerConnectionConfig)
+				.then((peerConnection) => {
+					window.addEventListener("beforeunload", () => peerConnection.close())
+				})
+				.catch((err) => console.log("PeerConnectionConfig.Error", err))
+		}
+
 		PeerConnectionSetup(peerConnectionConfig)
 			.then((peerConnection) => {
 				window.addEventListener("beforeunload", () => peerConnection.close())
 			})
+			.catch((err) => console.log("PeerConnectionConfig.Error", err))
 
 		return () => {
 			player?.removeEventListener('mouseup', () => handleOverlayTimer)
@@ -117,11 +127,12 @@ const Player = (props: PlayerProps) => {
 
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	return (
 		<div
+			key={`${streamVideoPlayerId}`}
 			id={streamVideoPlayerId}
 			className="inline-block w-full relative z-0 aspect-video rounded-md mb-6"
 			style={cinemaMode ? {
@@ -206,14 +217,21 @@ const Player = (props: PlayerProps) => {
 				</div>
 
 				<video
+					key={`${streamVideoPlayerId}_video`}
 					ref={videoRef}
 					autoPlay
 					muted
 					playsInline
 					className="rounded-md w-full h-full relative bg-gray-950"
-					onPlaying={() => setStreamState("Playing")}
-					onLoadStart={() => setStreamState("Loading")}
-					onEnded={() => setStreamState("Offline")}
+					onPlaying={() => setStreamState(() => "Playing")}
+					onLoadStart={() => setStreamState(() => "Loading")}
+					onLoadedData={(event) => {
+						console.log("VideoPlayer.onLoadedMetadata", event)
+						videoRef.current?.play()
+					}}
+					onError={(error) => console.log("VideoPlayer.Error", error)}
+					onErrorCapture={(error) => console.log("VideoPlayer.ErrorCapture", error)}
+					onEnded={() => setStreamState(() => "Offline")}
 				/>
 
 			</div>
@@ -229,3 +247,4 @@ const Player = (props: PlayerProps) => {
 }
 
 export default Player
+
