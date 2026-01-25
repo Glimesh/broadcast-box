@@ -16,15 +16,13 @@ func (whepSession *WhepSession) SendAudioPacket(packet codecs.TrackPacket) {
 
 	whepSession.AudioLock.Lock()
 	whepSession.AudioPacketsWritten += 1
-
-	// TODO: Currently not being used
-	// whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + packet.TimeDiff)
+	whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + packet.TimeDiff)
 	whepSession.AudioLock.Unlock()
 
 	if err := whepSession.AudioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
 			log.Println("WhepSession.SendAudioPacket.ConnectionDropped")
-			whepSession.ActiveContextCancel()
+			whepSession.Close()
 		} else {
 			log.Println("WhepSession.SendAudioPacket.Error", err)
 		}
@@ -34,7 +32,6 @@ func (whepSession *WhepSession) SendAudioPacket(packet codecs.TrackPacket) {
 // Sends provided video packet to the Whep session
 func (whepSession *WhepSession) SendVideoPacket(packet codecs.TrackPacket) {
 	if whepSession.IsSessionClosed.Load() {
-		log.Println("WhepSession.SendVideoPacket.SessionClosed")
 		return
 	}
 
@@ -47,6 +44,7 @@ func (whepSession *WhepSession) SendVideoPacket(packet codecs.TrackPacket) {
 	}
 
 	whepSession.VideoLock.Lock()
+	whepSession.VideoBytesWritten += len(packet.Packet.Payload)
 	whepSession.VideoPacketsWritten += 1
 	whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)
 	whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + packet.TimeDiff)
@@ -56,9 +54,11 @@ func (whepSession *WhepSession) SendVideoPacket(packet codecs.TrackPacket) {
 	packet.Packet.Timestamp = whepSession.VideoTimestamp
 
 	if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
+		whepSession.VideoPacketsDropped.Add(1)
+
 		if errors.Is(err, io.ErrClosedPipe) {
 			log.Println("WhepSession.SendVideoPacket.ConnectionDropped")
-			whepSession.ActiveContextCancel()
+			whepSession.Close()
 		} else {
 			log.Println("WhepSession.SendVideoPacket.Error", err)
 		}

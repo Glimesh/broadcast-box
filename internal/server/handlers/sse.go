@@ -11,7 +11,7 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 )
 
 func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
@@ -90,7 +90,7 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 func getWhipSessionChannel(sessionId string) chan any {
 	var channel chan any
-	whipSession, ok := session.SessionManager.GetWhipStreamBySessionId(sessionId)
+	whipSession, ok := manager.SessionsManager.GetHostSessionById(sessionId)
 
 	if ok {
 		channel = whipSession.EventsChannel
@@ -101,7 +101,7 @@ func getWhipSessionChannel(sessionId string) chan any {
 
 func getWhepSessionChannel(sessionId string) chan any {
 	var channel chan any
-	whepSession, ok := session.SessionManager.GetWhepStreamBySessionId(sessionId)
+	whepSession, ok := manager.SessionsManager.GetWhepSessionById(sessionId)
 
 	if ok {
 		channel = whepSession.SseEventsChannel

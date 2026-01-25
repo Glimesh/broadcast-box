@@ -8,8 +8,7 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
-
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 )
 
 type updateProfilePayload struct {
@@ -73,7 +72,7 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		profile, _ := authorization.GetPersonalProfile(token)
 
 		// Update current session
-		session.SessionManager.UpdateProfile(profile)
+		manager.SessionsManager.UpdateProfile(profile)
 	}
 
 	responseWriter.Header().Add("Content-Type", "application/json")

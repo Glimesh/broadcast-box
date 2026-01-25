@@ -17,6 +17,7 @@ type (
 
 		WhipEventsChannel   chan any
 		SseEventsChannel    chan any
+		ConnectionChannel   chan any
 		SessionClose        sync.Once
 		ActiveContext       context.Context
 		ActiveContextCancel func()
@@ -27,7 +28,10 @@ type (
 		VideoLock           sync.RWMutex
 		VideoTrack          *codecs.TrackMultiCodec
 		VideoTimestamp      uint32
+		VideoBitrate        atomic.Uint64
+		VideoBytesWritten   int
 		VideoPacketsWritten uint64
+		VideoPacketsDropped atomic.Uint64
 		VideoSequenceNumber uint16
 		VideoLayerCurrent   atomic.Value
 		VideoChannel        chan codecs.TrackPacket
@@ -42,17 +46,3 @@ type (
 		AudioChannel        chan codecs.TrackPacket
 	}
 )
-
-type WhepSessionState struct {
-	Id string `json:"id"`
-
-	AudioLayerCurrent   string `json:"audioLayerCurrent"`
-	AudioTimestamp      uint32 `json:"audioTimestamp"`
-	AudioPacketsWritten uint64 `json:"audioPacketsWritten"`
-	AudioSequenceNumber uint64 `json:"audioSequenceNumber"`
-
-	VideoLayerCurrent   string `json:"videoLayerCurrent"`
-	VideoTimestamp      uint32 `json:"videoTimestamp"`
-	VideoPacketsWritten uint64 `json:"videoPacketsWritten"`
-	VideoSequenceNumber uint64 `json:"videoSequenceNumber"`
-}

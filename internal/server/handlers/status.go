@@ -8,7 +8,7 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 )
 
 func statusHandler(responseWriter http.ResponseWriter, request *http.Request) {
@@ -26,7 +26,7 @@ func statusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	streamKey := helpers.GetStreamKey(request)
 
-	whipSession, ok := session.SessionManager.GetWhipStream(streamKey)
+	session, ok := manager.SessionsManager.GetSessionById(streamKey)
 
 	if !ok {
 		log.Println("Could not find active stream", streamKey)
@@ -38,7 +38,7 @@ func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	statusResult := whipSession.GetStreamStatus()
+	statusResult := session.GetStreamStatus()
 
 	if err := json.NewEncoder(responseWriter).Encode(statusResult); err != nil {
 		helpers.LogHttpError(
@@ -56,7 +56,7 @@ func sessionStatusesHandler(responseWriter http.ResponseWriter, request *http.Re
 		return
 	}
 
-	if status := os.Getenv(environment.DISABLE_STATUS); status != "" {
+	if isDisabled := os.Getenv(environment.DISABLE_STATUS); isDisabled != "" {
 		helpers.LogHttpError(
 			responseWriter,
 			"Status Service Unavailable",
@@ -65,7 +65,7 @@ func sessionStatusesHandler(responseWriter http.ResponseWriter, request *http.Re
 		return
 	}
 
-	if err := json.NewEncoder(responseWriter).Encode(session.SessionManager.GetSessionStates(false)); err != nil {
+	if err := json.NewEncoder(responseWriter).Encode(manager.SessionsManager.GetSessionStates(false)); err != nil {
 		helpers.LogHttpError(
 			responseWriter,
 			"Internal Server Error",

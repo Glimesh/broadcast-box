@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 )
 
 func AdminStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
@@ -20,7 +20,7 @@ func AdminStatusHandler(responseWriter http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	sessions := session.SessionManager.GetSessionStates(true)
+	sessions := manager.SessionsManager.GetSessionStates(true)
 
 	responseWriter.Header().Set("Content-Type", "application/json")
 

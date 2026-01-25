@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 )
 
 type (
@@ -27,7 +27,7 @@ func layerChangeHandler(responseWriter http.ResponseWriter, request *http.Reques
 
 	values := strings.Split(request.URL.RequestURI(), "/")
 	whepSessionId := values[len(values)-1]
-	whepSession, ok := session.SessionManager.GetWhepStream(whepSessionId)
+	whepSession, ok := manager.SessionsManager.GetWhepSessionById(whepSessionId)
 
 	log.Println("Found WHEP session", whepSession.SessionId)
 

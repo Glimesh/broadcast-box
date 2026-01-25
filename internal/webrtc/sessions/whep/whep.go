@@ -22,8 +22,8 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 
 	if audioOk != nil || videoOk != nil {
 		log.Println("WhepSession.CreateNewWhep.AudioVideoChannelSize: Audio/Video channel sizes must be a valid number")
-		audioChannelSize = 100
-		videoChannelSize = 100
+		audioChannelSize = 50
+		videoChannelSize = 50
 	}
 
 	activeContext, activeContextCancel := context.WithCancel(context.Background())
@@ -37,6 +37,7 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 		VideoChannel:        make(chan codecs.TrackPacket, videoChannelSize),
 		WhipEventsChannel:   make(chan any, 100),
 		SseEventsChannel:    make(chan any, 100),
+		ConnectionChannel:   make(chan any, 100),
 		PeerConnection:      peerConnection,
 		ActiveContext:       activeContext,
 		ActiveContextCancel: activeContextCancel,
@@ -50,12 +51,8 @@ func CreateNewWhep(whepSessionId string, audioTrack *codecs.TrackMultiCodec, aud
 	whepSession.IsSessionClosed.Store(false)
 
 	// Start WHEP go routines
-	go whepSession.handleEvents()
-
-	go func() {
-		<-whepSession.ActiveContext.Done()
-		whepSession.Close()
-	}()
+	go whepSession.handleCalculatedValues()
+	go whepSession.handleVideoChannel()
 
 	return whepSession
 }
@@ -68,13 +65,12 @@ func (whepSession *WhepSession) Close() {
 		whepSession.IsSessionClosed.Store(true)
 
 		// Close PeerConnection
+		log.Println("WhepSession.Close.PeerConnection.GracefulClose")
 		err := whepSession.PeerConnection.Close()
 		if err != nil {
 			log.Println("WhepSession.Close.PeerConnection.Error", err)
 		}
-
-		// Notify WHIP about closure
-		whepSession.ActiveContextCancel()
+		log.Println("WhepSession.Close.PeerConnection.GracefulClose.Completed")
 
 		// Empty tracks
 		whepSession.AudioLock.Lock()
@@ -86,18 +82,19 @@ func (whepSession *WhepSession) Close() {
 		whepSession.VideoLock.Unlock()
 		whepSession.AudioLock.Unlock()
 
+		whepSession.ActiveContextCancel()
 	})
 }
 
 // Get the current status of the WHEP session
-func (whepSession *WhepSession) GetWhepSessionStatus() (state WhepSessionState) {
+func (whepSession *WhepSession) GetWhepSessionStatus() (state WhepSessionStateDto) {
 	whepSession.AudioLock.RLock()
 	whepSession.VideoLock.RLock()
 
 	currentAudioLayer := whepSession.AudioLayerCurrent.Load().(string)
 	currentVideoLayer := whepSession.VideoLayerCurrent.Load().(string)
 
-	state = WhepSessionState{
+	state = WhepSessionStateDto{
 		Id: whepSession.SessionId,
 
 		AudioLayerCurrent:   currentAudioLayer,
@@ -107,7 +104,9 @@ func (whepSession *WhepSession) GetWhepSessionStatus() (state WhepSessionState) 
 
 		VideoLayerCurrent:   currentVideoLayer,
 		VideoTimestamp:      whepSession.VideoTimestamp,
+		VideoBitrate:        whepSession.VideoBitrate.Load(),
 		VideoPacketsWritten: whepSession.VideoPacketsWritten,
+		VideoPacketsDropped: whepSession.VideoPacketsDropped.Load(),
 		VideoSequenceNumber: uint64(whepSession.VideoSequenceNumber),
 	}
 

@@ -1,9 +1,10 @@
 package peerconnection
 
 import (
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
-	"github.com/pion/webrtc/v4"
 	"log"
+
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
+	"github.com/pion/webrtc/v4"
 )
 
 type CreateWhipPeerConnectionResult struct {
@@ -12,13 +13,13 @@ type CreateWhipPeerConnectionResult struct {
 }
 
 func CreateWhepPeerConnection() (*webrtc.PeerConnection, error) {
-	return session.ApiWhep.NewPeerConnection(GetPeerConnectionConfig())
+	return manager.ApiWhep.NewPeerConnection(GetPeerConnectionConfig())
 }
 
 func CreateWhipPeerConnection(offer string) (*webrtc.PeerConnection, error) {
 	log.Println("CreateWhipPeerConnection.CreateWhipPeerConnection")
 
-	peerConnection, err := session.ApiWhip.NewPeerConnection(GetPeerConnectionConfig())
+	peerConnection, err := manager.ApiWhip.NewPeerConnection(GetPeerConnectionConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -49,33 +50,4 @@ func CreateWhipPeerConnection(offer string) (*webrtc.PeerConnection, error) {
 	log.Println("PeerConnection.CreateWhipPeerConnection.GatheringCompleteResult")
 
 	return peerConnection, nil
-}
-
-func disconnected(isWhip bool, streamKey string, sessionId string) {
-	whipSession, ok := session.SessionManager.GetWhipStream(streamKey)
-
-	if isWhip {
-		log.Println("WhipSession.Disconnected:", streamKey, "found was", ok)
-	} else {
-		log.Println("WhepSession.Disconnected:", streamKey, "found was", ok)
-	}
-
-	if !ok {
-		return
-	}
-
-	// Remove active tracks if it is a WHIP session
-	if isWhip {
-		log.Println("WhipSession.Disconnected: Removing tracks", sessionId)
-		whipSession.RemoveTracks()
-
-		// Remove Whip session from manager if its empty
-		log.Println("WhipSession.RemoveWhipSession: No Whep session, closing down")
-		whipSession.ActiveContextCancel()
-	}
-
-	// Do not conclude stream if whep sessions are still listening, or the host is still active
-	if whipSession.HasWhepSessions() {
-		return
-	}
 }

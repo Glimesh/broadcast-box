@@ -6,14 +6,12 @@ import (
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/peerconnection"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
-
 	"github.com/google/uuid"
 	"github.com/pion/webrtc/v4"
 )
 
-// TODO: Move peer connection inside of Whep struct, like it is done in Whip session
 func WHEP(offer string, streamKey string) (string, string, error) {
 	utils.DebugOutputOffer(offer)
 
@@ -21,7 +19,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		StreamKey: streamKey,
 	}
 
-	whipSession, err := session.SessionManager.GetOrAddStream(profile, false)
+	session, err := manager.SessionsManager.GetOrAddSession(profile, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -45,8 +43,6 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		return "", "", err
 	}
 
-	peerconnection.RegisterWhepHandlers(whipSession, peerConnection, whepSessionId)
-
 	if err := peerConnection.SetRemoteDescription(webrtc.SessionDescription{
 		SDP:  offer,
 		Type: webrtc.SDPTypeOffer,
@@ -66,7 +62,11 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	<-gatherComplete
 	log.Println("WhepSession.GatheringCompletePromise: Completed Gathering for", streamKey)
 
-	session.SessionManager.AddWhepSession(whepSessionId, whipSession, peerConnection, audioTrack, videoTrack, videoRtcpSender)
+	if err := session.AddWhep(whepSessionId, peerConnection, audioTrack, videoTrack, videoRtcpSender); err != nil {
+		return "", "", err
+	}
 
-	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)), whepSessionId, nil
+	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)),
+		whepSessionId,
+		nil
 }

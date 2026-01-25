@@ -3,16 +3,15 @@ package webrtc
 import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/interceptors"
-	"github.com/glimesh/broadcast-box/internal/webrtc/session"
-
+	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 	"github.com/pion/ice/v4"
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
 )
 
 func Setup() {
-	session.SessionManager = &session.WhipSessionManager{}
-	session.SessionManager.Setup()
+	manager.SessionsManager = &manager.SessionManager{}
+	manager.SessionsManager.Setup()
 
 	// Initialize media engine
 	mediaEngine := &webrtc.MediaEngine{}
@@ -27,7 +26,7 @@ func Setup() {
 }
 
 func initializeApiWhip(mediaEngine *webrtc.MediaEngine, udpMuxCache map[int]*ice.MultiUDPMuxDefault, tcpMuxCache map[string]ice.TCPMux, registry *interceptor.Registry) {
-	session.ApiWhip = webrtc.NewAPI(
+	manager.ApiWhip = webrtc.NewAPI(
 		webrtc.WithMediaEngine(mediaEngine),
 		webrtc.WithInterceptorRegistry(registry),
 		webrtc.WithSettingEngine(GetSettingEngine(true, tcpMuxCache, udpMuxCache)),
@@ -35,7 +34,7 @@ func initializeApiWhip(mediaEngine *webrtc.MediaEngine, udpMuxCache map[int]*ice
 }
 
 func initializeApiWhep(mediaEngine *webrtc.MediaEngine, udpMuxCache map[int]*ice.MultiUDPMuxDefault, tcpMuxCache map[string]ice.TCPMux, registry *interceptor.Registry) {
-	session.ApiWhep = webrtc.NewAPI(
+	manager.ApiWhep = webrtc.NewAPI(
 		webrtc.WithMediaEngine(mediaEngine),
 		webrtc.WithInterceptorRegistry(registry),
 		webrtc.WithSettingEngine(GetSettingEngine(false, tcpMuxCache, udpMuxCache)),
