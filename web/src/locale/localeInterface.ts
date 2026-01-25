@@ -33,6 +33,8 @@ export interface localeInterface {
     video: string,
     video_tracks: string,
     video_track_not_available: string,
+    video_bitrate: string,
+    video_bitrate_total_out: string,
 
     audio: string,
     audio_tracks: string,

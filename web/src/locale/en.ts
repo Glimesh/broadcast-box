@@ -33,8 +33,10 @@ const locale_en: localeInterface = {
     video: "Video",
     video_tracks: "Video tracks",
     video_track_not_available: "No video tracks",
+    video_bitrate: "Bitrate",
+    video_bitrate_total_out: "Bitrate outgoing",
 
-    audio: "Video",
+    audio: "Audio",
     audio_tracks: "Audio tracks",
     audio_track_not_available: "No audio tracks",
 

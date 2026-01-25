@@ -33,6 +33,8 @@ const locale_da: localeInterface = {
     video: "Video",
     video_tracks: "Videospor",
     video_track_not_available: "Ingen videospor",
+    video_bitrate: "Bitrate",
+    video_bitrate_total_out: "Bitrate ud",
 
     audio: "Lyd",
     audio_tracks: "Lydspor",
