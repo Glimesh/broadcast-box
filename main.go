@@ -13,9 +13,11 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/webhook"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
@@ -44,6 +46,21 @@ type (
 		MediaId    string `json:"mediaId"`
 		EncodingId string `json:"encodingId"`
 	}
+
+	chatConnectRequestJSON struct {
+		StreamKey string `json:"streamKey"`
+	}
+	chatConnectResponseJSON struct {
+		ChatSessionId string `json:"chatSessionId"`
+	}
+	chatSendRequestJSON struct {
+		Text        string `json:"text"`
+		DisplayName string `json:"displayName"`
+	}
+)
+
+var (
+	chatManager *chat.Manager
 )
 
 func getStreamKey(action string, r *http.Request) (streamKey string, err error) {
@@ -215,6 +232,158 @@ func statusHandler(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func chatConnectHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		logHTTPError(res, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var r chatConnectRequestJSON
+	if err := json.NewDecoder(req.Body).Decode(&r); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if r.StreamKey == "" || !streamKeyRegex.MatchString(r.StreamKey) {
+		logHTTPError(res, errInvalidStreamKey.Error(), http.StatusBadRequest)
+		return
+	}
+
+	sessionID := chatManager.Connect(r.StreamKey)
+
+	res.Header().Add("Content-Type", "application/json")
+	res.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(res).Encode(chatConnectResponseJSON{ChatSessionId: sessionID}); err != nil {
+		log.Println(err)
+	}
+}
+
+func chatSSEHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		logHTTPError(res, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	res.Header().Set("Content-Type", "text/event-stream")
+	res.Header().Set("Cache-Control", "no-cache")
+	res.Header().Set("Connection", "keep-alive")
+
+	vals := strings.Split(strings.Trim(req.URL.Path, "/"), "/")
+	sessionID := vals[len(vals)-1]
+
+	lastEventIDStr := req.Header.Get("Last-Event-ID")
+	var lastEventID uint64
+	if lastEventIDStr != "" {
+		var err error
+		lastEventID, err = strconv.ParseUint(lastEventIDStr, 10, 64)
+		if err != nil {
+			logHTTPError(res, "Invalid Last-Event-ID", http.StatusBadRequest)
+			return
+		}
+	}
+
+	ch, cleanup, history, err := chatManager.Subscribe(sessionID, lastEventID)
+	if err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer cleanup()
+
+	flusher, ok := res.(http.Flusher)
+	if !ok {
+		logHTTPError(res, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	// Send history as normal message events for SSE resume support.
+	for _, event := range history {
+		data, err := json.Marshal(event.Message)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		if _, err := fmt.Fprintf(res, "id: %d\nevent: message\ndata: %s\n\n", event.ID, string(data)); err != nil {
+			log.Println(err)
+			return
+		}
+	}
+	flusher.Flush()
+
+	ticker := time.NewTicker(20 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case event, ok := <-ch:
+			if !ok {
+				return
+			}
+
+			if event.Type == chat.EventTypeConnected {
+				if _, err := fmt.Fprintf(res, "event: connected\ndata: {}\n\n"); err != nil {
+					log.Println(err)
+					return
+				}
+				flusher.Flush()
+				continue
+			}
+
+			data, err := json.Marshal(event.Message)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			if _, err := fmt.Fprintf(res, "id: %d\nevent: message\ndata: %s\n\n", event.ID, string(data)); err != nil {
+				log.Println(err)
+				return
+			}
+			flusher.Flush()
+		case <-ticker.C:
+			if ok := chatManager.TouchSession(sessionID); !ok {
+				return
+			}
+			if _, err := fmt.Fprintf(res, ": ping\n\n"); err != nil {
+				log.Println(err)
+				return
+			}
+			flusher.Flush()
+		case <-req.Context().Done():
+			return
+		}
+	}
+}
+
+func chatSendHandler(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		logHTTPError(res, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var r chatSendRequestJSON
+	if err := json.NewDecoder(req.Body).Decode(&r); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(r.Text) < 1 || len(r.Text) > 2000 {
+		logHTTPError(res, "Invalid message length", http.StatusBadRequest)
+		return
+	}
+	if len(r.DisplayName) < 1 || len(r.DisplayName) > 80 {
+		logHTTPError(res, "Invalid display name length", http.StatusBadRequest)
+		return
+	}
+
+	vals := strings.Split(strings.Trim(req.URL.Path, "/"), "/")
+	sessionID := vals[len(vals)-1]
+
+	if err := chatManager.Send(sessionID, r.Text, r.DisplayName); err != nil {
+		logHTTPError(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	res.WriteHeader(http.StatusAccepted)
+}
+
 func indexHTMLWhenNotFound(fs http.FileSystem) http.Handler {
 	fileServer := http.FileServer(fs)
 
@@ -279,6 +448,7 @@ func main() {
 	}
 
 	webrtc.Configure()
+	chatManager = chat.NewManager()
 
 	if os.Getenv("NETWORK_TEST_ON_START") == "true" {
 		fmt.Println(networkTestIntroMessage) //nolint
@@ -323,6 +493,9 @@ func main() {
 	mux.HandleFunc("/api/sse/", corsHandler(whepServerSentEventsHandler))
 	mux.HandleFunc("/api/layer/", corsHandler(whepLayerHandler))
 	mux.HandleFunc("/api/status", corsHandler(statusHandler))
+	mux.HandleFunc("/api/chat/connect", corsHandler(chatConnectHandler))
+	mux.HandleFunc("/api/chat/sse/", corsHandler(chatSSEHandler))
+	mux.HandleFunc("/api/chat/send/", corsHandler(chatSendHandler))
 
 	server := &http.Server{
 		Handler: mux,
