@@ -207,7 +207,8 @@ The frontend can be configured by passing these URL Parameters.
 
 The backend can be configured with the following environment variables.
 
-- `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging
+- `WEBHOOK_URL` - URL for Webhook Backend. Provides authentication and logging. Mutually exclusive with `STREAM_KEYS_FILE`.
+- `STREAM_KEYS_FILE` - File for simple listing of authorized stream keys. Provides authentication. Mutually exclusive with `WEBHOOK_URL`.
 - `DISABLE_STATUS` - Disable the status API
 - `DISABLE_FRONTEND` - Disable the serving of frontend. Only REST APIs + WebRTC is enabled.
 - `HTTP_ADDRESS` - HTTP Server Address
@@ -239,13 +240,11 @@ The backend can be configured with the following environment variables.
 
 ## Authentication and Logging
 
-To prevent random users from streaming to your server, you can set the `WEBHOOK_URL` and validate/process requests in your code. This enables you to separate the authorization between broadcasting (whip) and watching (whep). So you can safely share a watch link without exposing the key used for broadcasting.
+To prevent random users from streaming to your server, you can set either `STREAM_KEYS_FILE` or `WEBHOOK_URL`.
 
-If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given by the external server, otherwise the streaming request is dropped.
+The `STREAM_KEYS_FILE` must be an accessible file with one entry per line, of the form `$bearerToken:$streamKey`. The `$bearerToken` is what you use to broadcast, and the `$streamKey` is what viewers use to watch. The default unauthenticated behavior is equivalent to these two variables being equal: the secret you use to broadcast is the same as the ID you use to view. By changing the secret bearer token to something private, you can prevent others from broadcasting to your server and still allow anyone to view the stream using the public stream key.
 
-See [here](examples/webhook-server.go). For an example Webhook Server that only allows the stream `broadcastBoxRulez`
-
-For a more advanced example of a webhook server implementation making use of separating the key for streaming from the key for watching, see the [broadcastbox-webhookserver](https://github.com/chrisingenhaag/broadcastbox-webhookserver) repository.
+The `WEBHOOK_URL` allows you to validate/process requests in your code. This enables you to separate the authorization between broadcasting (whip) and watching (whep). So you can safely share a watch link without exposing the key used for broadcasting. If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given by the external server, otherwise the streaming request is dropped. See [here](examples/webhook-server/main.go) for an example Webhook Server that only allows the stream `broadcastBoxRulez`. For a more advanced example of a webhook server implementation making use of separating the key for streaming from the key for watching, see the [broadcastbox-webhookserver](https://github.com/chrisingenhaag/broadcastbox-webhookserver) repository.
 
 
 ## Network Test on Start
