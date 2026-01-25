@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -32,9 +33,11 @@ const (
 )
 
 var (
-	errNoBuildDirectoryErr = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
-	errAuthorizationNotSet = errors.New("authorization was not set")
-	errInvalidStreamKey    = errors.New("invalid stream key format")
+	errNoBuildDirectoryErr     = errors.New("\033[0;31mBuild directory does not exist, run `npm install` and `npm run build` in the web directory.\033[0m")
+	errAuthorizationNotSet     = errors.New("authorization was not set")
+	errInvalidStreamKey        = errors.New("invalid stream key format")
+	errTooManyAuthMethods      = errors.New("too many authentication methods specified, pick only one of {WEBHOOK_URL, STREAM_KEYS_FILE}")
+	errUnauthorizedBearerToken = errors.New("bearer token was not authorized to stream")
 
 	streamKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-\.~]+$`)
 )
@@ -57,11 +60,55 @@ func getStreamKey(action string, r *http.Request) (streamKey string, err error) 
 		return "", errInvalidStreamKey
 	}
 
-	streamKey = strings.TrimPrefix(authorizationHeader, bearerPrefix)
-	if webhookUrl := os.Getenv("WEBHOOK_URL"); webhookUrl != "" {
-		streamKey, err = webhook.CallWebhook(webhookUrl, action, streamKey, r)
-		if err != nil {
-			return "", err
+	bearerToken := strings.TrimPrefix(authorizationHeader, bearerPrefix)
+
+	{
+		webhookUrl := os.Getenv("WEBHOOK_URL")
+		streamKeysFile := os.Getenv("STREAM_KEYS_FILE")
+		if webhookUrl != "" && streamKeysFile != "" {
+			return "", errTooManyAuthMethods
+		}
+
+		if webhookUrl != "" {
+			streamKey, err = webhook.CallWebhook(webhookUrl, action, bearerToken, r)
+			if err != nil {
+				return "", err
+			}
+		} else if streamKeysFile != "" {
+			switch action {
+			case "whip-connect": // Only authenticate broadcasters.
+				// Reopen and rescan on each request.
+				// It should be a small file, and this lets us "live-reload" stream keys.
+				file, err := os.Open(streamKeysFile)
+				if err != nil {
+					return "", err
+				}
+				defer file.Close()
+
+				scanner := bufio.NewScanner(file)
+				found := false
+				for scanner.Scan() {
+					parts := strings.Split(scanner.Text(), ":")
+					// The broadcaster provides a secret bearer token, and the corresponding public stream key is created.
+					possibleBearerToken := parts[0]
+					possiblePublicStreamKey := parts[1]
+					if possibleBearerToken == bearerToken {
+						streamKey = possiblePublicStreamKey
+						found = true
+						break
+					}
+				}
+
+				if err := scanner.Err(); err != nil {
+					return "", err
+				}
+
+				if !found {
+					return "", errUnauthorizedBearerToken
+				}
+			case "whep-connect":
+				streamKey = bearerToken
+			}
 		}
 	}
 
