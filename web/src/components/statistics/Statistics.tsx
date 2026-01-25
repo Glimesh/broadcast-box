@@ -11,7 +11,15 @@ const Statistics = () => {
 
   const sortByStreamKey = (a: StatusResult, b: StatusResult) => a.streamKey.localeCompare(b.streamKey)
   const sortByUuid = (a: WhepSession, b: WhepSession) => a.id.localeCompare(b.id)
-  const isStreamActive = (stream: StatusResult) => stream.videoTracks.length !== 0 || stream.audioTracks.length !== 0
+  const bytesToMbps = (bytesPerSecond: number) => ((bytesPerSecond * 8) / 1_000_000).toFixed(2);
+  const runtime = (startTime: Date): number => Date.now() - startTime.getTime()
+  const formatRuntime = (ms: number): string => { 
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms / (1000 * 60)) % 60);
+    const seconds = Math.floor((ms / 1000) % 60);
+
+    return `${hours}h ${minutes}m ${seconds}s`;
+  };
 
   useEffect(() => {
     subscribe()
@@ -37,10 +45,12 @@ const Statistics = () => {
                 <div className="px-4 py-2 rounded-lg text-2xl">
                   Stream Key: {status.streamKey}
                 </div>
+                <div className="px-4 py-2 rounded-lg text-1xl">
+                  Start: {new Date(status.streamStart).toLocaleString()} - Runtime {formatRuntime(runtime(new Date(status.streamStart)))}
+                </div>
                 <Button
                   title={locale.statistics.button_watch_stream}
                   onClick={() => navigate(`/${status.streamKey}`)}
-                  isDisabled={isStreamActive(status)}
                 />
               </div>
 
@@ -55,6 +65,8 @@ const Statistics = () => {
                     {status.videoTracks.map((stream, index) => (
                       <div key={index} className="rounded-md p-3 min-h-25 border border-indigo-100" >
                         <div><strong>{locale.statistics.rid}:</strong> {stream.rid}</div>
+                        <div><strong>{locale.statistics.video_bitrate}:</strong> {bytesToMbps(stream.bitrate)} Mbps</div>
+                        <div><strong>{locale.statistics.video_bitrate_total_out}:</strong> {bytesToMbps(status.sessions.reduce((prev, curr) => prev + curr.videoBitrate, 0))} Mbps</div>
                         <div><strong>{locale.statistics.packets_received}:</strong> {stream.packetsReceived}</div>
                         <div><strong>{locale.statistics.packets_dropped}:</strong> {stream.packetsDropped}</div>
                         <div><strong>{locale.statistics.last_key_frame}:</strong> {new Date(stream.lastKeyframe).toISOString()}</div>
@@ -109,6 +121,7 @@ const Statistics = () => {
                             <div className="text-xl"><strong>{locale.statistics.video}</strong> </div>
                             <div><strong>{locale.statistics.layer}:</strong> {session.videoLayerCurrent}</div>
                             <div><strong>{locale.statistics.timestamp}:</strong> {session.videoTimestamp}</div>
+                            <div><strong>{locale.statistics.video_bitrate}:</strong> {bytesToMbps(session.videoBitrate)} Mbps</div>
                             <div><strong>{locale.statistics.packets_written}:</strong> {session.videoPacketsWritten}</div>
                             <div><strong>{locale.statistics.sequence_number}:</strong> {session.videoSequenceNumber}</div>
                           </div>
