@@ -204,6 +204,13 @@ func setupNAT(settingEngine *webrtc.SettingEngine) {
 	}
 
 	if len(natIps) != 0 {
-		settingEngine.SetNAT1To1IPs(natIps, natICECandidateType)
+		if err := settingEngine.SetICEAddressRewriteRules(webrtc.ICEAddressRewriteRule{
+			External:        natIps,
+			AsCandidateType: natICECandidateType,
+			Mode:            webrtc.ICEAddressRewriteAppend,
+		}); err != nil {
+			log.Fatal("Configuration error: INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP:", err)
+		}
+
 	}
 }
