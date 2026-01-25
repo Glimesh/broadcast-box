@@ -133,7 +133,7 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 	case codecs.VideoTrackCodecH264:
 		depacketizer = &pionCodecs.H264Packet{}
 	case codecs.VideoTrackCodecH265:
-		depacketizer = &pionCodecs.H265Packet{}
+		depacketizer = &pionCodecs.H265Depacketizer{}
 	case codecs.VideoTrackCodecVP8:
 		depacketizer = &pionCodecs.VP8Packet{}
 	case codecs.VideoTrackCodecVP9:
