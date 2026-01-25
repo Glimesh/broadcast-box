@@ -15,6 +15,7 @@ export interface WhepSession {
 	audioPacketsWritten: number;
 	audioSequenceNumber: number;
 
+	videoBitrate: number;
 	videoLayerCurrent: string;
 	videoTimestamp: string;
 	videoPacketsWritten: number;
@@ -27,6 +28,7 @@ export interface WhepSession {
 export interface StatusResult {
 	streamKey: string;
 	motd: string;
+	streamStart: Date;
 
 	videoTracks: VideoTrack[];
 	audioTracks: AudioTrack[];
@@ -36,6 +38,7 @@ export interface StatusResult {
 
 interface VideoTrack {
 	rid: string;
+	bitrate: number;
 	packetsReceived: number;
 	packetsDropped: number;
 	lastKeyframe: string;
