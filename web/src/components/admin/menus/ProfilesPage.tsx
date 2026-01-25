@@ -23,6 +23,10 @@ const ProfilesPage = () => {
   const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
 
+  useEffect(() => {
+    refreshProfiles();
+  }, []);
+
   const copyTokenToClipboard = (token: string) => navigator.clipboard.writeText(token)
 
   const refreshProfiles = () => {
@@ -107,9 +111,6 @@ const ProfilesPage = () => {
     });
   };
 
-  useEffect(() => {
-    refreshProfiles();
-  }, []);
 
   return (
     <div className="p-6 w-full h-full max-w-6xl mx-auto flex flex-col justify-between">
