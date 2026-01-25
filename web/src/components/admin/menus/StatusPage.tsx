@@ -49,7 +49,7 @@ const StatusPage = () => {
             </tr>
           </thead>
           <tbody>
-            {response?.map((status, index) => {
+            {response?.sort().map((status, index) => {
               const totalVideoPackets = status.videoTracks.reduce(
                 (sum, track) => sum + track.packetsReceived,
                 0
