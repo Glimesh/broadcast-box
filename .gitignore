@@ -28,3 +28,15 @@ yarn-error.log*
 # media files
 *.ogg
 *.h264
+
+# build files
+BroadcastBox.exe
+
+# log files
+/logs
+
+# profile files
+/profiles
+
+# Go vendors
+/vendor
