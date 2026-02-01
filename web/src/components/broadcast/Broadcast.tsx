@@ -64,19 +64,16 @@ function BrowserBroadcaster() {
 	}, [])
 
 	useEffect(() => {
-		if(!streamKey || !streamStatus){
+		if (!streamKey || !streamStatus) {
 			return;
 		}
 
 		const sessions = streamStatus.filter((session) => session.streamKey === streamKey);
-
-		if(sessions.length !== 0){
-			setCurrentViewersCount(() => 
-				sessions.length !== 0 
-					? sessions[0].whepSessions.length
-					: 0)
-		}
-	}, [streamStatus]);
+		setCurrentViewersCount(() =>
+			sessions.length !== 0
+				? sessions[0].whepSessions.length
+				: 0);
+	}, [streamStatus, streamKey]);
 
 	useEffect(() => {
 		if (useDisplayMedia === "None" || !peerConnectionRef.current) {
