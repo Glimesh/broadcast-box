@@ -16,19 +16,16 @@ const CurrentViewersComponent = (props: CurrentViewersComponentProps) => {
   }, []);
   
   useEffect(() => {
-    if(!streamKey || !streamStatus){
+    if (!streamKey || !streamStatus) {
       return;
     }
 
     const sessions = streamStatus.filter((session) => session.streamKey === streamKey);
-
-    if(sessions.length !== 0){
-      setCurrentViewersCount(() =>
-        sessions.length !== 0 
-          ? sessions[0].whepSessions.length
-          : 0)
-    }
-  }, [streamStatus]);
+    setCurrentViewersCount(() =>
+      sessions.length !== 0
+        ? sessions[0].whepSessions.length
+        : 0);
+  }, [streamStatus, streamKey]);
 
   return (
     <div className={"flex flex-row items-center gap-1"}>

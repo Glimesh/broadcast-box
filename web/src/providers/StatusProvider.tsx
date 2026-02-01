@@ -40,6 +40,7 @@ const fetchStatus = (
 ) =>
 	fetch(`${apiPath}/status`, {
 		method: 'GET',
+		cache: 'no-store',
 		headers: {
 			'Content-Type': 'application/json'
 		}
@@ -73,6 +74,7 @@ export function StatusProvider(props: StatusProviderProps) {
 	
 	const fetchStatusResultHandler = (result: StatusResult[]) => {
 		setStreamStatus(_ => result);
+		setIsStatusActive(() => true);
 	}
 	const fetchStatusErrorHandler = (error: FetchError) => {
 		console.error("StatusProviderError", error.status, error.message)
