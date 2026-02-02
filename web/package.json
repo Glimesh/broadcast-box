@@ -6,7 +6,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@web3-storage/parse-link-header": "^3.1.0",
-    "react": "^19.1.1",
+    "react": "^19.2.4",
     "react-dom": "^19.2.3"
   },
   "scripts": {
@@ -37,7 +37,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.17",
-    "@types/react": "^19.2.8",
+    "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "postcss": "^8.5.6",
