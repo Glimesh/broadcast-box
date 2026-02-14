@@ -22,11 +22,13 @@ func GetServeMuxHandler() http.HandlerFunc {
 
 	// Whip/Whep shared endpoints
 	serverMux.HandleFunc("/api/whep", corsHandler(WhepHandler))
+	serverMux.HandleFunc("/api/whep/", corsHandler(WhepHandler))
 	serverMux.HandleFunc("/api/sse/", corsHandler(sseHandler))
 	serverMux.HandleFunc("/api/ice-servers", corsHandler(clientICEHandler))
 
 	// Whip session endpoints
 	serverMux.HandleFunc("/api/whip", corsHandler(whipHandlers.WhipHandler))
+	serverMux.HandleFunc("/api/whip/", corsHandler(whipHandlers.WhipHandler))
 	serverMux.HandleFunc("/api/whip/profile", corsHandler(whipHandlers.ProfileHandler))
 
 	// Whep session endpoints

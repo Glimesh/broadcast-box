@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"errors"
 	"log"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -12,6 +13,10 @@ import (
 // Initialize WHIP session for incoming stream
 func WHIP(offer string, profile authorization.PublicProfile) (sdp string, sessionId string, err error) {
 	log.Println("WHIP.Offer.Requested", profile.StreamKey, profile.MOTD)
+
+	if err := utils.ValidateOffer(offer); err != nil {
+		return "", "", errors.New("invalid offer: " + err.Error())
+	}
 
 	session, err := manager.SessionsManager.GetOrAddSession(profile, true)
 	if err != nil {

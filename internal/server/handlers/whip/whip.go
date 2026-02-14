@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -15,7 +17,7 @@ import (
 )
 
 func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if request.Method == "DELETE" {
+	if request.Method != "POST" && request.Method != "PATCH" {
 		return
 	}
 
@@ -34,9 +36,9 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	}
 
 	offer, err := io.ReadAll(request.Body)
-	if err != nil {
-		log.Println(err.Error())
-		helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
+	if err != nil || string(offer) == "" {
+		log.Println("Error reading offer")
+		helpers.LogHttpError(responseWriter, "error reading offer", http.StatusBadRequest)
 		return
 	}
 
@@ -96,16 +98,41 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	if request.Method == "PATCH" {
+
+		if contentType := request.Header.Get("Content-Type"); contentType != "application/trickle-ice-sdpfrag" {
+			log.Println("API.WHIP.Patch Error: Invalid patch request")
+			helpers.LogHttpError(responseWriter, "Invalid patch request", http.StatusBadRequest)
+			return
+		}
+
+		path := strings.Replace(request.URL.Path, "/api/whip", "", 1)
+		segments := strings.Split(path, "/")
+		sessionId := strings.TrimSpace(segments[len(segments)-1])
+
+		if sessionId == "" {
+			log.Println("API.WHIP.Patch Error: Missing session id")
+			helpers.LogHttpError(responseWriter, "Missing session id", http.StatusBadRequest)
+			return
+		}
+
+		log.Println("API.WHIP.Patch: Patching session", sessionId)
+		if err := patchHandler(responseWriter, request, sessionId, string(offer)); err != nil {
+			log.Println("API.WHIP.Patch Error:", err)
+			helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
+		}
+
+		return
+	}
+
 	whipAnswer, sessionId, err := webrtc.WHIP(string(offer), userProfile)
 	if err != nil {
-		log.Println("WHIP Error", err.Error())
 		helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	responseWriter.Header().Add("Link", `<`+"/api/sse/"+sessionId+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="status"`)
-
-	responseWriter.Header().Add("Location", "/api/whip")
+	responseWriter.Header().Add("Location", "/api/whip/"+sessionId)
 	responseWriter.Header().Add("Content-Type", "application/sdp")
 	responseWriter.WriteHeader(http.StatusCreated)
 
@@ -115,4 +142,20 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		log.Println("API.WHIP Completed")
 	}
 
+}
+
+func patchHandler(res http.ResponseWriter, r *http.Request, sessionId, body string) error {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/trickle-ice-sdpfrag" {
+		helpers.LogHttpError(res, "invalid content type", http.StatusUnsupportedMediaType)
+		return err
+	}
+
+	if err = webrtc.HandleWhipPatch(sessionId, body); err != nil {
+		return err
+	}
+
+	res.WriteHeader(http.StatusNoContent)
+
+	return nil
 }

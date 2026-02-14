@@ -59,12 +59,13 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 		return "", "", err
 	}
 
-	<-gatherComplete
-	log.Println("WhepSession.GatheringCompletePromise: Completed Gathering for", streamKey)
-
+	// TODO: Should this be before gatherComplete to assure registered events are triggered at correct time?
 	if err := session.AddWhep(whepSessionId, peerConnection, audioTrack, videoTrack, videoRtcpSender); err != nil {
 		return "", "", err
 	}
+
+	<-gatherComplete
+	log.Println("WhepSession.GatheringCompletePromise: Completed Gathering for", streamKey)
 
 	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)),
 		whepSessionId,
