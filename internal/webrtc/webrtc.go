@@ -52,7 +52,10 @@ func HandleWhepPatch(sessionId, body string) error {
 	}
 
 	session.PeerConnectionLock.Lock()
-	patchPeerConnection(session.PeerConnection, body)
+	if err := patchPeerConnection(session.PeerConnection, body); err != nil {
+		session.PeerConnectionLock.Unlock()
+		return err
+	}
 	session.PeerConnectionLock.Unlock()
 
 	return nil
@@ -69,7 +72,6 @@ func HandleWhipPatch(sessionId, body string) error {
 	if err := patchPeerConnection(session.Host.PeerConnection, body); err != nil {
 		session.Host.PeerConnectionLock.Unlock()
 		return err
-
 	}
 	session.Host.PeerConnectionLock.Unlock()
 
