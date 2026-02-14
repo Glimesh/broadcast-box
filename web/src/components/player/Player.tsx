@@ -12,6 +12,12 @@ interface PlayerProps {
 	onCloseStream?: () => void;
 }
 
+interface FullscreenElement extends HTMLElement {
+	webkitRequestFullscreen?: () => void | Promise<void>;
+	msRequestFullscreen?: () => void | Promise<void>;
+	webkitEnterFullscreen?: () => void;
+}
+
 const Player = (props: PlayerProps) => {
 	const apiPath = import.meta.env.VITE_API_PATH;
 	const {streamKey, cinemaMode} = props;
@@ -31,6 +37,27 @@ const Player = (props: PlayerProps) => {
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
 	const streamVideoPlayerId = streamKey + "_videoPlayer";
+
+	const handleEnterFullscreen = () => {
+		const videoElement = videoRef.current as FullscreenElement | null;
+		if (!videoElement) {
+			return;
+		}
+
+		try {
+			if (videoElement.requestFullscreen) {
+				videoElement.requestFullscreen();
+			} else if (videoElement.webkitRequestFullscreen) {
+				videoElement.webkitRequestFullscreen();
+			} else if (videoElement.msRequestFullscreen) {
+				videoElement.msRequestFullscreen();
+			} else if (videoElement.webkitEnterFullscreen) {
+				videoElement.webkitEnterFullscreen();
+			}
+		} catch (err) {
+			console.error("VideoPlayer_RequestFullscreen", err)
+		}
+	};
 
 	const setHasSignalHandler = (_: Event) => {
 		setHasSignal(() => true);
@@ -62,8 +89,7 @@ const Player = (props: PlayerProps) => {
 	const handleVideoPlayerDoubleClick = () => {
 		clearTimeout(clickTimeoutRef.current);
 		lastClickTimeRef.current = 0;
-		videoRef.current?.requestFullscreen()
-			.catch(err => console.error("VideoPlayer_RequestFullscreen", err));
+		handleEnterFullscreen();
 	};
 	
 	useEffect(() => {
@@ -249,7 +275,7 @@ const Player = (props: PlayerProps) => {
 							{hasSignal && <CurrentViewersComponent streamKey={streamKey}/>}
 							<QualitySelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={hasPacketLoss}/>
 							<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()}/>
-							<ArrowsPointingOutIcon onClick={() => videoRef.current?.requestFullscreen()}/>
+							<ArrowsPointingOutIcon onClick={handleEnterFullscreen}/>
 
 						</div>
 					</div>)}
