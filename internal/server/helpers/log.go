@@ -6,6 +6,6 @@ import (
 )
 
 func LogHttpError(responseWriter http.ResponseWriter, error string, code int) {
-	log.Println(error)
+	log.Println("LogHttpError", error)
 	http.Error(responseWriter, error, code)
 }
