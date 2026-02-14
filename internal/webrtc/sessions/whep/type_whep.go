@@ -22,7 +22,8 @@ type (
 		ActiveContext       context.Context
 		ActiveContextCancel func()
 
-		PeerConnection *webrtc.PeerConnection
+		PeerConnectionLock sync.RWMutex
+		PeerConnection     *webrtc.PeerConnection
 
 		// Protects VideoTrack, VideoTimestamp, VideoPacketsWritten, VideoSequenceNumber
 		VideoLock           sync.RWMutex
