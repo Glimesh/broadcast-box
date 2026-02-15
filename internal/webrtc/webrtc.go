@@ -83,6 +83,17 @@ func HandleWhipPatch(sessionId, body string) error {
 	return nil
 }
 
+func HandleWhipDelete(sessionId string) error {
+	session, isFound := manager.SessionsManager.GetSessionByHostSessionId(sessionId)
+
+	if !isFound {
+		return errors.New("no session found")
+	}
+
+	session.Close()
+	return nil
+}
+
 func patchPeerConnection(peerConnection *webrtc.PeerConnection, body string) error {
 	oldUfrag := getSdpKeyValue(peerConnection.CurrentRemoteDescription().SDP, "ice-ufrag")
 	oldPwd := getSdpKeyValue(peerConnection.CurrentRemoteDescription().SDP, "ice-pwd")

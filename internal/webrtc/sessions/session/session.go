@@ -174,6 +174,11 @@ func (session *Session) close() {
 	session.ActiveContextCancel()
 }
 
+func (session *Session) Close() {
+	log.Println("Session.Close", session.StreamKey)
+	session.close()
+}
+
 // Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
 func (session *Session) isEmpty() bool {
 	if session.hasWhepSessions() {

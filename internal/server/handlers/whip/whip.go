@@ -17,7 +17,7 @@ import (
 )
 
 func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if request.Method != "POST" && request.Method != "PATCH" {
+	if request.Method != "POST" && request.Method != "PATCH" && request.Method != "DELETE" {
 		return
 	}
 
@@ -32,6 +32,24 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if token == "" {
 		log.Println("Authorization was invalid")
 		helpers.LogHttpError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
+		return
+	}
+
+	if request.Method == "DELETE" {
+		sessionId := getSessionIdFromWhipPath(request.URL.Path)
+
+		if sessionId == "" {
+			log.Println("API.WHIP.Delete Error: Missing session id")
+			helpers.LogHttpError(responseWriter, "Missing session id", http.StatusBadRequest)
+			return
+		}
+
+		log.Println("API.WHIP.Delete: Removing session", sessionId)
+		if err := deleteHandler(responseWriter, sessionId); err != nil {
+			log.Println("API.WHIP.Delete Error:", err)
+			helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
+		}
+
 		return
 	}
 
@@ -106,9 +124,7 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		path := strings.Replace(request.URL.Path, "/api/whip", "", 1)
-		segments := strings.Split(path, "/")
-		sessionId := strings.TrimSpace(segments[len(segments)-1])
+		sessionId := getSessionIdFromWhipPath(request.URL.Path)
 
 		if sessionId == "" {
 			log.Println("API.WHIP.Patch Error: Missing session id")
@@ -158,4 +174,20 @@ func patchHandler(res http.ResponseWriter, r *http.Request, sessionId, body stri
 	res.WriteHeader(http.StatusNoContent)
 
 	return nil
+}
+
+func deleteHandler(res http.ResponseWriter, sessionId string) error {
+	if err := webrtc.HandleWhipDelete(sessionId); err != nil {
+		return err
+	}
+
+	res.WriteHeader(http.StatusNoContent)
+
+	return nil
+}
+
+func getSessionIdFromWhipPath(path string) string {
+	path = strings.Replace(path, "/api/whip", "", 1)
+	segments := strings.Split(path, "/")
+	return strings.TrimSpace(segments[len(segments)-1])
 }

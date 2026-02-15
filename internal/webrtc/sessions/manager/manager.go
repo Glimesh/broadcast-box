@@ -212,3 +212,21 @@ func (manager *SessionManager) GetHostSessionById(sessionId string) (host *whip.
 
 	return nil, false
 }
+
+func (manager *SessionManager) GetSessionByHostSessionId(sessionId string) (session *session.Session, foundSession bool) {
+	manager.sessionsLock.RLock()
+	defer manager.sessionsLock.RUnlock()
+
+	for _, session := range manager.sessions {
+		host := session.Host.Load()
+		if host == nil {
+			continue
+		}
+
+		if sessionId == host.Id {
+			return session, true
+		}
+	}
+
+	return nil, false
+}
