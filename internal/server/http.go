@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	defaultHttpAddress         string = ":80"
+	defaultHttpAddress         string = ":8080"
 	defaultHttpRedirectAddress string = ":80"
 )
 
