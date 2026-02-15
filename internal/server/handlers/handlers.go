@@ -39,13 +39,13 @@ func GetServeMuxHandler() http.HandlerFunc {
 	serverMux.HandleFunc("/api/status", corsHandler(statusHandler))
 
 	// Admin endpoints
-	serverMux.HandleFunc("/api/admin/login", corsHandler(adminHandlers.AdminLoginHandler))
-	serverMux.HandleFunc("/api/admin/status", corsHandler(adminHandlers.AdminStatusHandler))
-	serverMux.HandleFunc("/api/admin/logging", corsHandler(adminHandlers.AdminLoggingHandler))
-	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminHandlers.AdminProfilesHandler))
-	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminHandlers.AdminProfilesResetTokenHandler))
-	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminHandlers.AdminProfileAddHandler))
-	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminHandlers.AdminProfileRemoveHandler))
+	serverMux.HandleFunc("/api/admin/login", corsHandler(adminHandlers.LoginHandler))
+	serverMux.HandleFunc("/api/admin/status", corsHandler(adminHandlers.StatusHandler))
+	serverMux.HandleFunc("/api/admin/logging", corsHandler(adminHandlers.LoggingHandler))
+	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminHandlers.ProfilesHandler))
+	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminHandlers.ProfilesResetTokenHandler))
+	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminHandlers.ProfileAddHandler))
+	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminHandlers.ProfileRemoveHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DEBUG_INCOMING_API_REQUEST)

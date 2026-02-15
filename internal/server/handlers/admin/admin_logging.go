@@ -9,7 +9,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 )
 
-func AdminLoggingHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func LoggingHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("GET", responseWriter, request); !isValidMethod {
 		return
 	}

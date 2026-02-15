@@ -9,7 +9,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 )
 
-func AdminStatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func StatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("GET", responseWriter, request); !isValidMethod {
 		return
 	}

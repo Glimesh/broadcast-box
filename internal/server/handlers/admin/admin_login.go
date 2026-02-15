@@ -8,7 +8,7 @@ import (
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
 )
 
-func AdminLoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func LoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}

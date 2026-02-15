@@ -10,7 +10,7 @@ import (
 )
 
 // Retrieve all existing profiles
-func AdminProfilesHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func ProfilesHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("GET", responseWriter, request); !isValidMethod {
 		return
 	}
@@ -39,7 +39,7 @@ type adminTokenResetPayload struct {
 }
 
 // Reset the token of an existing stream profile
-func AdminProfilesResetTokenHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func ProfilesResetTokenHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
@@ -70,7 +70,7 @@ type adminAddStreamPayload struct {
 }
 
 // Reset the token of an existing stream profile
-func AdminProfileAddHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func ProfileAddHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
@@ -101,7 +101,7 @@ type adminRemoveStreamPayload struct {
 }
 
 // Reset the token of an existing stream profile
-func AdminProfileRemoveHandler(responseWriter http.ResponseWriter, request *http.Request) {
+func ProfileRemoveHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if isValidMethod := verifyValidMethod("POST", responseWriter, request); !isValidMethod {
 		return
 	}
