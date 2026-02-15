@@ -102,6 +102,8 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 		depacketizer = &pionCodecs.VP8Packet{}
 	case codecs.VideoTrackCodecVP9:
 		depacketizer = &pionCodecs.VP9Packet{}
+	case codecs.VideoTrackCodecAV1:
+		depacketizer = &pionCodecs.AV1Depacketizer{}
 	}
 
 	if depacketizer == nil {
@@ -169,12 +171,9 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 		track.PacketsReceived.Add(1)
 		bytesReceived.Add(uint64(rtpRead))
 
-		isKeyframe := false
-		if codec == codecs.VideoTrackCodecH264 {
-			isKeyframe = isPacketKeyframe(rtpPkt, codec, depacketizer)
-			if isKeyframe {
-				track.LastKeyFrame.Store(time.Now())
-			}
+		isKeyframe := isPacketKeyframe(rtpPkt, codec, depacketizer)
+		if isKeyframe {
+			track.LastKeyFrame.Store(time.Now())
 		}
 
 		timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
