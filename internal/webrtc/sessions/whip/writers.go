@@ -5,12 +5,10 @@ import (
 	"io"
 	"log"
 	"math"
-	"os"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 	"github.com/pion/rtcp"
@@ -22,7 +20,6 @@ import (
 )
 
 func (whip *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, streamKey string, peerConnection *webrtc.PeerConnection) {
-	experimentalWhepPacketDeepClone := strings.EqualFold(os.Getenv(environment.WHEP_EXPERIMENTAL_DEEPCOPY_PACKETS), "true")
 	id := remoteTrack.RID()
 
 	if id == "" {
@@ -64,40 +61,21 @@ func (whip *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 			sessions = sessionsAny.(map[string]*whep.WhepSession)
 		}
 
-		if experimentalWhepPacketDeepClone {
-			pktClone := *rtpPkt
-			pktClone.Payload = append([]byte(nil), rtpPkt.Payload...)
-			pktClone.Extensions = append([]rtp.Extension(nil), rtpPkt.Extensions...)
-
-			for _, whepSession := range sessions {
-				whepSession.SendAudioPacket(codecs.TrackPacket{
-					Layer:  id,
-					Packet: &pktClone,
-					Codec:  codec,
-				})
-			}
-
-		} else {
-			packet := codecs.TrackPacket{
-				Layer:  id,
-				Packet: rtpPkt,
-				Codec:  codec,
-			}
-
-			for _, whepSession := range sessions {
-				if whepSession.AudioLayerCurrent.Load() == id {
-					whepSession.SendAudioPacket(packet)
-				}
-			}
+		packet := codecs.TrackPacket{
+			Layer:  id,
+			Packet: rtpPkt,
+			Codec:  codec,
 		}
 
+		for _, whepSession := range sessions {
+			if whepSession.AudioLayerCurrent.Load() == id {
+				whepSession.SendAudioPacket(packet)
+			}
+		}
 	}
 }
 
 func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey string, peerConnection *webrtc.PeerConnection) {
-	experimentalWhepPacketDeepClone := strings.EqualFold(os.Getenv(environment.WHEP_EXPERIMENTAL_DEEPCOPY_PACKETS), "true")
-	experimentalWhepPacketDeepCloneToChannel := strings.EqualFold(os.Getenv(environment.WHEP_EXPERIMENTAL_DEEPCOPY_PACKETS_TO_CHANNEL), "true")
-
 	id := remoteTrack.RID()
 
 	if id == "" {
@@ -225,102 +203,23 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 			sessions = sessionsAny.(map[string]*whep.WhepSession)
 		}
 
-		switch {
-		case experimentalWhepPacketDeepClone:
-			sendVideoClonedPacketToWhep(
-				id,
-				sessions,
-				rtpPkt,
-				codec,
-				isKeyframe,
-				timeDiff,
-				sequenceDiff)
-
-		case experimentalWhepPacketDeepCloneToChannel:
-			sendVideoClonedPacketToWhepChannel(
-				id,
-				sessions,
-				rtpPkt,
-				codec,
-				isKeyframe,
-				timeDiff,
-				sequenceDiff)
-
-		default:
-			sendVideoSharedPacketToWhep(id,
-				sessions,
-				codecs.TrackPacket{
-					Layer:        id,
-					Packet:       rtpPkt,
-					Codec:        codec,
-					IsKeyframe:   isKeyframe,
-					TimeDiff:     timeDiff,
-					SequenceDiff: sequenceDiff,
-				})
-		}
-	}
-}
-
-func sendVideoClonedPacketToWhepChannel(id string,
-	sessions map[string]*whep.WhepSession,
-	rtpPkt *rtp.Packet,
-	codec codecs.TrackCodeType,
-	isKeyframe bool,
-	timeDiff int64,
-	sequenceDiff int) {
-	for _, whepSession := range sessions {
-		if whepSession.IsSessionClosed.Load() || whepSession.VideoLayerCurrent.Load() != id {
-			continue
-		}
-
-		pkt := codecs.TrackPacket{
-			Layer:        id,
-			Codec:        codec,
-			IsKeyframe:   isKeyframe,
-			TimeDiff:     timeDiff,
-			SequenceDiff: sequenceDiff,
-		}
-		// Packet deep copy pr. listener
-		pktClone := *rtpPkt
-		pktClone.Payload = append([]byte(nil), rtpPkt.Payload...)
-		pktClone.Extensions = append([]rtp.Extension(nil), rtpPkt.Extensions...)
-		pkt.Packet = &pktClone
-
-		select {
-		case <-whepSession.ActiveContext.Done():
-			continue
-		case whepSession.VideoChannel <- pkt:
-		default: // Drop
-			whepSession.VideoPacketsDropped.Add(1)
-			whepSession.IsWaitingForKeyframe.Store(true)
-		}
-	}
-}
-
-func sendVideoSharedPacketToWhep(id string, sessions map[string]*whep.WhepSession, packet codecs.TrackPacket) {
-	for _, whepSession := range sessions {
-		if whepSession.VideoLayerCurrent.Load() == id {
-			whepSession.SendVideoPacket(packet)
-		}
-	}
-}
-
-func sendVideoClonedPacketToWhep(id string, sessions map[string]*whep.WhepSession, rtpPkt *rtp.Packet, codec codecs.TrackCodeType, isKeyframe bool, timeDiff int64, sequenceDiff int) {
-	for _, whepSession := range sessions {
-		if whepSession.VideoLayerCurrent.Load() == id {
-			// Packet deep copy pr. listener
-			pktClone := *rtpPkt
-			pktClone.Payload = append([]byte(nil), rtpPkt.Payload...)
-			pktClone.Extensions = append([]rtp.Extension(nil), rtpPkt.Extensions...)
-
-			whepSession.SendVideoPacket(codecs.TrackPacket{
+		sendVideoPacketToWhep(id,
+			sessions,
+			codecs.TrackPacket{
 				Layer:        id,
-				Packet:       &pktClone,
+				Packet:       rtpPkt,
 				Codec:        codec,
 				IsKeyframe:   isKeyframe,
 				TimeDiff:     timeDiff,
 				SequenceDiff: sequenceDiff,
 			})
+	}
+}
+
+func sendVideoPacketToWhep(id string, sessions map[string]*whep.WhepSession, packet codecs.TrackPacket) {
+	for _, whepSession := range sessions {
+		if whepSession.VideoLayerCurrent.Load() == id {
+			whepSession.SendVideoPacket(packet)
 		}
 	}
 }
