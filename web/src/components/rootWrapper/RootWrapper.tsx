@@ -1,27 +1,32 @@
 import { useContext } from 'react';
 import { Link, Outlet } from 'react-router-dom'
 import React from 'react';
-import {CinemaModeContext} from "../../providers/CinemaModeProvider";
+import { CinemaModeContext } from "../../providers/CinemaModeProvider";
+import { HeaderContext } from '../../providers/HeaderProvider';
+import LocalesModal from '../shared/ModalLocaleSelector';
 
 const RootWrapper = () => {
+  const { title } = useContext(HeaderContext)
   const { cinemaMode } = useContext(CinemaModeContext);
   const navbarEnabled = !cinemaMode;
-  
+
   return (
-    <div>
+    <div className="flex flex-col min-h-screen h-screen">
       {navbarEnabled && (
-        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-100 top-0'>
-          <div className='container mx-auto flex flex-wrap items-center'>
-            <div className='flex flex-1 text-white font-extrabold'>
+        <nav className='bg-gray-800 p-2 mt-0 fixed w-full z-50 top-0'>
+          <div className='flex flex-wrap items-center w-full'>
+            <div className='flex flex-1 text-white font-extrabold justify-between items-center w-full'>
               <Link to="/" className='font-light leading-tight text-2xl'>
-                Broadcast Box
+                {title}
               </Link>
             </div>
+            <LocalesModal canCloseOnBackgroundClick={true} />
           </div>
+
         </nav>
       )}
 
-      <main className={`${navbarEnabled && "pt-12 md:pt-12"}`}>
+      <main className={`${navbarEnabled && "pt-12 md:pt-12"} flex-grow`}>
         <Outlet />
       </main>
 
