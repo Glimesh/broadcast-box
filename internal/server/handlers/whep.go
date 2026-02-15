@@ -14,7 +14,8 @@ import (
 )
 
 func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if request.Method != "POST" && request.Method != "PATCH" {
+	if request.Method != http.MethodPost && request.Method != http.MethodPatch {
+		helpers.LogHttpError(responseWriter, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -24,7 +25,7 @@ func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if request.Method == "PATCH" {
+	if request.Method == http.MethodPatch {
 		if err := utils.ValidateOffer(string(offer)); err != nil {
 			helpers.LogHttpError(responseWriter, "invalid offer: "+err.Error(), http.StatusBadRequest)
 			return

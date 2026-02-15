@@ -17,7 +17,8 @@ import (
 )
 
 func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
-	if request.Method != "POST" && request.Method != "PATCH" && request.Method != "DELETE" {
+	if request.Method != http.MethodPost && request.Method != http.MethodPatch && request.Method != http.MethodDelete {
+		helpers.LogHttpError(responseWriter, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -26,6 +27,7 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if authHeader == "" {
 		log.Println("Authorization was not set")
 		helpers.LogHttpError(responseWriter, "Authorization was not set", http.StatusBadRequest)
+		return
 	}
 
 	token := helpers.ResolveBearerToken(authHeader)
@@ -35,7 +37,7 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if request.Method == "DELETE" {
+	if request.Method == http.MethodDelete {
 		sessionId := getSessionIdFromWhipPath(request.URL.Path)
 
 		if sessionId == "" {
@@ -116,7 +118,7 @@ func WhipHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	if request.Method == "PATCH" {
+	if request.Method == http.MethodPatch {
 
 		if contentType := request.Header.Get("Content-Type"); contentType != "application/trickle-ice-sdpfrag" {
 			log.Println("API.WHIP.Patch Error: Invalid patch request")
