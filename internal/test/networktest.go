@@ -18,7 +18,7 @@ import (
 	"github.com/pion/webrtc/v4"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
-	"github.com/glimesh/broadcast-box/internal/server/handlers"
+	whipHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/whip"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 )
 
@@ -32,7 +32,7 @@ func RunNetworkTest() {
 
 	fmt.Println(networkTestIntroMessage)
 
-	err := run(handlers.WhepHandler)
+	err := run(whipHandlers.WhipHandler)
 	if err != nil {
 		fmt.Printf(networkTestFailedMessage, err)
 		os.Exit(1)
@@ -41,7 +41,7 @@ func RunNetworkTest() {
 	fmt.Println(networkTestSuccessMessage)
 }
 
-func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
+func run(whipHandler func(res http.ResponseWriter, req *http.Request)) error {
 	m := &webrtc.MediaEngine{}
 
 	codecs.RegisterCodecs(m)
@@ -92,7 +92,7 @@ func run(whepHandler func(res http.ResponseWriter, req *http.Request)) error {
 	req.Header["Authorization"] = []string{"Bearer networktest"}
 	recorder := httptest.NewRecorder()
 
-	whepHandler(recorder, req)
+	whipHandler(recorder, req)
 	res := recorder.Result()
 
 	if res.StatusCode != 201 {
