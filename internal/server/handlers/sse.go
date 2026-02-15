@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,8 +29,10 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	sessionId := values[len(values)-1]
 
 	debugSseMessages := strings.EqualFold(os.Getenv(environment.DEBUG_PRINT_SSE_MESSAGES), "true")
+	writeTimeout := 500 * time.Millisecond
 
 	ctx := request.Context()
+	responseController := http.NewResponseController(responseWriter)
 
 	// Setup WHEP/WHIP session for SSE feed
 	sseChannel := getWhipSessionChannel(sessionId)
@@ -60,28 +62,27 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				return
 			}
 
-			// Write with timeout
-			writeCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-			done := make(chan error, 1)
+			if err := responseController.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil && !errors.Is(err, http.ErrNotSupported) {
+				log.Println("API.SSE SetWriteDeadline error:", err)
+				return
+			}
 
-			go func() {
-				_, err := fmt.Fprintf(responseWriter, "%s\n", msg)
-				if err == nil {
-					flusher.Flush()
-				}
-				done <- err
-			}()
+			_, err := fmt.Fprintf(responseWriter, "%s\n", msg)
+			if err == nil {
+				flusher.Flush()
+			}
 
-			select {
-			case err := <-done:
-				cancel()
-				if err != nil {
+			if deadlineErr := responseController.SetWriteDeadline(time.Time{}); deadlineErr != nil && !errors.Is(deadlineErr, http.ErrNotSupported) {
+				log.Println("API.SSE ClearWriteDeadline error:", deadlineErr)
+				return
+			}
+
+			if err != nil {
+				if errors.Is(err, os.ErrDeadlineExceeded) {
+					log.Println("API.SSE Write timeout")
+				} else {
 					log.Println("API.SSE Write error:", err)
-					return
 				}
-			case <-writeCtx.Done():
-				cancel()
-				log.Println("API.SSE Write timeout")
 				return
 			}
 		}
