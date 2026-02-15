@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
@@ -37,26 +38,6 @@ func (whip *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 
 	track.Priority = whip.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
 
-	var sessions map[string]*whep.WhepSession
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
-
-		for {
-			select {
-			case <-whip.ActiveContext.Done():
-				return
-			case <-ticker.C:
-				sessionsAny := whip.WhepSessionsSnapshot.Load()
-
-				if sessionsAny == nil {
-					continue
-				}
-
-				sessions = sessionsAny.(map[string]*whep.WhepSession)
-			}
-		}
-	}()
-
 	rtpPkt := &rtp.Packet{}
 	rtpBuf := make([]byte, 1500)
 	for {
@@ -76,6 +57,11 @@ func (whip *WhipSession) AudioWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 		if err != nil {
 			log.Println("WhipSession.AudioWriter.RtpPkt.Error", err)
 			continue
+		}
+
+		var sessions map[string]*whep.WhepSession
+		if sessionsAny := whip.WhepSessionsSnapshot.Load(); sessionsAny != nil {
+			sessions = sessionsAny.(map[string]*whep.WhepSession)
 		}
 
 		if experimentalWhepPacketDeepClone {
@@ -150,42 +136,23 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 	lastSequenceNumber := uint16(0)
 	lastSequenceNumberSet := false
 
-	bytesReceived := int(0)
+	var bytesReceived atomic.Uint64
 
 	// Calculate bitrate
 	go func() {
 		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
 
-		trackedBytesReceived := int(0)
-
-		for {
-			select {
-			case <-whip.ActiveContext.Done():
-				return
-			case <-ticker.C:
-				track.Bitrate.Store(uint64(bytesReceived) - uint64(trackedBytesReceived))
-				trackedBytesReceived = bytesReceived
-			}
-		}
-	}()
-
-	// Update sessions snapshot
-	var sessions map[string]*whep.WhepSession
-	go func() {
-		ticker := time.NewTicker(1 * time.Second)
+		trackedBytesReceived := uint64(0)
 
 		for {
 			select {
 			case <-whip.ActiveContext.Done():
 				return
 			case <-ticker.C:
-				sessionsAny := whip.WhepSessionsSnapshot.Load()
-
-				if sessionsAny == nil {
-					continue
-				}
-
-				sessions = sessionsAny.(map[string]*whep.WhepSession)
+				currentBytesReceived := bytesReceived.Load()
+				track.Bitrate.Store(currentBytesReceived - trackedBytesReceived)
+				trackedBytesReceived = currentBytesReceived
 			}
 		}
 	}()
@@ -222,7 +189,7 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 		}
 
 		track.PacketsReceived.Add(1)
-		bytesReceived += rtpRead
+		bytesReceived.Add(uint64(rtpRead))
 
 		isKeyframe := false
 		if codec == codecs.VideoTrackCodecH264 {
@@ -252,6 +219,11 @@ func (whip *WhipSession) VideoWriter(remoteTrack *webrtc.TrackRemote, streamKey 
 
 		lastTimestamp = rtpPkt.Timestamp
 		lastSequenceNumber = rtpPkt.SequenceNumber
+
+		var sessions map[string]*whep.WhepSession
+		if sessionsAny := whip.WhepSessionsSnapshot.Load(); sessionsAny != nil {
+			sessions = sessionsAny.(map[string]*whep.WhepSession)
+		}
 
 		switch {
 		case experimentalWhepPacketDeepClone:

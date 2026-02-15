@@ -11,6 +11,7 @@ import (
 
 func (whepSession *WhepSession) handleCalculatedValues() {
 	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
 	lastBytesReceived := int(0)
 
@@ -20,8 +21,12 @@ func (whepSession *WhepSession) handleCalculatedValues() {
 			log.Println("WhepSession.HandleCalculatedValues.Close")
 			return
 		case <-ticker.C:
-			whepSession.VideoBitrate.Store(uint64(whepSession.VideoBytesWritten - lastBytesReceived))
-			lastBytesReceived = whepSession.VideoBytesWritten
+			whepSession.VideoLock.RLock()
+			videoBytesWritten := whepSession.VideoBytesWritten
+			whepSession.VideoLock.RUnlock()
+
+			whepSession.VideoBitrate.Store(uint64(videoBytesWritten - lastBytesReceived))
+			lastBytesReceived = videoBytesWritten
 		}
 	}
 }

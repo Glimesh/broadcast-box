@@ -10,16 +10,22 @@ import (
 
 // Sends provided audio packet to the Whep session
 func (whepSession *WhepSession) SendAudioPacket(packet codecs.TrackPacket) {
-	if whepSession.IsSessionClosed.Load() || whepSession.AudioTrack == nil {
+	if whepSession.IsSessionClosed.Load() {
 		return
 	}
 
 	whepSession.AudioLock.Lock()
+	if whepSession.AudioTrack == nil {
+		whepSession.AudioLock.Unlock()
+		return
+	}
+
 	whepSession.AudioPacketsWritten += 1
 	whepSession.AudioTimestamp = uint32(int64(whepSession.AudioTimestamp) + packet.TimeDiff)
+	audioTrack := whepSession.AudioTrack
 	whepSession.AudioLock.Unlock()
 
-	if err := whepSession.AudioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
+	if err := audioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
 			log.Println("WhepSession.SendAudioPacket.ConnectionDropped")
 			whepSession.Close()
@@ -48,12 +54,19 @@ func (whepSession *WhepSession) SendVideoPacket(packet codecs.TrackPacket) {
 	whepSession.VideoPacketsWritten += 1
 	whepSession.VideoSequenceNumber = uint16(whepSession.VideoSequenceNumber) + uint16(packet.SequenceDiff)
 	whepSession.VideoTimestamp = uint32(int64(whepSession.VideoTimestamp) + packet.TimeDiff)
+	videoSequenceNumber := whepSession.VideoSequenceNumber
+	videoTimestamp := whepSession.VideoTimestamp
+	videoTrack := whepSession.VideoTrack
 	whepSession.VideoLock.Unlock()
 
-	packet.Packet.SequenceNumber = whepSession.VideoSequenceNumber
-	packet.Packet.Timestamp = whepSession.VideoTimestamp
+	if videoTrack == nil {
+		return
+	}
 
-	if err := whepSession.VideoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
+	packet.Packet.SequenceNumber = videoSequenceNumber
+	packet.Packet.Timestamp = videoTimestamp
+
+	if err := videoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		whepSession.VideoPacketsDropped.Add(1)
 
 		if errors.Is(err, io.ErrClosedPipe) {
