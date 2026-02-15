@@ -78,13 +78,8 @@ func (manager *SessionManager) GetSessionById(streamKey string) (session *sessio
 	manager.sessionsLock.RLock()
 	defer manager.sessionsLock.RUnlock()
 
-	for _, session := range manager.sessions {
-		if streamKey == session.StreamKey {
-			return session, true
-		}
-	}
-
-	return nil, false
+	session, foundSession = manager.sessions[streamKey]
+	return session, foundSession
 }
 
 // Gets the current state of all sessions
@@ -185,9 +180,10 @@ func (manager *SessionManager) GetWhepSessionById(sessionId string) (whep *whep.
 
 	for _, session := range manager.sessions {
 		session.WhepSessionsLock.RLock()
-		defer session.WhepSessionsLock.RUnlock()
-		if whep, ok := session.WhepSessions[sessionId]; ok {
-			return whep, true
+		whepSession, ok := session.WhepSessions[sessionId]
+		session.WhepSessionsLock.RUnlock()
+		if ok {
+			return whepSession, true
 		}
 	}
 
