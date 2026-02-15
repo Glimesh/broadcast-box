@@ -24,9 +24,11 @@ func WHIP(offer string, profile authorization.PublicProfile) (sdp string, sessio
 	}
 
 	peerConnection, err := peerconnection.CreateWhipPeerConnection(offer)
-	if err != nil {
+	if err != nil || peerConnection == nil {
 		log.Println("WHIP.CreateWhipPeerConnection.Failed", err)
-		peerConnection.Close()
+		if peerConnection != nil {
+			peerConnection.Close()
+		}
 		return "", "", err
 	}
 
