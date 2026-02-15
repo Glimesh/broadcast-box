@@ -159,14 +159,6 @@ func (session *Session) removeWhep(whepSessionId string) {
 	}
 }
 
-func (session *Session) RemoveAllWhep(whipSession *whip.WhipSession, whepSessionId string) {
-	log.Println("Session.RemoveWhepSession:", session.StreamKey, " - ", whepSessionId)
-
-	for whepSessionId := range session.WhepSessions {
-		session.removeWhep(whepSessionId)
-	}
-}
-
 // Remove all Hosts and clients before closing down session
 func (session *Session) close() {
 
