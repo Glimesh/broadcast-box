@@ -35,7 +35,6 @@ type (
 		VideoPacketsDropped atomic.Uint64
 		VideoSequenceNumber uint16
 		VideoLayerCurrent   atomic.Value
-		VideoChannel        chan codecs.TrackPacket
 
 		// Protects AudioTrack, AudioTimestamp, AudioPacketsWritten, AudioSequenceNumber
 		AudioLock           sync.RWMutex
@@ -44,6 +43,5 @@ type (
 		AudioPacketsWritten uint64
 		AudioSequenceNumber uint16
 		AudioLayerCurrent   atomic.Value
-		AudioChannel        chan codecs.TrackPacket
 	}
 )
