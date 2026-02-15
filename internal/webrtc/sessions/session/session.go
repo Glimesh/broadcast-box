@@ -150,8 +150,12 @@ func (session *Session) removeWhep(whepSessionId string) {
 	log.Println("Session.RemoveWhepSession:", session.StreamKey, " - ", whepSessionId)
 
 	session.WhepSessionsLock.Lock()
-	session.WhepSessions[whepSessionId].Close()
-	delete(session.WhepSessions, whepSessionId)
+	if whepSession, ok := session.WhepSessions[whepSessionId]; ok {
+		whepSession.Close()
+		delete(session.WhepSessions, whepSessionId)
+	} else {
+		log.Println("Session.RemoveWhepSession.InvalidSession:", session.StreamKey, " - ", whepSessionId)
+	}
 	session.WhepSessionsLock.Unlock()
 
 	if session.isEmpty() {
