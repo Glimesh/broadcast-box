@@ -68,12 +68,17 @@ func HandleWhipPatch(sessionId, body string) error {
 		return errors.New("no session found")
 	}
 
-	session.Host.PeerConnectionLock.Lock()
-	if err := patchPeerConnection(session.Host.PeerConnection, body); err != nil {
-		session.Host.PeerConnectionLock.Unlock()
+	host := session.Host.Load()
+	if host == nil {
+		return errors.New("no host found")
+	}
+
+	host.PeerConnectionLock.Lock()
+	if err := patchPeerConnection(host.PeerConnection, body); err != nil {
+		host.PeerConnectionLock.Unlock()
 		return err
 	}
-	session.Host.PeerConnectionLock.Unlock()
+	host.PeerConnectionLock.Unlock()
 
 	return nil
 }

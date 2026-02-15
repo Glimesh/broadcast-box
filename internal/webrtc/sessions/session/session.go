@@ -17,13 +17,10 @@ import (
 func (session *Session) GetHost(streamKey string) (host *whip.WhipSession, foundSession bool) {
 	log.Println("Session.GetHost")
 
-	if session.Host == nil {
+	host = session.Host.Load()
+	if host == nil {
 		return nil, false
 	}
-
-	session.HostLock.RLock()
-	host = session.Host
-	session.HostLock.RUnlock()
 
 	return host, true
 }
@@ -56,16 +53,17 @@ func (session *Session) UpdateStreamStatus(profile authorization.PublicProfile) 
 func (session *Session) AddWhep(whepSessionId string, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec, videoRtcpSender *webrtc.RTPSender) (err error) {
 	log.Println("WhipSessionManager.WhipSession.AddWhepSession")
 
-	if session.Host == nil {
+	host := session.Host.Load()
+	if host == nil {
 		return fmt.Errorf("no host was found on the current session")
 	}
 
 	whepSession := whep.CreateNewWhep(
 		whepSessionId,
 		audioTrack,
-		session.Host.GetHighestPrioritizedAudioTrack(),
+		host.GetHighestPrioritizedAudioTrack(),
 		videoTrack,
-		session.Host.GetHighestPrioritizedVideoTrack(),
+		host.GetHighestPrioritizedVideoTrack(),
 		peerConnection)
 
 	whepSession.RegisterWhepHandlers(peerConnection)
@@ -74,12 +72,12 @@ func (session *Session) AddWhep(whepSessionId string, peerConnection *webrtc.Pee
 	session.WhepSessions[whepSessionId] = whepSession
 	session.WhepSessionsLock.Unlock()
 
-	go session.handleWhepConnection(session.Host, whepSession)
+	go session.handleWhepConnection(host, whepSession)
 	go session.handleWhepChannels(whepSession)
 	go session.handleWhepVideoRtcpSender(videoRtcpSender)
 
 	// TODO: Implement
-	// go session.handleWhepLayerChange(session.Host, whepSession)
+	// go session.handleWhepLayerChange(host, whepSession)
 
 	return nil
 }
@@ -88,20 +86,24 @@ func (session *Session) AddWhep(whepSessionId string, peerConnection *webrtc.Pee
 func (session *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
 	log.Println("Session.AddHost")
 
-	session.HostLock.Lock()
+	for {
+		host := session.Host.Load()
+		if host == nil {
+			break
+		}
 
-	if session.Host != nil && session.Host.PeerConnection.ConnectionState() == webrtc.PeerConnectionStateClosed {
-		if session.ActiveContext.Err() != nil {
-			session.Host = nil
-		} else {
-			session.HostLock.Unlock()
+		if host.PeerConnection.ConnectionState() != webrtc.PeerConnectionStateClosed || session.ActiveContext.Err() == nil {
 			return fmt.Errorf("session already has a host")
+		}
+
+		if session.Host.CompareAndSwap(host, nil) {
+			break
 		}
 	}
 
 	activeContext, activeContextCancel := context.WithCancel(context.Background())
 
-	session.Host = &whip.WhipSession{
+	host := &whip.WhipSession{
 		Id:                          uuid.New().String(),
 		AudioTracks:                 make(map[string]*whip.AudioTrack),
 		VideoTracks:                 make(map[string]*whip.VideoTrack),
@@ -113,8 +115,13 @@ func (session *Session) AddHost(peerConnection *webrtc.PeerConnection) (err erro
 		ActiveContextCancel: activeContextCancel,
 	}
 
-	session.Host.AddPeerConnection(peerConnection, session.StreamKey)
-	session.HostLock.Unlock()
+	host.AddPeerConnection(peerConnection, session.StreamKey)
+	if !session.Host.CompareAndSwap(nil, host) {
+		host.ActiveContextCancel()
+		host.RemovePeerConnection()
+		host.RemoveTracks()
+		return fmt.Errorf("session already has a host")
+	}
 
 	go session.hostStatusLoop()
 
@@ -123,20 +130,17 @@ func (session *Session) AddHost(peerConnection *webrtc.PeerConnection) (err erro
 
 func (session *Session) RemoveHost() {
 
-	if session.Host == nil {
+	host := session.Host.Swap(nil)
+	if host == nil {
 		log.Println("Session.RemoveHost", session.StreamKey, "- No host to remove")
 		return
 	}
 
 	log.Println("Session.RemoveHost", session.StreamKey)
 
-	session.Host.ActiveContextCancel()
-	session.Host.RemovePeerConnection()
-	session.Host.RemoveTracks()
-
-	session.HostLock.Lock()
-	session.Host = nil
-	session.HostLock.Unlock()
+	host.ActiveContextCancel()
+	host.RemovePeerConnection()
+	host.RemoveTracks()
 }
 
 // Remove Whep session from Whip session
@@ -197,24 +201,25 @@ func (session *Session) isEmpty() bool {
 // Returns true if any tracks are available for the session
 func (session *Session) isStreaming() bool {
 
-	if session.Host == nil {
+	host := session.Host.Load()
+	if host == nil {
 		return false
 	}
 
-	session.Host.TracksLock.RLock()
+	host.TracksLock.RLock()
 
-	if len(session.Host.AudioTracks) != 0 {
-		log.Println("Session.IsActive.AudioTracks", len(session.Host.AudioTracks))
-		session.Host.TracksLock.RUnlock()
+	if len(host.AudioTracks) != 0 {
+		log.Println("Session.IsActive.AudioTracks", len(host.AudioTracks))
+		host.TracksLock.RUnlock()
 		return true
 	}
-	if len(session.Host.VideoTracks) != 0 {
-		log.Println("Session.IsActive.VideoTracks", len(session.Host.VideoTracks))
-		session.Host.TracksLock.RUnlock()
+	if len(host.VideoTracks) != 0 {
+		log.Println("Session.IsActive.VideoTracks", len(host.VideoTracks))
+		host.TracksLock.RUnlock()
 		return true
 	}
 
-	session.Host.TracksLock.RUnlock()
+	host.TracksLock.RUnlock()
 	return false
 }
 

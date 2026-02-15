@@ -34,8 +34,13 @@ func WHIP(offer string, profile authorization.PublicProfile) (sdp string, sessio
 		return "", "", err
 	}
 
+	host := session.Host.Load()
+	if host == nil {
+		return "", "", errors.New("host session not available")
+	}
+
 	sdp = utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP))
-	sessionId = session.Host.Id
+	sessionId = host.Id
 	err = nil
 	log.Println("WHIP.Offer.Accepted", profile.StreamKey, profile.MOTD)
 	return

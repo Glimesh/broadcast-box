@@ -22,8 +22,7 @@ type Session struct {
 	IsPublic    bool
 	StreamStart time.Time
 
-	HostLock sync.RWMutex
-	Host     *whip.WhipSession
+	Host atomic.Pointer[whip.WhipSession]
 
 	// Context
 	ActiveContext       context.Context

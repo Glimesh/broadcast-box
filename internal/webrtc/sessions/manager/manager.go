@@ -115,10 +115,11 @@ func (manager *SessionManager) GetSessionStates(includePrivateStreams bool) (res
 
 		s.StatusLock.RUnlock()
 
-		if s.Host != nil {
-			s.Host.TracksLock.RLock()
+		host := s.Host.Load()
+		if host != nil {
+			host.TracksLock.RLock()
 
-			for _, audioTrack := range s.Host.AudioTracks {
+			for _, audioTrack := range host.AudioTracks {
 				streamSession.AudioTracks = append(
 					streamSession.AudioTracks,
 					session.AudioTrackState{
@@ -128,7 +129,7 @@ func (manager *SessionManager) GetSessionStates(includePrivateStreams bool) (res
 					})
 			}
 
-			for _, videoTrack := range s.Host.VideoTracks {
+			for _, videoTrack := range host.VideoTracks {
 				var lastKeyFrame time.Time
 				if value, ok := videoTrack.LastKeyFrame.Load().(time.Time); ok {
 					lastKeyFrame = value
@@ -145,7 +146,7 @@ func (manager *SessionManager) GetSessionStates(includePrivateStreams bool) (res
 					})
 			}
 
-			s.Host.TracksLock.RUnlock()
+			host.TracksLock.RUnlock()
 		}
 
 		s.WhepSessionsLock.RLock()
@@ -199,13 +200,13 @@ func (manager *SessionManager) GetHostSessionById(sessionId string) (host *whip.
 	defer manager.sessionsLock.RUnlock()
 
 	for _, session := range manager.sessions {
-
-		if session.Host == nil {
-			return nil, false
+		host := session.Host.Load()
+		if host == nil {
+			continue
 		}
 
-		if sessionId == session.Host.Id {
-			return session.Host, true
+		if sessionId == host.Id {
+			return host, true
 		}
 	}
 

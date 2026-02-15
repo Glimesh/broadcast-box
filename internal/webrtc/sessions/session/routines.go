@@ -68,13 +68,16 @@ func (session *Session) handleWhepVideoRtcpSender(rtcpSender *webrtc.RTPSender) 
 			return
 		}
 
-		if session.HasHost.Load() {
-			for _, packet := range rtcpPackets {
-				if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
-					select {
-					case session.Host.PacketLossIndicationChannel <- true:
-					default:
-					}
+		host := session.Host.Load()
+		if host == nil {
+			continue
+		}
+
+		for _, packet := range rtcpPackets {
+			if _, isPLI := packet.(*rtcp.PictureLossIndication); isPLI {
+				select {
+				case host.PacketLossIndicationChannel <- true:
+				default:
 				}
 			}
 		}
@@ -89,8 +92,13 @@ func (session *Session) handleWhepChannels(whepSession *whep.WhepSession) {
 			return
 
 		case <-whepSession.ConnectionChannel:
+			host := session.Host.Load()
+			if host == nil {
+				continue
+			}
+
 			select {
-			case session.Host.PacketLossIndicationChannel <- true:
+			case host.PacketLossIndicationChannel <- true:
 			default:
 			}
 		}
@@ -106,7 +114,7 @@ func (session *Session) hostStatusLoop() {
 	defer ticker.Stop()
 
 	for {
-		host := session.Host
+		host := session.Host.Load()
 		if host == nil {
 			if session.isEmpty() {
 				session.close()
@@ -131,7 +139,7 @@ func (session *Session) hostStatusLoop() {
 		case <-ticker.C:
 			if session.isEmpty() {
 				session.close()
-			} else if session.Host != nil {
+			} else if session.Host.Load() != nil {
 
 				status := session.GetSessionStatsEvent()
 				session.WhepSessionsLock.RLock()
@@ -153,12 +161,12 @@ func (session *Session) Snapshot() {
 	for {
 		select {
 		case <-session.ActiveContext.Done():
-			if session.Host != nil {
-				session.Host.WhepSessionsSnapshot.Store(make(map[string]*whep.WhepSession))
+			if host := session.Host.Load(); host != nil {
+				host.WhepSessionsSnapshot.Store(make(map[string]*whep.WhepSession))
 			}
 			return
 		case <-ticker.C:
-			if session.Host != nil {
+			if host := session.Host.Load(); host != nil {
 				session.WhepSessionsLock.RLock()
 				snapshot := make(map[string]*whep.WhepSession, len(session.WhepSessions))
 
@@ -169,7 +177,7 @@ func (session *Session) Snapshot() {
 				}
 				session.WhepSessionsLock.RUnlock()
 
-				session.Host.WhepSessionsSnapshot.Store(snapshot)
+				host.WhepSessionsSnapshot.Store(snapshot)
 			}
 		}
 	}
