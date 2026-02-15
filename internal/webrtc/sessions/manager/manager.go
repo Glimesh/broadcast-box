@@ -180,7 +180,6 @@ func (manager *SessionManager) UpdateProfile(profile *authorization.PersonalProf
 
 // Get Session by id
 func (manager *SessionManager) GetWhepSessionById(sessionId string) (whep *whep.WhepSession, foundSession bool) {
-
 	manager.sessionsLock.RLock()
 	defer manager.sessionsLock.RUnlock()
 

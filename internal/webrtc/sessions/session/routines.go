@@ -142,9 +142,14 @@ func (session *Session) hostStatusLoop() {
 			} else if session.Host.Load() != nil {
 
 				status := session.GetSessionStatsEvent()
+
 				session.WhepSessionsLock.RLock()
-				for _, whep := range session.WhepSessions {
-					whep.SseEventsChannel <- status
+				for _, whepSession := range session.WhepSessions {
+					select {
+					case whepSession.SseEventsChannel <- status:
+					default:
+						log.Println("Session.Host.HostStatusLoop: SSE channel full, skipping", whepSession.SessionId)
+					}
 				}
 				session.WhepSessionsLock.RUnlock()
 
