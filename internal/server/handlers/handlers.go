@@ -85,14 +85,7 @@ func corsHandler(next func(responseWriter http.ResponseWriter, request *http.Req
 }
 
 func frontendHandler(response http.ResponseWriter, request *http.Request) {
-
-	defaultFrontendPath := "./web/build"
-
-	frontendFilePath := os.Getenv(environment.FRONTEND_PATH)
-
-	if frontendFilePath == "" {
-		frontendFilePath = defaultFrontendPath
-	}
+	frontendFilePath := environment.GetFrontendPath()
 
 	fileSystem := http.Dir(frontendFilePath)
 	fileServer := http.FileServer(fileSystem)

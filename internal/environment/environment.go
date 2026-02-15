@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	envFileDevelopment = ".env.development"
-	envFileProduction  = ".env.production"
+	envFileDevelopment  = ".env.development"
+	envFileProduction   = ".env.production"
+	defaultFrontendPath = "./web/build"
 )
 
 var errNoBuildDirectory = errors.New("build directory does not exist, run `npm install` and `npm run build` in the web directory")
@@ -52,11 +53,24 @@ func loadConfigs() error {
 		return err
 	}
 
-	if _, err := os.Stat("./web/build"); os.IsNotExist(err) && os.Getenv(FRONTEND_DISABLED) == "" {
-		return errNoBuildDirectory
+	if os.Getenv(FRONTEND_DISABLED) == "" {
+		if _, err := os.Stat(GetFrontendPath()); os.IsNotExist(err) {
+			return errNoBuildDirectory
+		} else if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func GetFrontendPath() string {
+	frontendPath := os.Getenv(FRONTEND_PATH)
+	if frontendPath == "" {
+		return defaultFrontendPath
+	}
+
+	return frontendPath
 }
 
 func setDefaultEnvironmentVariables() {
