@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { parseLinkHeader } from "@web3-storage/parse-link-header";
 import { StreamStatus } from "../../../providers/StatusProvider";
-import toBase64Utf8 from "../../../utilities/base64";
 import { RefObject } from "react";
 
 export interface CurrentLayersMessage {
@@ -104,12 +103,10 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	const whepResponse = await fetch(`/api/whep`, {
 		method: 'POST',
 		headers: {
+			Authorization: `Bearer ${streamKey}`,
 			'Content-Type': 'application/sdp'
 		},
-		body: toBase64Utf8(JSON.stringify({
-			streamKey: streamKey,
-			offer: offer.sdp
-		})),
+		body: offer.sdp,
 	})
 
 	if (!whepResponse.ok) {
@@ -197,4 +194,3 @@ export function waitForIceGatheringComplete(peerConnection: RTCPeerConnection) {
 		}
 	});
 }
-

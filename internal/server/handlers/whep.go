@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -15,31 +13,19 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 )
 
-type WhepRequest struct {
-	Offer     string
-	StreamKey string
-}
-
 func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if request.Method != "POST" && request.Method != "PATCH" {
 		return
 	}
 
-	requestBodyB64, err := io.ReadAll(request.Body)
-	if err != nil {
-		helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// TODO: Is decodedB64 neccesarry?
-	decodedB64, err := base64.StdEncoding.DecodeString(string(requestBodyB64))
-	if err != nil {
-		log.Println("API.WHEP: Invalid B64 encoding for request")
+	offer, err := io.ReadAll(request.Body)
+	if err != nil || string(offer) == "" {
+		helpers.LogHttpError(responseWriter, "error reading offer", http.StatusBadRequest)
 		return
 	}
 
 	if request.Method == "PATCH" {
-		if err := utils.ValidateOffer(string(decodedB64)); err != nil {
+		if err := utils.ValidateOffer(string(offer)); err != nil {
 			helpers.LogHttpError(responseWriter, "invalid offer: "+err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -55,7 +41,7 @@ func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 
 		log.Println("API.WHEP.Patch: Patching session", sessionId)
-		if err := patchHandler(responseWriter, request, sessionId, string(decodedB64)); err != nil {
+		if err := patchHandler(responseWriter, request, sessionId, string(offer)); err != nil {
 			log.Println("API.WHEP.Patch Error:", err)
 			helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
 		}
@@ -63,13 +49,13 @@ func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	var whepRequest WhepRequest
-	if err := json.Unmarshal(decodedB64, &whepRequest); err != nil {
-		log.Println("API.WHEP: Could not read WHEP request")
+	token := helpers.ResolveBearerToken(request.Header.Get("Authorization"))
+	if token == "" {
+		helpers.LogHttpError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
 		return
 	}
 
-	whipAnswer, sessionId, err := webrtc.WHEP(string(whepRequest.Offer), whepRequest.StreamKey)
+	whipAnswer, sessionId, err := webrtc.WHEP(string(offer), token)
 	if err != nil {
 		log.Println("API.WHEP: Setup Error", err.Error())
 		helpers.LogHttpError(responseWriter, err.Error(), http.StatusBadRequest)
