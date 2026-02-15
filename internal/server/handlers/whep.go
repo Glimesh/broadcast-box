@@ -38,12 +38,12 @@ func WhepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if err := utils.ValidateOffer(string(decodedB64)); err != nil {
-		helpers.LogHttpError(responseWriter, "invalid offer: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	if request.Method == "PATCH" {
+		if err := utils.ValidateOffer(string(decodedB64)); err != nil {
+			helpers.LogHttpError(responseWriter, "invalid offer: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		path := strings.Replace(request.URL.Path, "/api/whep", "", 1)
 		segments := strings.Split(path, "/")
 		sessionId := strings.TrimSpace(segments[len(segments)-1])
