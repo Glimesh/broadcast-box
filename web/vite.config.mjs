@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import basicSsl from "@vitejs/plugin-basic-ssl";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
@@ -19,12 +18,12 @@ for (const fileName in environmentFiles) {
 }
 
 let targetHostAddress = process.env.HTTP_ADDRESS || "localhost:8080";
+let targetProtocol = "http://";
+
 if (targetHostAddress[0] === ":") {
 	targetHostAddress = "localhost" + targetHostAddress;
 }
 
-let targetProtocol = "http://";
-targetHostAddress = "localhost:80";
 
 if (process.env.USE_SSL == "TRUE") {
 	const httpsPort = "443";
@@ -41,10 +40,9 @@ if (process.env.USE_SSL == "TRUE") {
 console.log(`Target Backend: ${targetProtocol}${targetHostAddress}`);
 
 export default defineConfig({
-	plugins: [react(), tailwindcss(), basicSsl()],
+	plugins: [react(), tailwindcss()],
 	server: {
-		host: targetHostAddress,
-		https: true,
+		host: targetHostAddress.split(":")[0] || "localhost",
 		open: true,
 		proxy: {
 			"/api": {
