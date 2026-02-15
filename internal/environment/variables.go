@@ -2,6 +2,7 @@ package environment
 
 const (
 	// SERVER
+	APP_ENV                            = "APP_ENV"
 	HTTP_ADDRESS                       = "HTTP_ADDRESS"
 	HTTPS_REDIRECT_PORT                = "HTTPS_REDIRECT_PORT"
 	HTTP_ENABLE_REDIRECT               = "ENABLE_HTTP_REDIRECT"

@@ -1,6 +1,7 @@
 package environment
 
 import (
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -8,45 +9,54 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const (
+	envFileDevelopment = ".env.development"
+	envFileProduction  = ".env.production"
+)
+
+var errNoBuildDirectory = errors.New("build directory does not exist, run `npm install` and `npm run build` in the web directory")
+
 func LoadEnvironmentVariables() {
-	files := []string{
-		".env.development",
-		".env.production",
-	}
-
-	// Load base environment file if available
-	loadEnvironmentFile(".env")
-
-	for _, file := range files {
-		loadEnvironmentFile(file)
-		setDefaultEnvironmentVariables()
-		return
-	}
-
-	log.Println("Environment: Could not find any environment files")
-	os.Exit(0)
-}
-
-func loadEnvironmentFile(filePath string) {
-	currentWorkingDirectory, err := os.Getwd()
-	if err != nil {
-		log.Fatal("Environment:", err)
-	}
-
-	path := filepath.Join(currentWorkingDirectory, filePath)
-
-	if _, err := os.Stat(path); err == nil {
-		err := godotenv.Overload(path)
-
-		if err != nil {
-			log.Println("Environment: Error occurred loading environment file", path)
-			log.Println(err)
-
-			os.Exit(0)
+	if err := loadConfigs(); err != nil {
+		if errors.Is(err, errNoBuildDirectory) {
+			log.Fatal("Environment:", err)
 		}
 
-		log.Println("Environment: Loaded", filePath)
+		log.Println("Environment: Failed to find config in CWD, changing CWD to executable path")
+
+		executablePath, executableErr := os.Executable()
+		if executableErr != nil {
+			log.Fatal("Environment:", executableErr)
+		}
+
+		if chdirErr := os.Chdir(filepath.Dir(executablePath)); chdirErr != nil {
+			log.Fatal("Environment:", chdirErr)
+		}
+
+		if retryErr := loadConfigs(); retryErr != nil {
+			log.Fatal("Environment:", retryErr)
+		}
 	}
+
+	setDefaultEnvironmentVariables()
+}
+
+func loadConfigs() error {
+	if os.Getenv(APP_ENV) == "development" {
+		log.Println("Environment: Loading `" + envFileDevelopment + "`")
+		return godotenv.Load(envFileDevelopment)
+	}
+
+	log.Println("Environment: Loading `" + envFileProduction + "`")
+	if err := godotenv.Load(envFileProduction); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat("./web/build"); os.IsNotExist(err) && os.Getenv(FRONTEND_DISABLED) == "" {
+		return errNoBuildDirectory
+	}
+
+	return nil
 }
 
 func setDefaultEnvironmentVariables() {
