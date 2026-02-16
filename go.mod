@@ -5,12 +5,12 @@ go 1.24.3
 require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/pion/dtls/v3 v3.0.10
+	github.com/pion/dtls/v3 v3.1.2
 	github.com/pion/ice/v4 v4.2.0
-	github.com/pion/interceptor v0.1.43
+	github.com/pion/interceptor v0.1.44
 	github.com/pion/rtcp v1.2.16
-	github.com/pion/rtp v1.10.0
-	github.com/pion/webrtc/v4 v4.2.3
+	github.com/pion/rtp v1.10.1
+	github.com/pion/webrtc/v4 v4.2.6
 )
 
 require (
@@ -29,7 +29,7 @@ require (
 	github.com/pion/stun/v3 v3.1.1 // indirect
 	github.com/pion/turn/v4 v4.1.4 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
 )
