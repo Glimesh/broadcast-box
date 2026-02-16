@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/pion/dtls/v3 v3.0.10
+	github.com/pion/dtls/v3 v3.1.2
 	github.com/pion/ice/v4 v4.2.0
 	github.com/pion/interceptor v0.1.43
 	github.com/pion/rtcp v1.2.16
