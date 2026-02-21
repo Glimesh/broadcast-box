@@ -181,5 +181,23 @@ const locale_en: localeInterface = {
   shared_component_text_input_dialog: {
     button_accept: "Accept"
   },
+
+  chat: {
+    title: "Chat",
+    placeholder_input: "Write a message",
+    button_change_display_name_title: "Change display name",
+    button_send_title: "Send message",
+    status_connecting: "connecting",
+    status_connected: "connected",
+    status_error: "error",
+    status_disconnected: "disconnected",
+    no_messages_yet: "No chat messages yet.",
+    error_failed_to_connect: "Failed to connect chat",
+    error_not_connected: "Chat is not connected",
+    error_failed_to_send: "Failed to send message",
+    modal_display_name_title: "Display name",
+    modal_display_name_message: "Set your display name for chat",
+    modal_display_name_placeholder: "Enter display name",
+  },
 }
 export default locale_en

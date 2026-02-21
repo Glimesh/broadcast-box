@@ -134,9 +134,9 @@ const PlayerPage = () => {
 
       {isDisplayNameModalOpen && (
         <ModalTextInput<string>
-          title="Display name"
-          message="Set your display name for chat"
-          placeholder="Enter display name"
+          title={locale.chat.modal_display_name_title}
+          message={locale.chat.modal_display_name_message}
+          placeholder={locale.chat.modal_display_name_placeholder}
           isOpen={isDisplayNameModalOpen}
           canCloseOnBackgroundClick
           onClose={() => setIsDisplayNameModalOpen(false)}

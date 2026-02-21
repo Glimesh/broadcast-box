@@ -21,7 +21,7 @@ export interface ChatAdapter {
 
 const MAX_MESSAGES = 1000;
 
-export const useChatSession = (streamKey: string, adapter?: ChatAdapter) => {
+export const useChatSession = (streamKey: string, adapter?: ChatAdapter, connectionErrorMessage?: string) => {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [status, setStatus] = useState<ChatStatus>("disconnected");
 	const [error, setError] = useState<string | null>(null);
@@ -77,7 +77,7 @@ export const useChatSession = (streamKey: string, adapter?: ChatAdapter) => {
 				const message =
 					connectError instanceof Error
 						? connectError.message
-						: "Failed to connect chat";
+						: connectionErrorMessage ?? "Failed to connect chat";
 				setError(message);
 				setStatus("error");
 			}
@@ -87,12 +87,12 @@ export const useChatSession = (streamKey: string, adapter?: ChatAdapter) => {
 			stopped = true;
 			unsubscribe();
 		};
-	}, [adapter, streamKey]);
+	}, [adapter, streamKey, connectionErrorMessage]);
 
 	const sendMessage = useCallback(
-		async (text: string, displayName: string) => {
+		async (text: string, displayName: string, notConnectedErrorMessage?: string) => {
 			if (!adapter) {
-				throw new Error("Chat is not connected");
+				throw new Error(notConnectedErrorMessage ?? "Chat is not connected");
 			}
 
 			setError(null);

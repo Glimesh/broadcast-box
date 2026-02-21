@@ -181,5 +181,23 @@ const locale_da: localeInterface = {
   shared_component_text_input_dialog: {
     button_accept: "Acceptér"
   },
+
+  chat: {
+    title: "Chat",
+    placeholder_input: "Skriv en besked",
+    button_change_display_name_title: "Skift visningsnavn",
+    button_send_title: "Send besked",
+    status_connecting: "forbinder",
+    status_connected: "forbundet",
+    status_error: "fejl",
+    status_disconnected: "afbrudt",
+    no_messages_yet: "Ingen chatbeskeder endnu.",
+    error_failed_to_connect: "Kunne ikke forbinde til chat",
+    error_not_connected: "Chat er ikke forbundet",
+    error_failed_to_send: "Kunne ikke sende besked",
+    modal_display_name_title: "Visningsnavn",
+    modal_display_name_message: "Indstil dit visningsnavn til chat",
+    modal_display_name_placeholder: "Indtast visningsnavn",
+  },
 }
 export default locale_da

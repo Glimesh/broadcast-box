@@ -186,5 +186,23 @@ export interface localeInterface {
     yes: string,
     no: string
 
+  },
+
+  chat: {
+    title: string,
+    placeholder_input: string,
+    button_change_display_name_title: string,
+    button_send_title: string,
+    status_connecting: string,
+    status_connected: string,
+    status_error: string,
+    status_disconnected: string,
+    no_messages_yet: string,
+    error_failed_to_connect: string,
+    error_not_connected: string,
+    error_failed_to_send: string,
+    modal_display_name_title: string,
+    modal_display_name_message: string,
+    modal_display_name_placeholder: string,
   }
 }
