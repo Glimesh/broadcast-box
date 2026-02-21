@@ -21,6 +21,8 @@ const PlayerPage = () => {
   const [chatAdapters, setChatAdapters] = useState<Record<string, ChatAdapter | undefined>>({});
   const [streamStatuses, setStreamStatuses] = useState<Record<string, StreamStatus | undefined>>({});
   const [singlePlayerHeightPx, setSinglePlayerHeightPx] = useState<number | undefined>(undefined);
+  const [isDisplayNameModalOpen, setIsDisplayNameModalOpen] = useState<boolean>(false);
+  const [chatDisplayName, setChatDisplayName] = useState<string>(() => localStorage.getItem("chatDisplayName") ?? "");
   const singlePlayerColumnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -101,6 +103,16 @@ const PlayerPage = () => {
     });
   };
 
+  const saveDisplayName = useCallback((value: string) => {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      return;
+    }
+    setChatDisplayName(trimmedValue);
+    localStorage.setItem("chatDisplayName", trimmedValue);
+    setIsDisplayNameModalOpen(false);
+  }, []);
+
   return (
     <div>
       {isModalOpen && (
@@ -118,6 +130,18 @@ const PlayerPage = () => {
             onClickOverride={(streamKey) => addStream(streamKey)}
           />
         </ModalTextInput>
+      )}
+
+      {isDisplayNameModalOpen && (
+        <ModalTextInput<string>
+          title="Display name"
+          message="Set your display name for chat"
+          placeholder="Enter display name"
+          isOpen={isDisplayNameModalOpen}
+          canCloseOnBackgroundClick
+          onClose={() => setIsDisplayNameModalOpen(false)}
+          onAccept={saveDisplayName}
+        />
       )}
 
       <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
@@ -147,6 +171,8 @@ const PlayerPage = () => {
               isOpen={isChatOpen}
               adapter={chatAdapters[streamKeys[0]]}
               fixedHeightPx={singlePlayerHeightPx}
+              displayName={chatDisplayName}
+              onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
             />
           </div>
         ) : (
@@ -174,6 +200,8 @@ const PlayerPage = () => {
                   variant="below"
                   isOpen={isChatOpen}
                   adapter={chatAdapters[streamKey]}
+                  displayName={chatDisplayName}
+                  onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
                 />
               </div>
             ))}
