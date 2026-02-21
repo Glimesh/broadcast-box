@@ -274,15 +274,17 @@ const Player = (props: PlayerProps) => {
 					/>
 
 					<div className="absolute top-2 right-2 flex flex-row gap-2 pointer-events-auto z-60">
-						{!!onToggleChat && (
-							<button
-								onClick={onToggleChat}
-								className={`p-2 rounded-full border ${isChatOpen ? 'bg-blue-600 border-blue-500 text-white' : 'bg-black/60 border-gray-700 text-gray-200 hover:bg-gray-800'}`}
-								title={isChatOpen ? 'Hide chat' : 'Show chat'}
-							>
-								<ChatBubbleLeftRightIcon className="h-5 w-5" />
-							</button>
-						)}
+					{!!onToggleChat && (
+						<button
+							onClick={(e) => {
+								e.stopPropagation();
+								onToggleChat();
+							}}
+							className={`p-2 rounded-full border ${isChatOpen ? 'bg-blue-600 border-blue-500 text-white' : 'bg-black/60 border-gray-700 text-gray-200 hover:bg-gray-800'}`}
+						>
+							<ChatBubbleLeftRightIcon className="h-5 w-5" />
+						</button>
+					)}
 
 						{!!onCloseStream && (
 							<button
