@@ -2,6 +2,7 @@ import React, {
 	FormEvent,
 	memo,
 	useCallback,
+	useContext,
 	useEffect,
 	useMemo,
 	useRef,
@@ -18,6 +19,7 @@ import {
 	Message,
 	useChatSession,
 } from "../../../hooks/useChatSession";
+import { LocaleContext } from "../../../providers/LocaleProvider";
 
 type ChatVariant = "sidebar" | "below";
 
@@ -68,10 +70,15 @@ interface ChatComposerProps {
 	isSending: boolean;
 	onNameRequested(): void;
 	onSend(text: string): Promise<boolean>;
+	locale: {
+		placeholder_input: string;
+		button_change_display_name_title: string;
+		button_send_title: string;
+	};
 }
 
 const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
-	const { status, isSending, onNameRequested, onSend } = props;
+	const { status, isSending, onNameRequested, onSend, locale } = props;
 	const [text, setText] = useState("");
 	const canSend =
 		text.trim().length > 0 && !isSending && status === "connected";
@@ -100,7 +107,7 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 					value={text}
 					maxLength={2000}
 					onChange={(event) => setText(event.target.value)}
-					placeholder="Write a message"
+					placeholder={locale.placeholder_input}
 					className="h-9 flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-100 placeholder:text-gray-400 focus:outline-hidden"
 				/>
 
@@ -108,7 +115,7 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 					type="button"
 					onClick={onNameRequested}
 					className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-gray-100 hover:bg-gray-700"
-					title="Change display name"
+					title={locale.button_change_display_name_title}
 				>
 					<PencilSquareIcon className="h-5 w-5" />
 				</button>
@@ -117,7 +124,7 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 					type="submit"
 					disabled={!canSend}
 					className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-white disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
-					title="Send message"
+					title={locale.button_send_title}
 				>
 					<PaperAirplaneIcon className="h-5 w-5" />
 				</button>
@@ -144,11 +151,28 @@ const statusColorClass = (status: ChatStatus) => {
 	return "bg-red-500";
 };
 
+const getLocalizedStatus = (status: ChatStatus, locale: { status_connecting: string; status_connected: string; status_error: string; status_disconnected: string }) => {
+	switch (status) {
+		case "connecting":
+			return locale.status_connecting;
+		case "connected":
+			return locale.status_connected;
+		case "error":
+			return locale.status_error;
+		case "disconnected":
+			return locale.status_disconnected;
+		default:
+			return status;
+	}
+};
+
 const ChatPanel = (props: ChatPanelProps) => {
 	const { streamKey, variant, isOpen, adapter, fixedHeightPx, displayName: externalDisplayName, onChangeDisplayNameRequested } = props;
+	const { locale } = useContext(LocaleContext);
 	const { messages, status, error, sendMessage } = useChatSession(
 		streamKey,
 		adapter,
+		locale.chat.error_failed_to_connect,
 	);
 
 	const [internalDisplayName, setInternalDisplayName] = useState("");
@@ -210,20 +234,20 @@ const ChatPanel = (props: ChatPanelProps) => {
 			setSendError(null);
 
 			try {
-				await sendMessage(text.trim(), displayName.trim());
+				await sendMessage(text.trim(), displayName.trim(), locale.chat.error_not_connected);
 				return true;
 			} catch (nextError) {
 				const message =
 					nextError instanceof Error
 						? nextError.message
-						: "Failed to send message";
+						: locale.chat.error_failed_to_send;
 				setSendError(message);
 				return false;
 			} finally {
 				setIsSending(false);
 			}
 		},
-		[displayName, sendMessage, onChangeDisplayNameRequested],
+		[displayName, sendMessage, onChangeDisplayNameRequested, locale.chat.error_failed_to_send, locale.chat.error_not_connected],
 	);
 
 	const panelClassName = useMemo(() => {
@@ -252,14 +276,14 @@ const ChatPanel = (props: ChatPanelProps) => {
 			<div className="flex items-center justify-between border-b border-gray-700 bg-gray-900/70 px-3 py-2">
 				<div className="flex items-center gap-2 text-sm font-semibold">
 					<ChatBubbleLeftRightIcon className="h-4 w-4" />
-					<span>Chat</span>
+					<span>{locale.chat.title}</span>
 				</div>
 
 				<div className="flex items-center gap-2 text-xs text-gray-300">
 					<span
 						className={`inline-flex h-2.5 w-2.5 rounded-full ${statusColorClass(status)}`}
 					/>
-					<span className="capitalize">{status}</span>
+					<span className="capitalize">{getLocalizedStatus(status, locale.chat)}</span>
 				</div>
 			</div>
 
@@ -280,7 +304,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 				)}
 
 				{!error && messages.length === 0 && status === "connected" && (
-					<div className="text-xs text-gray-400">No chat messages yet.</div>
+					<div className="text-xs text-gray-400">{locale.chat.no_messages_yet}</div>
 				)}
 
 				<div className="space-y-0">
@@ -295,6 +319,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 				isSending={isSending}
 				onNameRequested={onChangeDisplayNameRequested ?? (() => {})}
 				onSend={onSend}
+				locale={locale.chat}
 			/>
 
 
