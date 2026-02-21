@@ -5,15 +5,20 @@ import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponen
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
 import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
+import { ChatAdapter } from '../../hooks/useChatSession';
 import { ArrowsPointingOutIcon, Square2StackIcon } from '@heroicons/react/20/solid';
+import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import VolumeComponent from './components/VolumeComponent';
 import { StatusMessageComponent } from './components/StatusMessageComponent';
-import { StreamMOTD } from './components/StreamMOTD';
 
 interface PlayerProps {
 	streamKey: string;
 	cinemaMode: boolean;
-	onCloseStream?: () => void;
+	isChatOpen?: boolean;
+	onToggleChat?(): void;
+	onChatAdapterChange?(streamKey: string, adapter: ChatAdapter | undefined): void;
+	onStreamStatusChange?(streamKey: string, status: StreamStatus): void;
+	onCloseStream?(): void;
 }
 
 interface FullscreenElement extends HTMLElement {
@@ -23,7 +28,14 @@ interface FullscreenElement extends HTMLElement {
 }
 
 const Player = (props: PlayerProps) => {
-	const { cinemaMode } = props;
+	const {
+		cinemaMode,
+		isChatOpen,
+		onToggleChat,
+		onChatAdapterChange,
+		onStreamStatusChange,
+		onCloseStream,
+	} = props
 	const streamKey = decodeURIComponent(props.streamKey).replace(' ', '_')
 
 	const [currentStreamStatus, setCurrentStreamStatus] = useState<StreamStatus>({
@@ -40,6 +52,8 @@ const Player = (props: PlayerProps) => {
 	const [layerEndpoint, setLayerEndpoint] = useState<string>('')
 	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
+
+	const [, setResetCounter] = useState(0)
 
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
@@ -65,6 +79,7 @@ const Player = (props: PlayerProps) => {
 		onLayerStatus: (status) => setCurrentLayersStatus(status),
 		onStreamStatus: (status) => {
 			setCurrentStreamStatus(() => status)
+			onStreamStatusChange?.(streamKey, status)
 
 			if (!status.isOnline) {
 				setStreamState("Offline")
@@ -80,7 +95,8 @@ const Player = (props: PlayerProps) => {
 			setStreamState("Loading")
 		},
 		onError: () => setStreamState("Error"),
-	}), [streamKey])
+		onChatAdapterChange: (adapter) => onChatAdapterChange?.(streamKey, adapter),
+	}), [onChatAdapterChange, onStreamStatusChange, streamKey])
 
 	const handleEnterFullscreen = () => {
 		const videoElement = videoRef.current as FullscreenElement | null;
@@ -170,6 +186,7 @@ const Player = (props: PlayerProps) => {
 		setupPeerConnection()
 
 		return () => {
+			onChatAdapterChange?.(streamKey, undefined)
 			player?.removeEventListener('mouseup', handleMouseUp)
 			player?.removeEventListener('mouseenter', handleMouseEnter)
 			player?.removeEventListener('mouseleave', handleMouseLeave)
@@ -179,19 +196,20 @@ const Player = (props: PlayerProps) => {
 			currentPeerConnection?.close()
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-	}, [peerConnectionConfig, resetTimer, streamVideoPlayerId])
+	}, [onChatAdapterChange, onStreamStatusChange, peerConnectionConfig, resetTimer, streamKey, streamVideoPlayerId])
 
 	return (
-		<div
-			key={`${streamVideoPlayerId}`}
-			id={streamVideoPlayerId}
-			className="inline-block w-full relative z-0 aspect-video rounded-md mb-6"
-			style={cinemaMode ? {
-				maxHeight: '100vh',
-				maxWidth: '100vw',
-			} : {}}>
+		<div className="w-full flex items-end">
+			<div
+				key={`${streamVideoPlayerId}`}
+				id={streamVideoPlayerId}
+				className="inline-block w-full relative z-0 aspect-video rounded-md"
+				style={cinemaMode ? {
+					maxHeight: '100vh',
+					maxWidth: '100vw',
+				} : {}}>
 
-			<div className="absolute flex rounded-md w-full h-full">
+				<div className="absolute flex rounded-md w-full h-full">
 
 				<div
 					onClick={handleVideoPlayerClick}
@@ -255,23 +273,35 @@ const Player = (props: PlayerProps) => {
 						state={streamState}
 					/>
 
-					{!!props.onCloseStream && (
-						<button
-							onClick={props.onCloseStream}
-							className="absolute top-2 right-2 p-2 rounded-full bg-red-400 hover:bg-red-500 pointer-events-auto z-60">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="h-6 w-6 text-gray-700"
-								viewBox="0 0 24 24"
-								fill="black">
-								<path
-									fillRule="evenodd"
-									d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
-									clipRule="evenodd"
-								/>
-							</svg>
-						</button>
-					)}
+					<div className="absolute top-2 right-2 flex flex-row gap-2 pointer-events-auto z-60">
+						{!!onToggleChat && (
+							<button
+								onClick={onToggleChat}
+								className={`p-2 rounded-full border ${isChatOpen ? 'bg-blue-600 border-blue-500 text-white' : 'bg-black/60 border-gray-700 text-gray-200 hover:bg-gray-800'}`}
+								title={isChatOpen ? 'Hide chat' : 'Show chat'}
+							>
+								<ChatBubbleLeftRightIcon className="h-5 w-5" />
+							</button>
+						)}
+
+						{!!onCloseStream && (
+							<button
+								onClick={onCloseStream}
+								className="p-2 rounded-full bg-red-400 hover:bg-red-500">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-6 w-6 text-gray-700"
+									viewBox="0 0 24 24"
+									fill="black">
+									<path
+										fillRule="evenodd"
+										d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
+										clipRule="evenodd"
+									/>
+								</svg>
+							</button>
+						)}
+					</div>
 
 				</div>
 
@@ -293,14 +323,8 @@ const Player = (props: PlayerProps) => {
 					onEnded={() => setStreamState(() => "Offline")}
 				/>
 
+				</div>
 			</div>
-
-			{/* Stream MOTD*/}
-			<StreamMOTD
-				isOnline={currentStreamStatus.isOnline}
-				motd={currentStreamStatus.motd}
-			/>
-
 		</div>
 	)
 }

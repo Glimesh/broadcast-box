@@ -4,14 +4,15 @@ import { LocaleContext } from "../../../providers/LocaleProvider";
 interface StreamMOTDProps {
   isOnline: boolean;
   motd: string;
+  className?: string;
 }
 export const StreamMOTD = (props: StreamMOTDProps) =>{
-  const {isOnline, motd} = props;
+	const { isOnline, motd, className = '' } = props;
 	const { locale } = useContext(LocaleContext)
 
   return (
-  <div className="absolute -bottom-5 w-full">
-				<div className="relative h-5 ml-4">
+		<div className={`w-full ${className}`}>
+			<div className="relative h-5">
 					<div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${isOnline ? "opacity-100" : "opacity-0"}`} >
 						{motd}
 					</div>
@@ -21,6 +22,6 @@ export const StreamMOTD = (props: StreamMOTDProps) =>{
 						{locale.player.stream_status_offline}
 						</div>
 					</div>
-				</div>
-			</div>)
+			</div>
+		</div>)
 }
