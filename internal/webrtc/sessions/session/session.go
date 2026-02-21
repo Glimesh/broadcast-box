@@ -36,6 +36,7 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 		videoTrack,
 		peerConnection,
 		pliSender,
+		s.ChatManager,
 	)
 
 	whepSession.SetOnClose(s.handleWHEPClose)
@@ -73,6 +74,7 @@ func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
 		ID:          uuid.New().String(),
 		AudioTracks: make(map[string]*whip.AudioTrack),
 		VideoTracks: make(map[string]*whip.VideoTrack),
+		ChatManager: s.ChatManager,
 	}
 	host.SetOnClosed(s.handleHostClosed)
 

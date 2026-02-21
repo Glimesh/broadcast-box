@@ -29,6 +29,7 @@ func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *ses
 		StreamStart: time.Now(),
 
 		WHEPSessions: map[string]*whep.WHEPSession{},
+		ChatManager:  m.ChatManager,
 	}
 	s.SetOnClose(func() {
 		log.Println("SessionManager.Session.Done")

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/chat"
-	chatruntime "github.com/glimesh/broadcast-box/internal/chat/runtime"
 	"github.com/glimesh/broadcast-box/internal/console"
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/networktest"
@@ -33,9 +32,9 @@ func main() {
 	}
 
 	log.Println("Booting up Broadcast", time.Now().Format("2006-01-02 15:04:05"))
-	webrtc.Setup()
 
-	chatruntime.ChatManager = chat.NewManager()
+	chatManager := chat.NewManager()
+	webrtc.Setup(chatManager)
 
 	if shouldNetworkTest := os.Getenv(environment.NetworkTestOnStart); strings.EqualFold(shouldNetworkTest, "true") {
 		networktest.RunNetworkTest()

@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whip"
 )
@@ -28,4 +29,6 @@ type Session struct {
 	// Protects WHEPSessions
 	WHEPSessionsLock sync.RWMutex
 	WHEPSessions     map[string]*whep.WHEPSession
+
+	ChatManager *chat.Manager
 }

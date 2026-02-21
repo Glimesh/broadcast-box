@@ -13,7 +13,8 @@ func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection
 	peerConnection.OnICEConnectionStateChange(onWHEPICEConnectionStateChangeHandler(w))
 
 	peerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
-		chatdc.Bind(w.StreamKey, w.SessionID, dataChannel)
+		handler := chatdc.NewHandler(w.ChatManager)
+		handler.Bind(w.StreamKey, w.SessionID, dataChannel)
 	})
 }
 

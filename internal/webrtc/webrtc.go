@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/interceptors"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
@@ -12,8 +13,10 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-func Setup() {
-	manager.SessionsManager = &manager.SessionManager{}
+func Setup(chatManager *chat.Manager) {
+	manager.SessionsManager = &manager.SessionManager{
+		ChatManager: chatManager,
+	}
 	manager.SessionsManager.Setup()
 
 	// Initialize media engine

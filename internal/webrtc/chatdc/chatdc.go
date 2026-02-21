@@ -7,9 +7,16 @@ import (
 	"sync"
 
 	"github.com/glimesh/broadcast-box/internal/chat"
-	chatruntime "github.com/glimesh/broadcast-box/internal/chat/runtime"
 	"github.com/pion/webrtc/v4"
 )
+
+type Handler struct {
+	manager *chat.Manager
+}
+
+func NewHandler(cm *chat.Manager) *Handler {
+	return &Handler{manager: cm}
+}
 
 const DataChannelLabel = "bb-chat-v1"
 
@@ -39,12 +46,12 @@ type outboundMessage struct {
 	Events        []chat.Event `json:"events,omitempty"`
 }
 
-func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
+func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 	if dataChannel.Label() != DataChannelLabel {
 		return
 	}
 
-	if chatruntime.ChatManager == nil {
+	if h.manager == nil {
 		log.Println("ChatDC.Bind: chat manager not configured")
 		return
 	}
@@ -83,7 +90,7 @@ func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 	dataChannel.OnOpen(func() {
 		log.Println("ChatDC.Bind: open", streamKey, peerID)
 
-		ch, unsubscribe, history, err := chatruntime.ChatManager.SubscribeStream(streamKey, 0)
+		ch, unsubscribe, history, err := h.manager.SubscribeStream(streamKey, 0)
 		if err != nil {
 			_ = send(outboundMessage{Type: outboundTypeError, Error: err.Error()})
 			return
@@ -141,7 +148,7 @@ func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 				return
 			}
 
-			if err := chatruntime.ChatManager.SendToStream(streamKey, text, displayName); err != nil {
+			if err := h.manager.SendToStream(streamKey, text, displayName); err != nil {
 				_ = send(outboundMessage{Type: outboundTypeError, Error: err.Error(), ClientMessage: inbound.ClientMessage})
 				return
 			}
