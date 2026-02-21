@@ -51,8 +51,16 @@ func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 
 	var (
 		closeSubscription func()
+		closeLock         sync.Mutex
 		writeLock         sync.Mutex
 	)
+	closeSubscription = func() {}
+
+	runCloseSubscription := func() {
+		closeLock.Lock()
+		defer closeLock.Unlock()
+		closeSubscription()
+	}
 
 	send := func(payload outboundMessage) bool {
 		data, err := json.Marshal(payload)
@@ -81,15 +89,17 @@ func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 			return
 		}
 
+		closeLock.Lock()
 		closeSubscription = sync.OnceFunc(unsubscribe)
+		closeLock.Unlock()
 		if !send(outboundMessage{Type: outboundTypeConnected}) {
-			closeSubscription()
+			runCloseSubscription()
 			return
 		}
 
 		if len(history) > 0 {
 			if !send(outboundMessage{Type: outboundTypeHistory, Events: history}) {
-				closeSubscription()
+				runCloseSubscription()
 				return
 			}
 		}
@@ -101,7 +111,7 @@ func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 					continue
 				case chat.EventTypeMessage:
 					if !send(outboundMessage{Type: outboundTypeMessage, EventID: event.ID, Message: event.Message}) {
-						closeSubscription()
+						runCloseSubscription()
 						return
 					}
 				}
@@ -144,11 +154,11 @@ func Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
 
 	dataChannel.OnClose(func() {
 		log.Println("ChatDC.Bind: closed", streamKey, peerID)
-		closeSubscription()
+		runCloseSubscription()
 	})
 
 	dataChannel.OnError(func(err error) {
 		log.Println("ChatDC.Bind: error", streamKey, peerID, err)
-		closeSubscription()
+		runCloseSubscription()
 	})
 }

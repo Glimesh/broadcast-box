@@ -85,7 +85,7 @@ func NewManager() *Manager {
 
 	cleanupInterval := DefaultCleanupInterval
 	if val := os.Getenv("CHAT_CLEANUP_INTERVAL"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
+		if d, err := time.ParseDuration(val); err == nil && d > 0 {
 			cleanupInterval = d
 		}
 	}
