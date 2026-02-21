@@ -25,14 +25,6 @@ func TestChat(t *testing.T) {
 	assert.Empty(t, history)
 	defer cleanup()
 
-	// Consume connected event
-	select {
-	case event := <-ch:
-		assert.Equal(t, EventTypeConnected, event.Type)
-	case <-time.After(1 * time.Second):
-		t.Fatal("timeout waiting for connected event")
-	}
-
 	// Test Send
 	err = m.Send(sessionID, "hello", "user1")
 	assert.NoError(t, err)
@@ -57,14 +49,6 @@ func TestChat(t *testing.T) {
 	ch3, cleanup3, history3, err := m.Subscribe(sessionID, 1)
 	assert.NoError(t, err)
 	assert.Empty(t, history3)
-
-	// Consume connected event
-	select {
-	case event := <-ch3:
-		assert.Equal(t, EventTypeConnected, event.Type)
-	case <-time.After(1 * time.Second):
-		t.Fatal("timeout waiting for connected event")
-	}
 
 	err = m.Send(sessionID, "world", "user2")
 	assert.NoError(t, err)

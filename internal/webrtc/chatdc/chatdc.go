@@ -114,8 +114,6 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 		go func() {
 			for event := range ch {
 				switch event.Type {
-				case chat.EventTypeConnected:
-					continue
 				case chat.EventTypeMessage:
 					if !send(outboundMessage{Type: outboundTypeMessage, EventID: event.ID, Message: event.Message}) {
 						runCloseSubscription()

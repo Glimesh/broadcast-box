@@ -15,8 +15,7 @@ const (
 	DefaultTTL             = 72 * time.Hour
 	DefaultCleanupInterval = 1 * time.Hour
 
-	EventTypeMessage   = "message"
-	EventTypeConnected = "connected"
+	EventTypeMessage = "message"
 )
 
 type Message struct {
@@ -289,7 +288,6 @@ func (s *InMemoryStore) subscribeToRoom(room *Room, lastEventID uint64, now time
 	room.lastActivity = now
 	subID := uuid.New().String()
 	ch := make(chan Event, 100)
-	ch <- Event{Type: EventTypeConnected}
 	room.subscribers[subID] = &subscriber{ch: ch}
 
 	var history []Event
