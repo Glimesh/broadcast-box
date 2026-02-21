@@ -12,7 +12,6 @@ import {
 	PencilSquareIcon,
 	PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
-import ModalTextInput from "../../shared/ModalTextInput";
 import {
 	ChatAdapter,
 	ChatStatus,
@@ -28,6 +27,8 @@ interface ChatPanelProps {
 	isOpen: boolean;
 	adapter?: ChatAdapter;
 	fixedHeightPx?: number;
+	displayName?: string;
+	onChangeDisplayNameRequested?: () => void;
 }
 
 const getNameColor = (displayName: string) => {
@@ -144,14 +145,14 @@ const statusColorClass = (status: ChatStatus) => {
 };
 
 const ChatPanel = (props: ChatPanelProps) => {
-	const { streamKey, variant, isOpen, adapter, fixedHeightPx } = props;
+	const { streamKey, variant, isOpen, adapter, fixedHeightPx, displayName: externalDisplayName, onChangeDisplayNameRequested } = props;
 	const { messages, status, error, sendMessage } = useChatSession(
 		streamKey,
 		adapter,
 	);
 
-	const [displayName, setDisplayName] = useState("");
-	const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+	const [internalDisplayName, setInternalDisplayName] = useState("");
+	const displayName = externalDisplayName ?? internalDisplayName;
 	const [isSending, setIsSending] = useState(false);
 	const [sendError, setSendError] = useState<string | null>(null);
 
@@ -161,10 +162,10 @@ const ChatPanel = (props: ChatPanelProps) => {
 
 	useEffect(() => {
 		const storedName = localStorage.getItem("chatDisplayName");
-		if (storedName) {
-			setDisplayName(storedName);
+		if (storedName && !externalDisplayName) {
+			setInternalDisplayName(storedName);
 		}
-	}, []);
+	}, [externalDisplayName]);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -198,21 +199,10 @@ const ChatPanel = (props: ChatPanelProps) => {
 		shouldStickToBottomRef.current = distanceToBottom <= 100;
 	};
 
-	const saveDisplayName = useCallback((value: string) => {
-		const nextValue = value.trim();
-		if (!nextValue) {
-			return;
-		}
-
-		setDisplayName(nextValue);
-		localStorage.setItem("chatDisplayName", nextValue);
-		setIsNameModalOpen(false);
-	}, []);
-
 	const onSend = useCallback(
 		async (text: string) => {
 			if (!displayName.trim()) {
-				setIsNameModalOpen(true);
+				onChangeDisplayNameRequested?.();
 				return false;
 			}
 
@@ -233,7 +223,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 				setIsSending(false);
 			}
 		},
-		[displayName, sendMessage],
+		[displayName, sendMessage, onChangeDisplayNameRequested],
 	);
 
 	const panelClassName = useMemo(() => {
@@ -303,21 +293,11 @@ const ChatPanel = (props: ChatPanelProps) => {
 			<ChatComposer
 				status={status}
 				isSending={isSending}
-				onNameRequested={() => setIsNameModalOpen(true)}
+				onNameRequested={onChangeDisplayNameRequested ?? (() => {})}
 				onSend={onSend}
 			/>
 
-			{isNameModalOpen && (
-				<ModalTextInput<string>
-					title="Display name"
-					message="Set your display name for chat"
-					placeholder="Enter display name"
-					isOpen={isNameModalOpen}
-					canCloseOnBackgroundClick
-					onClose={() => setIsNameModalOpen(false)}
-					onAccept={saveDisplayName}
-				/>
-			)}
+
 		</div>
 	);
 };

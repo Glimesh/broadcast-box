@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { LocaleContext } from "../../providers/LocaleProvider";
 import ErrorMessagePanel from "./ErrorMessagePanel";
 
@@ -37,21 +37,21 @@ export default function ModalTextInput<T extends string | number>(
 	}
 
 	return (
-		<div className="flex justify-center items-center h-screen absolute z-10">
-				<div
-					className="flex fixed inset-0 bg-transparent items-center justify-center"
-					onClick={() => {
-						if (props.canCloseOnBackgroundClick) {
-							props.onDeny?.();
-							props.onClose?.();
-						}
-					}}
-				>
-				<div
-					className="p-4 rounded-lg shadow-lg w-1/2 bg-gray-800"
-					onClick={(e) => e.stopPropagation()}
-				>
-					<h2 className="text-lg font-semibold">{props.title}</h2>
+		<div className="fixed inset-0 z-50 flex items-center justify-center">
+			<div
+				className="absolute inset-0 bg-black/50"
+				onClick={() => {
+					if (props.canCloseOnBackgroundClick) {
+						props.onDeny?.();
+						props.onClose?.();
+					}
+				}}
+			/>
+			<div
+				className="relative p-4 rounded-lg shadow-lg w-1/2 max-w-md bg-gray-800"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<h2 className="text-lg font-semibold">{props.title}</h2>
 					<p className="mb-2">{props.message}</p>
 
 					{ /*Error message*/}
@@ -98,7 +98,6 @@ export default function ModalTextInput<T extends string | number>(
 							Close
 						</button>
 					</div>
-				</div>
 			</div>
 		</div>
 	);
