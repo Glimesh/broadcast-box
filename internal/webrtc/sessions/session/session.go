@@ -31,6 +31,7 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 
 	whepSession := whep.CreateNewWHEP(
 		whepSessionID,
+		s.StreamKey,
 		audioTrack,
 		videoTrack,
 		peerConnection,

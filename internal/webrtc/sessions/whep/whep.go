@@ -11,6 +11,7 @@ import (
 // Create and start a new WHEP session
 func CreateNewWHEP(
 	whepSessionID string,
+	streamKey string,
 	audioTrack *codecs.TrackMultiCodec,
 	videoTrack *codecs.TrackMultiCodec,
 	peerConnection *webrtc.PeerConnection,
@@ -20,6 +21,7 @@ func CreateNewWHEP(
 
 	w = &WHEPSession{
 		SessionID:               whepSessionID,
+		StreamKey:               streamKey,
 		AudioTrack:              audioTrack,
 		VideoTrack:              videoTrack,
 		AudioTimestamp:          5000,

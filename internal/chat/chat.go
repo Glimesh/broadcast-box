@@ -51,12 +51,19 @@ type Session struct {
 	LastActivity time.Time
 }
 
-type Manager struct {
-	mu       sync.RWMutex
-	rooms    map[string]*Room
-	sessions map[string]*Session
+type Store interface {
+	Connect(streamKey string, now time.Time) string
+	GetSession(sessionID string, now time.Time) (*Session, bool)
+	TouchSession(sessionID string, now time.Time) bool
+	Subscribe(sessionID string, lastEventID uint64, now time.Time) (chan Event, func(), []Event, error)
+	SubscribeStream(streamKey string, lastEventID uint64, now time.Time) (chan Event, func(), []Event, error)
+	Send(sessionID string, text string, displayName string, now time.Time) error
+	SendToStream(streamKey string, text string, displayName string, now time.Time) error
+	Cleanup(now time.Time, ttl time.Duration)
+}
 
-	maxHistory      int
+type Manager struct {
+	store           Store
 	defaultTTL      time.Duration
 	cleanupInterval time.Duration
 }
@@ -83,10 +90,14 @@ func NewManager() *Manager {
 		}
 	}
 
+	m := NewManagerWithStore(NewInMemoryStore(maxHistory), defaultTTL, cleanupInterval)
+
+	return m
+}
+
+func NewManagerWithStore(store Store, defaultTTL time.Duration, cleanupInterval time.Duration) *Manager {
 	m := &Manager{
-		rooms:           make(map[string]*Room),
-		sessions:        make(map[string]*Session),
-		maxHistory:      maxHistory,
+		store:           store,
 		defaultTTL:      defaultTTL,
 		cleanupInterval: cleanupInterval,
 	}
@@ -95,74 +106,183 @@ func NewManager() *Manager {
 }
 
 func (m *Manager) Connect(streamKey string) string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	return m.store.Connect(streamKey, time.Now())
+}
 
-	now := time.Now()
+func (m *Manager) GetSession(sessionID string) (*Session, bool) {
+	return m.store.GetSession(sessionID, time.Now())
+}
+
+func (m *Manager) TouchSession(sessionID string) bool {
+	return m.store.TouchSession(sessionID, time.Now())
+}
+
+func (m *Manager) Subscribe(sessionID string, lastEventID uint64) (chan Event, func(), []Event, error) {
+	return m.store.Subscribe(sessionID, lastEventID, time.Now())
+}
+
+func (m *Manager) Send(sessionID string, text string, displayName string) error {
+	return m.store.Send(sessionID, text, displayName, time.Now())
+}
+
+func (m *Manager) SubscribeStream(streamKey string, lastEventID uint64) (chan Event, func(), []Event, error) {
+	return m.store.SubscribeStream(streamKey, lastEventID, time.Now())
+}
+
+func (m *Manager) SendToStream(streamKey string, text string, displayName string) error {
+	return m.store.SendToStream(streamKey, text, displayName, time.Now())
+}
+
+func (m *Manager) cleanupLoop() {
+	ticker := time.NewTicker(m.cleanupInterval)
+	for range ticker.C {
+		m.cleanup()
+	}
+}
+
+func (m *Manager) cleanup() {
+	m.store.Cleanup(time.Now(), m.defaultTTL)
+}
+
+type InMemoryStore struct {
+	mu         sync.RWMutex
+	rooms      map[string]*Room
+	sessions   map[string]*Session
+	maxHistory int
+}
+
+func NewInMemoryStore(maxHistory int) *InMemoryStore {
+	if maxHistory <= 0 {
+		maxHistory = DefaultMaxHistory
+	}
+
+	return &InMemoryStore{
+		rooms:      make(map[string]*Room),
+		sessions:   make(map[string]*Session),
+		maxHistory: maxHistory,
+	}
+}
+
+func (s *InMemoryStore) Connect(streamKey string, now time.Time) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	sessionID := uuid.New().String()
-	m.sessions[sessionID] = &Session{
+	s.sessions[sessionID] = &Session{
 		ID:           sessionID,
 		StreamKey:    streamKey,
 		LastActivity: now,
 	}
 
-	if _, ok := m.rooms[streamKey]; !ok {
-		m.rooms[streamKey] = &Room{
-			streamKey:    streamKey,
-			subscribers:  make(map[string]*subscriber),
-			history:      make([]Event, 0, m.maxHistory),
-			nextEventID:  1,
-			lastActivity: now,
-		}
-	}
+	s.getOrCreateRoomLocked(streamKey, now)
 
 	return sessionID
 }
 
-func (m *Manager) GetSession(sessionID string) (*Session, bool) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (s *InMemoryStore) GetSession(sessionID string, now time.Time) (*Session, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	s, ok := m.sessions[sessionID]
+	session, ok := s.sessions[sessionID]
 	if !ok {
 		return nil, false
 	}
 
-	s.LastActivity = time.Now()
-	copy := *s
+	session.LastActivity = now
+	copy := *session
 	return &copy, true
 }
 
-func (m *Manager) TouchSession(sessionID string) bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (s *InMemoryStore) TouchSession(sessionID string, now time.Time) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	s, ok := m.sessions[sessionID]
+	session, ok := s.sessions[sessionID]
 	if !ok {
 		return false
 	}
 
-	s.LastActivity = time.Now()
+	session.LastActivity = now
 	return true
 }
 
-func (m *Manager) Subscribe(sessionID string, lastEventID uint64) (chan Event, func(), []Event, error) {
-	now := time.Now()
-
-	m.mu.Lock()
-	session, ok := m.sessions[sessionID]
+func (s *InMemoryStore) Subscribe(sessionID string, lastEventID uint64, now time.Time) (chan Event, func(), []Event, error) {
+	s.mu.Lock()
+	session, ok := s.sessions[sessionID]
 	if !ok {
-		m.mu.Unlock()
+		s.mu.Unlock()
 		return nil, nil, nil, fmt.Errorf("invalid session")
 	}
+
 	session.LastActivity = now
-	room, ok := m.rooms[session.StreamKey]
+	room, ok := s.rooms[session.StreamKey]
+	s.mu.Unlock()
+
 	if !ok {
-		m.mu.Unlock()
 		return nil, nil, nil, fmt.Errorf("room not found")
 	}
-	m.mu.Unlock()
 
+	return s.subscribeToRoom(room, lastEventID, now)
+}
+
+func (s *InMemoryStore) SubscribeStream(streamKey string, lastEventID uint64, now time.Time) (chan Event, func(), []Event, error) {
+	s.mu.Lock()
+	room := s.getOrCreateRoomLocked(streamKey, now)
+	s.mu.Unlock()
+
+	return s.subscribeToRoom(room, lastEventID, now)
+}
+
+func (s *InMemoryStore) Send(sessionID string, text string, displayName string, now time.Time) error {
+	s.mu.Lock()
+	session, ok := s.sessions[sessionID]
+	if !ok {
+		s.mu.Unlock()
+		return fmt.Errorf("invalid session")
+	}
+
+	session.LastActivity = now
+	streamKey := session.StreamKey
+	room, ok := s.rooms[streamKey]
+	s.mu.Unlock()
+
+	if !ok {
+		return fmt.Errorf("room not found")
+	}
+
+	s.sendToRoom(room, text, displayName, now)
+	return nil
+}
+
+func (s *InMemoryStore) SendToStream(streamKey string, text string, displayName string, now time.Time) error {
+	s.mu.Lock()
+	room := s.getOrCreateRoomLocked(streamKey, now)
+	s.mu.Unlock()
+
+	s.sendToRoom(room, text, displayName, now)
+	return nil
+}
+
+func (s *InMemoryStore) Cleanup(now time.Time, ttl time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for id, session := range s.sessions {
+		if now.Sub(session.LastActivity) > ttl {
+			delete(s.sessions, id)
+		}
+	}
+
+	for key, room := range s.rooms {
+		room.mu.Lock()
+		if len(room.subscribers) == 0 && now.Sub(room.lastActivity) > ttl {
+			delete(s.rooms, key)
+		}
+		room.mu.Unlock()
+	}
+}
+
+func (s *InMemoryStore) subscribeToRoom(room *Room, lastEventID uint64, now time.Time) (chan Event, func(), []Event, error) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -170,11 +290,18 @@ func (m *Manager) Subscribe(sessionID string, lastEventID uint64) (chan Event, f
 	subID := uuid.New().String()
 	ch := make(chan Event, 100)
 	ch <- Event{Type: EventTypeConnected}
-	sub := &subscriber{ch: ch}
-	room.subscribers[subID] = sub
+	room.subscribers[subID] = &subscriber{ch: ch}
 
 	var history []Event
 	if lastEventID > 0 {
+		// Count matching events first to pre-allocate
+		count := 0
+		for _, ev := range room.history {
+			if ev.ID > lastEventID {
+				count++
+			}
+		}
+		history = make([]Event, 0, count)
 		for _, ev := range room.history {
 			if ev.ID > lastEventID {
 				history = append(history, ev)
@@ -188,30 +315,20 @@ func (m *Manager) Subscribe(sessionID string, lastEventID uint64) (chan Event, f
 	cleanup := func() {
 		room.mu.Lock()
 		defer room.mu.Unlock()
+
+		sub, ok := room.subscribers[subID]
+		if !ok {
+			return
+		}
+
 		delete(room.subscribers, subID)
-		close(ch)
+		close(sub.ch)
 	}
 
 	return ch, cleanup, history, nil
 }
 
-func (m *Manager) Send(sessionID string, text string, displayName string) error {
-	now := time.Now()
-
-	m.mu.Lock()
-	session, ok := m.sessions[sessionID]
-	if !ok {
-		m.mu.Unlock()
-		return fmt.Errorf("invalid session")
-	}
-	session.LastActivity = now
-	room, ok := m.rooms[session.StreamKey]
-	if !ok {
-		m.mu.Unlock()
-		return fmt.Errorf("room not found")
-	}
-	m.mu.Unlock()
-
+func (s *InMemoryStore) sendToRoom(room *Room, text string, displayName string, now time.Time) {
 	room.mu.Lock()
 	defer room.mu.Unlock()
 
@@ -228,7 +345,7 @@ func (m *Manager) Send(sessionID string, text string, displayName string) error 
 	}
 	room.nextEventID++
 
-	if len(room.history) >= m.maxHistory {
+	if len(room.history) >= s.maxHistory {
 		room.history = append(room.history[1:], event)
 	} else {
 		room.history = append(room.history, event)
@@ -241,33 +358,23 @@ func (m *Manager) Send(sessionID string, text string, displayName string) error 
 			// Subscriber slow, drop message or handle as needed
 		}
 	}
-
-	return nil
 }
 
-func (m *Manager) cleanupLoop() {
-	ticker := time.NewTicker(m.cleanupInterval)
-	for range ticker.C {
-		m.cleanup()
-	}
-}
-
-func (m *Manager) cleanup() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	now := time.Now()
-	for id, s := range m.sessions {
-		if now.Sub(s.LastActivity) > m.defaultTTL {
-			delete(m.sessions, id)
-		}
+func (s *InMemoryStore) getOrCreateRoomLocked(streamKey string, now time.Time) *Room {
+	room, ok := s.rooms[streamKey]
+	if ok {
+		room.lastActivity = now
+		return room
 	}
 
-	for key, r := range m.rooms {
-		r.mu.Lock()
-		if len(r.subscribers) == 0 && now.Sub(r.lastActivity) > m.defaultTTL {
-			delete(m.rooms, key)
-		}
-		r.mu.Unlock()
+	room = &Room{
+		streamKey:    streamKey,
+		subscribers:  make(map[string]*subscriber),
+		history:      make([]Event, 0, s.maxHistory),
+		nextEventID:  1,
+		lastActivity: now,
 	}
+	s.rooms[streamKey] = room
+
+	return room
 }

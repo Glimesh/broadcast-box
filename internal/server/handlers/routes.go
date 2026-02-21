@@ -8,14 +8,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/environment"
 	adminHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/admin"
 	whipHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/whip"
 )
-
-// ChatManager is the global chat manager instance, initialized in main.go
-var ChatManager *chat.Manager
 
 func GetServeMuxHandler() http.HandlerFunc {
 	serverMux := http.NewServeMux()
@@ -49,11 +45,6 @@ func GetServeMuxHandler() http.HandlerFunc {
 	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminHandlers.ProfilesResetTokenHandler))
 	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminHandlers.ProfileAddHandler))
 	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminHandlers.ProfileRemoveHandler))
-
-	// Chat endpoints
-	serverMux.HandleFunc("/api/chat/connect", corsHandler(chatConnectHandler))
-	serverMux.HandleFunc("/api/chat/sse/", corsHandler(chatSSEHandler))
-	serverMux.HandleFunc("/api/chat/send/", corsHandler(chatSendHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DebugIncomingAPIRequest)

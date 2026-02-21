@@ -12,6 +12,7 @@ import (
 type (
 	WHEPSession struct {
 		SessionID            string
+		StreamKey            string
 		IsWaitingForKeyframe atomic.Bool
 		IsSessionClosed      atomic.Bool
 
