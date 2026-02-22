@@ -137,6 +137,18 @@ func (w *WHEPSession) SendPLI() {
 	w.pliSender()
 }
 
+// Reset per-publisher delivery state when a new WHIP publisher connects.
+func (w *WHEPSession) ResetForNewPublisher() {
+	w.VideoLock.Lock()
+	defer w.VideoLock.Unlock()
+
+	w.AudioLayerCurrent.Store("")
+	w.VideoLayerCurrent.Store("")
+	w.videoLayerPriority = 0
+	w.videoLayerExplicit = false
+	w.IsWaitingForKeyframe.Store(true)
+}
+
 func (w *WHEPSession) updateVideoBitrateLocked(now time.Time) {
 	if w.videoBitrateWindowStart.IsZero() {
 		w.videoBitrateWindowStart = now

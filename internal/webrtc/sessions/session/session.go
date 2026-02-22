@@ -84,6 +84,7 @@ func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
 		host.RemoveTracks()
 		return fmt.Errorf("session already has a host")
 	}
+	s.resetWHEPSessionsForNewHost()
 	host.WHEPSessionsSnapshot.Store(make(map[string]*whep.WHEPSession))
 	s.updateHostWHEPSessionsSnapshot()
 	s.HasHost.Store(true)
@@ -235,6 +236,18 @@ func (s *Session) updateHostWHEPSessionsSnapshot() {
 	s.WHEPSessionsLock.RUnlock()
 
 	host.WHEPSessionsSnapshot.Store(snapshot)
+}
+
+func (s *Session) resetWHEPSessionsForNewHost() {
+	s.WHEPSessionsLock.RLock()
+	for _, whepSession := range s.WHEPSessions {
+		if whepSession == nil {
+			continue
+		}
+
+		whepSession.ResetForNewPublisher()
+	}
+	s.WHEPSessionsLock.RUnlock()
 }
 
 // Get the status of the current session
