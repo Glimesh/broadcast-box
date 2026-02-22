@@ -71,6 +71,8 @@ ffmpeg \
   "https://b.siobud.com/api/whip"
 ```
 
+> Note that WHIP support and libx264 are required for this example. WHIP was added in version 8 of FFmpeg.
+
 ### GStreamer Broadcasting
 
 See the example script [here](examples/gstreamer-broadcast.sh).
