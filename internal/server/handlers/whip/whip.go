@@ -64,21 +64,6 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	var userProfile authorization.PublicProfile
 
-	// Stream requires webhook validation
-	if webhookURL := os.Getenv(environment.WebhookURL); webhookURL != "" {
-		streamKey, err := webhook.CallWebhook(webhookURL, webhook.WHIPConnect, token, request)
-		if err != nil {
-			responseWriter.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		userProfile = authorization.PublicProfile{
-			StreamKey: streamKey,
-			IsPublic:  true,
-			MOTD:      "Welcome to " + streamKey + "'s stream!",
-		}
-	}
-
 	// Stream profile policy
 	switch os.Getenv(environment.StreamProfilePolicy) {
 	// Only approved profiles are allowed to stream
@@ -115,6 +100,21 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 			StreamKey: token,
 			IsPublic:  true,
 			MOTD:      "Welcome to " + token + "'s stream!",
+		}
+	}
+
+	// Stream requires webhook validation
+	if webhookURL := os.Getenv(environment.WebhookURL); webhookURL != "" {
+		streamKey, err := webhook.CallWebhook(webhookURL, webhook.WHIPConnect, userProfile.StreamKey, request)
+		if err != nil {
+			responseWriter.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		userProfile = authorization.PublicProfile{
+			StreamKey: streamKey,
+			IsPublic:  true,
+			MOTD:      "Welcome to " + streamKey + "'s stream!",
 		}
 	}
 
