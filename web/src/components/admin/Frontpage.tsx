@@ -7,8 +7,7 @@ import ProfilesPage from "./menus/ProfilesPage";
 import ApiPage from "./menus/ApiPage";
 import LoggingPage from "./menus/LoggingPage";
 import { LocaleContext } from "../../providers/LocaleProvider";
-
-const ADMIN_TOKEN = "adminToken";
+import { clearAdminToken } from "./adminAuth";
 const AdminFrontpage = () => {
   const navigation = useNavigate();
   const { locale } = useContext(LocaleContext)
@@ -16,7 +15,7 @@ const AdminFrontpage = () => {
 
   const onChangeMenu = (name: string) => setCurrentMenu(() => name);
   const logout = () => {
-    localStorage.removeItem(ADMIN_TOKEN);
+    clearAdminToken();
     navigation("/");
   };
 

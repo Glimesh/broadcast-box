@@ -1,8 +1,10 @@
 import React, { useContext, useEffect, useState } from "react";
 import { LocaleContext } from "../../../providers/LocaleProvider";
-import toBase64Utf8 from "../../../utilities/base64";
-
-const ADMIN_TOKEN = "adminToken";
+import {
+  clearAdminToken,
+  getAdminAuthorizationHeader,
+  isInvalidAdminSessionResponse,
+} from "../adminAuth";
 
 const StatusPage = () => {
   const { locale } = useContext(LocaleContext)
@@ -12,12 +14,12 @@ const StatusPage = () => {
     fetch(`/api/admin/status`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${toBase64Utf8(localStorage.getItem(ADMIN_TOKEN) ?? "")}`,
+        Authorization: getAdminAuthorizationHeader(),
       },
     })
       .then((result) => {
-        if (result.status > 400 && result.status < 500) {
-          localStorage.removeItem(ADMIN_TOKEN)
+        if (isInvalidAdminSessionResponse(result.status)) {
+          clearAdminToken()
           return;
         }
 

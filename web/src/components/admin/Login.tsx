@@ -2,9 +2,12 @@
 import TextInputDialog from "../shared/TextInputDialog";
 import AdminFrontpage from "./Frontpage";
 import { LocaleContext } from "../../providers/LocaleProvider";
-import toBase64Utf8 from "../../utilities/base64";
-
-const ADMIN_TOKEN = "adminToken";
+import {
+  ADMIN_TOKEN_STORAGE_KEY,
+  clearAdminToken,
+  getAdminAuthorizationHeader,
+  isInvalidAdminSessionResponse,
+} from "./adminAuth";
 
 interface LoginResponse {
   isValid: boolean;
@@ -20,11 +23,11 @@ const Admin = () => {
     fetch(`/api/admin/login`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${toBase64Utf8(token)}`,
+        Authorization: getAdminAuthorizationHeader(token),
       },
     })
       .then((result) => {
-        if (result.status > 400 && result.status < 500) {
+        if (isInvalidAdminSessionResponse(result.status)) {
           setErrorMessage("Invalid login");
           return;
         }
@@ -33,17 +36,17 @@ const Admin = () => {
       })
       .then((result: LoginResponse) => {
         if (result.isValid) {
-          localStorage.setItem(ADMIN_TOKEN, token);
+          localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
           setIsLoggedIn(() => true);
         } else {
-          localStorage.removeItem(ADMIN_TOKEN);
+          clearAdminToken();
           setErrorMessage(() => result.errorMessage);
         }
       });
   };
 
   useEffect(() => {
-    const token = localStorage.getItem(ADMIN_TOKEN);
+    const token = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
 
     if (!token) {
       return;
@@ -52,7 +55,7 @@ const Admin = () => {
     fetch(`/api/admin/login`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${toBase64Utf8(token)}`,
+        Authorization: getAdminAuthorizationHeader(token),
       },
     })
       .then((result) => result.json())
