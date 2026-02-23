@@ -50,7 +50,7 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "react-router-dom": "^7.6.2",
-    "tailwindcss": "^4.1.10",
+    "tailwindcss": "^4.2.0",
     "typescript": "^5.8.3",
     "vite": "^7.3.1"
   }
