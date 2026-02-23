@@ -34,24 +34,44 @@ function BrowserBroadcaster() {
 	const [profileStreamKey, setProfileStreamKey] = useState<string>("")
 
 	const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+	const localMediaStreamRef = useRef<MediaStream | null>(null)
+	const eventSourceRef = useRef<EventSource | null>(null)
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const hasSignalRef = useRef<boolean>(false);
 	const badSignalCountRef = useRef<number>(10);
 
 	const endStream = () => navigate('/')
 
-	useEffect(() => {
-		peerConnectionRef.current = new RTCPeerConnection();
+	const stopLocalMediaStream = (localMediaStream: MediaStream | null) => {
+		if (!localMediaStream) {
+			return
+		}
 
-		return () => peerConnectionRef.current?.close()
+		localMediaStream
+			.getTracks()
+			.forEach((streamTrack: MediaStreamTrack) => streamTrack.stop())
+	}
+
+	const getSenderByKind = (peerConnection: RTCPeerConnection, kind: "audio" | "video") => {
+		return peerConnection.getTransceivers().find(transceiver => transceiver.sender.track?.kind === kind)?.sender ??
+			peerConnection.getTransceivers().find(transceiver => transceiver.receiver.track.kind === kind)?.sender ??
+			null
+	}
+
+	useEffect(() => {
+		return () => {
+			eventSourceRef.current?.close()
+			stopLocalMediaStream(localMediaStreamRef.current)
+			localMediaStreamRef.current = null
+			peerConnectionRef.current?.close()
+			peerConnectionRef.current = null
+		}
 	}, [])
 
 	useEffect(() => {
-		if (useDisplayMedia === "None" || !peerConnectionRef.current) {
+		if (useDisplayMedia === "None") {
 			return;
 		}
-
-		let stream: MediaStream | undefined = undefined;
 
 		if (!navigator.mediaDevices) {
 			setMediaAccessError(() => ErrorMessageEnum.NoMediaDevices);
@@ -59,67 +79,104 @@ function BrowserBroadcaster() {
 			return
 		}
 
+		let cancelled = false
+
 		const mediaPromise = useDisplayMedia == "Screen" ?
 			navigator.mediaDevices.getDisplayMedia(mediaOptions) :
 			navigator.mediaDevices.getUserMedia(mediaOptions)
 
-		mediaPromise.then(mediaStream => {
-			if (peerConnectionRef.current!.connectionState === "closed") {
-				mediaStream
-					.getTracks()
-					.forEach(mediaStreamTrack => mediaStreamTrack.stop())
+		mediaPromise.then(async mediaStream => {
+			const nextLocalMediaStream = mediaStream
 
+			if (cancelled) {
+				stopLocalMediaStream(nextLocalMediaStream)
 				return;
 			}
 
-			stream = mediaStream
+			const videoTrack = mediaStream.getVideoTracks()[0] ?? null
+			const audioTrack = mediaStream.getAudioTracks()[0] ?? null
+
+			const existingPeerConnection = peerConnectionRef.current
+			if (existingPeerConnection) {
+				const videoSender = getSenderByKind(existingPeerConnection, "video")
+				const audioSender = getSenderByKind(existingPeerConnection, "audio")
+
+				await Promise.all([
+					videoSender?.replaceTrack(videoTrack) ?? Promise.resolve(),
+					audioSender?.replaceTrack(audioTrack) ?? Promise.resolve(),
+				])
+
+				if (
+					cancelled ||
+					peerConnectionRef.current !== existingPeerConnection
+				) {
+					stopLocalMediaStream(nextLocalMediaStream)
+					return;
+				}
+
+				videoRef.current!.srcObject = mediaStream
+				const previousLocalMediaStream = localMediaStreamRef.current
+				localMediaStreamRef.current = nextLocalMediaStream
+				stopLocalMediaStream(previousLocalMediaStream)
+				return
+			}
+
+			const peerConnection = new RTCPeerConnection();
+			peerConnectionRef.current = peerConnection
+
+			if (
+				cancelled ||
+				peerConnectionRef.current !== peerConnection
+			) {
+				if (peerConnectionRef.current === peerConnection) {
+					peerConnectionRef.current = null
+				}
+				peerConnection.close()
+				stopLocalMediaStream(nextLocalMediaStream)
+				return
+			}
+
 			videoRef.current!.srcObject = mediaStream
+			const previousLocalMediaStream = localMediaStreamRef.current
+			localMediaStreamRef.current = nextLocalMediaStream
+			stopLocalMediaStream(previousLocalMediaStream)
+
+			peerConnection.addTransceiver(audioTrack ? audioTrack : "audio", { direction: 'sendonly' })
+
 			const isFirefox = navigator.userAgent.toLowerCase().includes('firefox')
-
 			const encodingPrefix = "Web"
-			mediaStream
-				.getTracks()
-				.forEach(mediaStreamTrack => {
-					if (mediaStreamTrack.kind === 'audio') {
-						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
-							direction: 'sendonly',
-						})
-					} else {
-						peerConnectionRef.current!.addTransceiver(mediaStreamTrack, {
-							direction: 'sendonly',
-							sendEncodings: isFirefox ? undefined : [
-								{
-									rid: encodingPrefix + 'High',
-								},
-								{
-									rid: encodingPrefix + 'Mid',
-									scaleResolutionDownBy: 2.0
-								},
-								{
-									rid: encodingPrefix + 'Low',
-									scaleResolutionDownBy: 4.0
-								}
-							]
-						})
+			peerConnection.addTransceiver(videoTrack ? videoTrack : "video", {
+				direction: 'sendonly',
+				sendEncodings: isFirefox ? undefined : [
+					{
+						rid: encodingPrefix + 'High',
+					},
+					{
+						rid: encodingPrefix + 'Mid',
+						scaleResolutionDownBy: 2.0
+					},
+					{
+						rid: encodingPrefix + 'Low',
+						scaleResolutionDownBy: 4.0
 					}
-				})
+				],
+			})
 
-			peerConnectionRef.current!.oniceconnectionstatechange = () => {
-				if (peerConnectionRef.current!.iceConnectionState === 'connected' || peerConnectionRef.current!.iceConnectionState === 'completed') {
+			peerConnection.oniceconnectionstatechange = () => {
+				if (peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed') {
 					setPublishSuccess(() => true)
 					setMediaAccessError(() => null)
 					setPeerConnectionDisconnected(() => false)
-				} else if (peerConnectionRef.current!.iceConnectionState === 'disconnected' || peerConnectionRef.current!.iceConnectionState === 'failed') {
+				} else if (peerConnection.iceConnectionState === 'disconnected' || peerConnection.iceConnectionState === 'failed') {
 					setPublishSuccess(() => false)
 					setPeerConnectionDisconnected(() => true)
 				}
 			}
 
-			peerConnectionRef
-				.current!
+			peerConnection
 				.createOffer()
 				.then(offer => {
-					peerConnectionRef.current!.setLocalDescription(offer)
+					peerConnection.setLocalDescription(offer)
 						.catch((err) => console.error("SetLocalDescription", err));
 
 					fetch(`/api/whip`, {
@@ -141,7 +198,9 @@ function BrowserBroadcaster() {
 							throw new DOMException("Missing link header");
 						}
 
+						eventSourceRef.current?.close()
 						const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
+						eventSourceRef.current = evtSource
 
 						evtSource.onerror = () => evtSource.close();
 
@@ -150,7 +209,7 @@ function BrowserBroadcaster() {
 
 						return r.text()
 					}).then(answer => {
-						peerConnectionRef.current!.setRemoteDescription({
+						peerConnection.setRemoteDescription({
 							sdp: answer,
 							type: 'answer'
 						}).catch((err) => console.error("SetRemoteDescription", err))
@@ -162,12 +221,7 @@ function BrowserBroadcaster() {
 		})
 
 		return () => {
-			peerConnectionRef.current?.close()
-			if (stream) {
-				stream
-					.getTracks()
-					.forEach((streamTrack: MediaStreamTrack) => streamTrack.stop())
-			}
+			cancelled = true
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [videoRef, useDisplayMedia, location.pathname])
