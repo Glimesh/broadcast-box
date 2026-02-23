@@ -54,6 +54,8 @@ interface StatusProviderProps {
 	children: React.ReactNode;
 }
 
+const STATUS_POLL_INTERVAL_MS = 5000;
+
 class FetchError extends Error {
 	status: number;
 
@@ -107,21 +109,28 @@ export const StatusContext = React.createContext<StatusProviderContextProps>({
 });
 
 export function StatusProvider(props: StatusProviderProps) {
-	const [isStatusActive, setIsStatusActive] = useState<boolean>(false)
 	const [streamStatus, setStreamStatus] = useState<StatusResult[] | undefined>(undefined)
 	const [currentStreamStatus, setCurrentStreamStatus] = useState<StreamStatus | undefined>(undefined)
-	const intervalCountRef = useRef<number>(5000);
-	const intervalRef = useRef<number | undefined>(0)
+	const intervalRef = useRef<number | undefined>(undefined)
 	const subscribers = useRef<number>(0)
 
 	const fetchStatusResultHandler = (result: StatusResult[]) => {
 		setStreamStatus(() => result);
 	}
+
 	const fetchStatusErrorHandler = (error: FetchError) => {
 		if (error.status === 503) {
-			setIsStatusActive(() => false)
 			setStreamStatus(() => undefined);
 		}
+	}
+
+	const refreshStatus = async () => {
+		await fetchStatus(fetchStatusResultHandler, fetchStatusErrorHandler)
+	}
+
+	const stopFetching = () => {
+		clearInterval(intervalRef.current)
+		intervalRef.current = undefined
 	}
 
 	const subscribe = () => {
@@ -135,46 +144,26 @@ export function StatusProvider(props: StatusProviderProps) {
 	const unsubscribe = () => {
 		subscribers.current--;
 
-		if (subscribers.current == 0) {
-			clearInterval(intervalRef.current)
-			intervalRef.current = undefined
+		if (subscribers.current === 0) {
+			stopFetching()
 		}
 	}
 
 	const startFetching = () => {
 		if (!intervalRef.current) {
-			const intervalHandler = async () => {
-				await fetchStatus(
-					fetchStatusResultHandler,
-					fetchStatusErrorHandler)
-			}
-
-			intervalRef.current = setInterval(intervalHandler, intervalCountRef.current)
+			intervalRef.current = setInterval(() => {
+				void refreshStatus()
+			}, STATUS_POLL_INTERVAL_MS)
 		}
 	}
 
-	useEffect(() => {
-		if (!isStatusActive) {
-			return
-		}
-
-		const intervalHandler = async () => {
-			await fetchStatus(
-				fetchStatusResultHandler,
-				fetchStatusErrorHandler)
-		}
-
-		intervalRef.current = setInterval(intervalHandler, intervalCountRef.current)
-		return () => clearInterval(intervalRef.current)
-	}, [isStatusActive]);
+	useEffect(() => stopFetching, [])
 
 	const state = useMemo<StatusProviderContextProps>(() => ({
 		activeStreamsStatus: streamStatus,
 		currentStreamStatus: currentStreamStatus,
-		refreshStatus: async () => {
-			await fetchStatus(
-				fetchStatusResultHandler,
-				fetchStatusErrorHandler)
+		refreshStatus: () => {
+			void refreshStatus()
 		},
 		subscribe: subscribe,
 		unsubscribe: unsubscribe,
