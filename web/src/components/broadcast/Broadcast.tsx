@@ -18,6 +18,8 @@ const mediaOptions = {
 	},
 }
 
+type MediaSource = "Screen" | "Webcam"
+
 function BrowserBroadcaster() {
 	const location = useLocation()
 	const { locale } = useContext(LocaleContext)
@@ -25,7 +27,8 @@ function BrowserBroadcaster() {
 	const streamKey = decodeURIComponent(location.pathname.split('/').pop() ?? "")
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
-	const [useDisplayMedia, setUseDisplayMedia] = useState<"Screen" | "Webcam" | "None">("None");
+	const [useDisplayMedia, setUseDisplayMedia] = useState<MediaSource | "None">("None");
+	const [mediaRequestCount, setMediaRequestCount] = useState(0)
 	const [peerConnectionDisconnected, setPeerConnectionDisconnected] = useState(false)
 	const [hasPacketLoss, setHasPacketLoss] = useState<boolean>(false)
 	const [hasSignal, setHasSignal] = useState<boolean>(false);
@@ -41,6 +44,10 @@ function BrowserBroadcaster() {
 	const badSignalCountRef = useRef<number>(10);
 
 	const endStream = () => navigate('/')
+	const requestMedia = (source: MediaSource) => {
+		setUseDisplayMedia(source)
+		setMediaRequestCount(prev => prev + 1)
+	}
 
 	const stopLocalMediaStream = (localMediaStream: MediaStream | null) => {
 		if (!localMediaStream) {
@@ -224,7 +231,7 @@ function BrowserBroadcaster() {
 			cancelled = true
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [videoRef, useDisplayMedia, location.pathname])
+	}, [videoRef, useDisplayMedia, mediaRequestCount, location.pathname])
 
 	useEffect(() => {
 		hasSignalRef.current = hasSignal;
@@ -302,11 +309,11 @@ function BrowserBroadcaster() {
 					<Button
 						color='Accept'
 						title={locale.player_header.publish_screen}
-						onClick={() => setUseDisplayMedia("Screen")}
+						onClick={() => requestMedia("Screen")}
 					/>
 					<Button
 						title={locale.player_header.publish_webcam}
-						onClick={() => setUseDisplayMedia("Webcam")}
+						onClick={() => requestMedia("Webcam")}
 					/>
 				</div>
 			)}
