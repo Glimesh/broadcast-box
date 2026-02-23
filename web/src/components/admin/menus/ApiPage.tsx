@@ -10,7 +10,7 @@ interface ApiSettingsResult {
 
 const ApiPage = () => {
   const { locale } = useContext(LocaleContext)
-  const [response, setResponse] = useState<ApiSettingsResult[]>()
+  const [response] = useState<ApiSettingsResult[]>()
 
   // const refreshStatus = () => {
   //   fetch(`/api/admin/status`, {

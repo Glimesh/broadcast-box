@@ -39,8 +39,6 @@ const Player = (props: PlayerProps) => {
 	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 
-	const [resetCounter, setResetCounter] = useState(0)
-
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
@@ -142,8 +140,6 @@ const Player = (props: PlayerProps) => {
 		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
 
 		peerConnectionConfig.onStreamRestart = () => {
-			setResetCounter((prev) => prev + 1)
-
 			PeerConnectionSetup(peerConnectionConfig)
 				.then((peerConnection) => {
 					window.addEventListener("beforeunload", () => peerConnection.close())
