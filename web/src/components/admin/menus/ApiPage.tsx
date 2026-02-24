@@ -1,8 +1,6 @@
 import React, { useContext, useState } from "react";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 
-// const ADMIN_TOKEN = "adminToken";
-
 interface ApiSettingsResult {
   name: string
   value: string
@@ -11,29 +9,6 @@ interface ApiSettingsResult {
 const ApiPage = () => {
   const { locale } = useContext(LocaleContext)
   const [response] = useState<ApiSettingsResult[]>()
-
-  // const refreshStatus = () => {
-  //   fetch(`/api/admin/status`, {
-  //     method: "GET",
-  //     headers: {
-  //       Authorization: `Bearer ${localStorage.getItem(ADMIN_TOKEN)}`,
-  //     },
-  //   })
-  //     .then((result) => {
-  //       if (result.status > 400 && result.status < 500) {
-  //         localStorage.removeItem(ADMIN_TOKEN)
-  //         return;
-  //       }
-  //       return result.json();
-  //     })
-  //     .then((result) => {
-  //       setResponse(() => result)
-  //     });
-  // };
-
-  // useEffect(() => {
-  //   refreshStatus()
-  // }, [])
 
   return (
     <div className="p-6 w-full max-w-6xl mx-auto">
