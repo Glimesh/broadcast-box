@@ -17,7 +17,7 @@
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
   - [Environment variables](#environment-variables)
-  - [Webhook - Authentication and Logging](#webhook---authentication-and-logging)
+  - [Webhooks](#webhooks)
   - [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
@@ -198,7 +198,7 @@ The frontend can be configured by passing these URL Parameters.
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `STREAM_PROFILE_PATH`   | Path to store stream profile configurations.                                                                                                    |
 | `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. Default is 'Anyone' See [Stream Profile Policy](#stream-profile-policy).                              |
-| `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhook - Authentication and Logging](#webhook---authentication-and-logging). |
+| `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhooks](#webhooks). |
 
 ### Frontend Configuration
 
@@ -262,12 +262,11 @@ The `STREAM_PROFILE_POLICY` environment variable controls who is allowed to init
 | `ANYONE_WITH_RESERVED` | If Stream keys are reserved in advance, only a valid token can be used with them. If not reserved, anyone can used the streamkey |
 | `RESERVED`             | Only users with a valid token **and** a reserved stream key are allowed to stream. This is the most restrictive mode.            |
 
-## Webhook - Authentication and Logging
+## Webhooks
 
-To prevent random users from streaming to your server, you can set the `WEBHOOK_URL` and validate/process requests in your code. This enables you to separate the authorization between broadcasting (whip) and watching (whep). So you can safely share a watch link without exposing the key used for broadcasting.
+When `WEBHOOK_URL` is set Broadcast Box sends a webhook for every publish and subscribe. If this webhook is rejected the video session is disconnected.
 
-If the request succeeds (meaning the stream key is accepted), broadcast-box redirects the stream to an url given
-by the external server, otherwise the streaming request is dropped.
+This enables you to implement authorization or logging for broadcasting (WHIP) and subscribing (WHEP) independently.
 
 See [here](examples/webhook-server/main.go). For an example Webhook Server that only allows the stream `broadcastBoxRulez`
 
