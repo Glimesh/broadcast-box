@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 import {
   clearAdminToken,
@@ -9,8 +9,9 @@ import {
 const StatusPage = () => {
   const { locale } = useContext(LocaleContext)
   const [response, setResponse] = useState<StatusResult[]>()
+  const statusRefreshIntervalMs = 5000
 
-  const refreshStatus = () => {
+  const refreshStatus = useCallback(() => {
     fetch(`/api/admin/status`, {
       method: "GET",
       headers: {
@@ -28,11 +29,14 @@ const StatusPage = () => {
       .then((result) => {
         setResponse(() => result)
       });
-  };
+  }, []);
 
   useEffect(() => {
     refreshStatus()
-  }, [])
+    const interval = setInterval(refreshStatus, statusRefreshIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [refreshStatus, statusRefreshIntervalMs])
 
   return (
     <div className="p-6 w-full max-w-6xl mx-auto">

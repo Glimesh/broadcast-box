@@ -6,9 +6,13 @@
 - [What is Broadcast Box](#what-is-broadcast-box)
 - [Using](#using)
   - [OBS Broadcasting](#obs-broadcasting)
+  - [Browser Publishing](#browser-publishing)
   - [FFmpeg Broadcasting](#ffmpeg-broadcasting)
   - [GStreamer Broadcasting](#gstreamer-broadcasting)
   - [Playback](#playback)
+  - [Admin Portal](#admin-portal)
+  - [Statistics](#statistics)
+  - [Examples](#examples)
 - [Getting Started](#getting-started)
   - [Configuring](#configuring)
   - [Building From Source](#building-from-source)
@@ -16,9 +20,12 @@
   - [Backend](#backend)
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
-  - [Environment variables](#environment-variables)
-  - [Webhooks](#webhooks)
-  - [Network Test on Start](#network-test-on-start)
+- [URL Parameters](#url-parameters)
+- [Environment Variables](#environment-variables)
+- [CLI Flags](#cli-flags)
+- [Stream Profile Policy](#stream-profile-policy)
+- [Webhooks](#webhooks)
+- [Network Test on Start](#network-test-on-start)
 - [Design](#design)
 
 ## What is Broadcast Box
@@ -57,6 +64,14 @@ page will look like this.
 
 When you are ready to broadcast press `Start Streaming` and now time to watch!
 
+### Browser Publishing
+
+Open `/publish/<streamKey>` (for example <https://b.siobud.com/publish/StreamTest>) to publish directly from the browser.
+Broadcast Box can capture either your screen or webcam and uses the same stream key for playback.
+
+If the supplied bearer token belongs to a reserved profile, the page also exposes profile settings so you can update
+the stream MOTD and toggle public/private visibility without leaving the publish flow.
+
 ### FFmpeg Broadcasting
 The following broadcasts a test feed to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
 
@@ -94,10 +109,46 @@ Use of example scripts:
 
 If you are broadcasting to the Stream Key `StreamTest` your video will be available at <https://b.siobud.com/StreamTest>.
 
+The player page also supports multi-view playback. Use the `Add Stream` button in the footer to add more active streams
+to the same page, and use `?cinemaMode=true` to open the player in a chrome-free layout.
+
 You can also go to the home page and enter `StreamTest`. The following is a screenshot of OBS broadcasting and
 the latency of 120 milliseconds observed.
 
 ![Example have potential latency](./.github/img/broadcastView.png)
+
+### Admin Portal
+
+When `FRONTEND_ADMIN_TOKEN` is set Broadcast Box provides an Admin Portal at `/admin`. The same token is used to log in.
+
+The current Admin Portal exposes:
+
+- `Status` to inspect active publishers/subscribers and metadata
+- `Profiles` to create stream profiles, rotate tokens, and remove profiles
+- `Logging` to read the current server log file
+
+Stream Profiles let you reserve a stream key, so only authorized users can stream to that key.
+
+![Admin Portal](./.github/img/adminPortal.png)
+
+### Statistics
+
+Viewable at `/statistics`, this page shows stream uptime, track metrics, and WHEP session details.
+
+This page relies on `/api/status`, so disabling the status API disables statistics.
+
+![Statistics](./.github/img/statistics.png)
+
+### Examples
+
+The repository includes a few small examples and integration helpers:
+
+- [examples/simple-watcher.html](./examples/simple-watcher.html) - minimal WHEP viewer with no framework dependencies
+- [examples/dynamic-watcher.html](./examples/dynamic-watcher.html) - polls `/api/status` and opens viewers for all active streams
+- [examples/gstreamer-broadcast.sh](./examples/gstreamer-broadcast.sh) - publishes a stream with GStreamer
+- [examples/gstreamer-whep-to-rtmp.sh](./examples/gstreamer-whep-to-rtmp.sh) - subscribes over WHEP and republishes to RTMP with GStreamer
+- [examples/webhook-server/main.go](./examples/webhook-server/main.go) - simple webhook authorization server
+- [examples/recording/main.go](./examples/recording/main.go) - webhook-driven recorder that writes `.ogg` and `.h264` files
 
 ## Getting Started
 
@@ -105,13 +156,20 @@ Broadcast Box is made up of two parts. The server is written in Go and is in cha
 
 ### Configuring
 
-Configurations can be made in [.env.production](./.env.production), although the defaults should get things going.
+The backend loads [.env.production](./.env.production) by default. Set `APP_ENV=development` to load
+[.env.development](./.env.development) instead.
+
+If you only want the backend API or CLI helpers without serving the built frontend, set `DISABLE_FRONTEND=TRUE`.
 
 ### Building From Source
 
 #### Frontend
 
-React dependencies are installed by running `npm install` in the `web` directory and `npm run build` will build the frontend.
+React dependencies are installed by running `npm install` in the `web` directory.
+
+- `npm run build` builds production assets into `web/build`
+- `npm start` runs the Vite dev server and proxies `/api` to the backend
+- `npm run host` runs the same Vite dev server on your local network
 
 If everything is successful, you should see output similar to:
 
@@ -138,8 +196,8 @@ Go dependencies are automatically installed.
 To run the Go server, run `go run .` in the root of this project, you should see the following:
 
 ```console
-2022/12/11 16:02:14 Loading `.env.production`
-2022/12/11 16:02:14 Running HTTP Server at `:8080`
+2026/02/24 12:00:00 Environment: Loading `.env.production`
+2026/02/24 12:00:00 Starting HTTP server at :8080
 ```
 
 To use Broadcast Box navigate to: `http://<YOUR_IP>:8080`. In your broadcast tool of choice, you will broadcast to `http://<YOUR_IP>:8080/api/whip`.
@@ -175,61 +233,61 @@ The frontend can be configured by passing these URL Parameters.
 
 ### Server Configuration
 
-| Variable                | Description                                              |
-| ----------------------- | -------------------------------------------------------- |
-| `HTTP_ADDRESS`          | Address for the HTTP server to bind to.                  |
-| `ENABLE_HTTP_REDIRECT`  | Enables automatic redirection from HTTP to HTTPS.        |
-| `HTTPS_REDIRECT_PORT`   | Port to redirect HTTP traffic to HTTPS when using HTTPS. |
-| `NETWORK_TEST_ON_START` | If "true", checks network connectivity on startup.       |
-| `DISABLE_STATUS`        | Disables the status API endpoint.                        |
-| `ENABLE_PROFILING`      | Enables PPROF profiling on localhost:6060                |
+| Variable                | Description                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `APP_ENV`               | Set to `development` to load `.env.development` instead of `.env.production`.                                |
+| `HTTP_ADDRESS`          | Address for the main server to bind to. Used for HTTP, or HTTPS when certificates are configured.            |
+| `ENABLE_HTTP_REDIRECT`  | When set, enables automatic redirection from HTTP to HTTPS.                                                  |
+| `HTTPS_REDIRECT_PORT`   | Port to listen on for the HTTP-to-HTTPS redirect server.                                                     |
+| `NETWORK_TEST_ON_START` | If `true`, checks network connectivity on startup.                                                           |
+| `DISABLE_STATUS`        | When set, disables `/api/status`. Stream discovery and `/statistics` rely on this endpoint.                  |
+| `ENABLE_PROFILING`      | If `true`, enables PPROF profiling on `localhost:6060`.                                                      |
 
 ### SSL Configuration
 
-| Variable   | Description                       |
-| ---------- | --------------------------------- |
-| `USE_SSL`  | Setup the server to run with SSL. |
-| `SSL_CERT` | Path to the SSL certificate file. |
-| `SSL_KEY`  | Path to the SSL key file.         |
+| Variable   | Description                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| `SSL_CERT` | Path to the SSL certificate file. When set together with `SSL_KEY`, the Go server serves HTTPS. |
+| `SSL_KEY`  | Path to the SSL key file. When set together with `SSL_CERT`, the Go server serves HTTPS.       |
 
 ### Authorization & Profiles
 
-| Variable                | Description                                                                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STREAM_PROFILE_PATH`   | Path to store stream profile configurations.                                                                                                    |
-| `STREAM_PROFILE_POLICY` | Policy configuration for stream profiles. Default is 'Anyone' See [Stream Profile Policy](#stream-profile-policy).                              |
-| `WEBHOOK_URL`           | URL for webhook backend used for authentication and logging. see [Webhooks](#webhooks). |
+| Variable                | Description                                                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `STREAM_PROFILE_PATH`   | Path to store stream profile configurations. Default is `profiles`.                                                                       |
+| `STREAM_PROFILE_POLICY` | Policy configuration for local reserved profiles. Default is `ANYONE_WITH_RESERVED`. See [Stream Profile Policy](#stream-profile-policy). |
+| `WEBHOOK_URL`           | URL for a webhook backend used to authorize/log publish (`WHIP`) and subscribe (`WHEP`) requests. See [Webhooks](#webhooks).            |
 
 ### Frontend Configuration
 
-| Variable               | Description                      |
-| ---------------------- | -------------------------------- |
-| `DISABLE_FRONTEND`     | Disables frontend serving.       |
-| `FRONTEND_PATH`        | Path to frontend assets.         |
-| `FRONTEND_ADMIN_TOKEN` | Admin token for frontend access. |
+| Variable               | Description                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `DISABLE_FRONTEND`     | Disables frontend asset serving and UI routes (`/`, `/publish`, `/statistics`, `/admin`). |
+| `FRONTEND_PATH`        | Path to built frontend assets. Defaults to `./web/build`.                                 |
+| `FRONTEND_ADMIN_TOKEN` | Enables `/admin` and defines the bearer token required to log in.                         |
 
 ### WebRTC & Networking
 
-| Variable                             | Description                                                              |
-| ------------------------------------ | ------------------------------------------------------------------------ |
-| `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` | Automatically includes public IPs in NAT configuration.                  |
-| `NAT_1_TO_1_IP`                      | Manually specify IPs (like Public IP) to announce, delineated by `\|`    |
-| `INTERFACE_FILTER`                   | Restrict UDP traffic to a specific network interface.                    |
-| `NAT_ICE_CANDIDATE_TYPE`             | Set to `srflx` to append IPs instead of overriding with `NAT_1_TO_1_IP`. |
-| `NETWORK_TYPES`                      | List of network types to use delineated by `\|` (e.g.,`udp4 \|udp6`).    |
-| `INCLUDE_LOOPBACK_CANDIDATE`         | Enables WebRTC traffic on loopback interface.                            |
-| `UDP_MUX_PORT`                       | Port to multiplex all UDP traffic. Uses random port by default.          |
-| `UDP_MUX_PORT_WHEP`                  | Port to multiplex WHEP traffic only.                                     |
-| `UDP_MUX_PORT_WHIP`                  | Port to multiplex WHIP traffic only.                                     |
-| `TCP_MUX_ADDRESS`                    | Address to serve WebRTC traffic over TCP.                                |
-| `TCP_MUX_FORCE`                      | Forces WebRTC traffic to use TCP only.                                   |
-| `APPEND_CANDIDATE`                   | Appends ICE candidates not generated by the agent.                       |
+| Variable                             | Description                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| `INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP` | Automatically includes public IPs in NAT configuration.                   |
+| `NAT_1_TO_1_IP`                      | Manually specify IPs (like Public IP) to announce, delineated by `\|`     |
+| `INTERFACE_FILTER`                   | Restrict UDP traffic to a specific network interface.                     |
+| `NAT_ICE_CANDIDATE_TYPE`             | Set to `srflx` to append IPs instead of overriding with `NAT_1_TO_1_IP`.  |
+| `NETWORK_TYPES`                      | List of network types to use delineated by `\|` (e.g.,`udp4 \|udp6`).     |
+| `INCLUDE_LOOPBACK_CANDIDATE`         | Enables WebRTC traffic on loopback interface.                             |
+| `UDP_MUX_PORT`                       | Port to multiplex all UDP traffic. Uses random port by default.           |
+| `UDP_MUX_PORT_WHEP`                  | Port to multiplex WHEP traffic only.                                      |
+| `UDP_MUX_PORT_WHIP`                  | Port to multiplex WHIP traffic only.                                      |
+| `TCP_MUX_ADDRESS`                    | Address to serve WebRTC traffic over TCP.                                 |
+| `TCP_MUX_FORCE`                      | Forces WebRTC traffic to use TCP only.                                    |
+| `APPEND_CANDIDATE`                   | Appends ICE candidates not generated by the agent.                        |
 
 ### STUN Servers
 
-| Variable       | Description                                            |
-| -------------- | ------------------------------------------------------ |
-| `STUN_SERVERS` | List of STUN servers separated by `\|`.               |
+| Variable       | Description                             |
+| -------------- | --------------------------------------- |
+| `STUN_SERVERS` | List of STUN servers separated by `\|`. |
 
 These values are parsed by the Go backend and applied to WHIP/WHEP `PeerConnection` configuration server-side. Clients do not fetch ICE server configuration from an API endpoint.
 
@@ -244,27 +302,63 @@ These values are parsed by the Go backend and applied to WHIP/WHEP `PeerConnecti
 
 ### Logging
 
-| Variable                      | Description                                                                                              |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `LOGGING_ENABLED`             | Enables logging system.                                                                                  |
-| `LOGGING_DIRECTORY`           | Directory to store log files.                                                                            |
+| Variable                      | Description                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `LOGGING_ENABLED`             | Enables logging system.                                                                                   |
+| `LOGGING_DIRECTORY`           | Directory to store log files.                                                                             |
 | `LOGGING_SINGLEFILE`          | Logs everything into a single file called 'log'. Default is log files are stamped with current date.     |
 | `LOGGING_NEW_FILE_ON_STARTUP` | Creates a new log file on each startup. Either a new 'log' file, or replaces the current dates log file. |
-| `LOGGING_API_ENABLED`         | Enables logging API to show current log entries on the backend. `/api/log`                               |
-| `LOGGING_API_KEY`             | When set, the logging API requires a bearer token that uses this key.                                    |
+| `LOGGING_API_ENABLED`         | Enables logging API to show current log entries on the backend. `/api/log`                                |
+| `LOGGING_API_KEY`             | When set, the logging API requires a bearer token that uses this key.                                     |
+
+### Chat
+
+| Variable                | Description                                                    |
+| ----------------------- | -------------------------------------------------------------- |
+| `CHAT_MAX_HISTORY`      | Maximum number of chat messages retained per stream in memory. |
+| `CHAT_DEFAULT_TTL`      | How long idle chat sessions stay alive before they expire.     |
+| `CHAT_CLEANUP_INTERVAL` | How often expired chat sessions are cleaned up.                |
+
+Broadcast Box also attaches a WebRTC data channel (`bb-chat-v1`) to WHIP/WHEP peer connections for simple
+per-stream chat state, although the bundled frontend does not currently expose a chat UI.
+
+## CLI Flags
+
+The binary also supports a small local profile-management helper:
+
+- `-createNewProfile -streamKey <stream-key>` creates a new reserved profile in `STREAM_PROFILE_PATH`, prints the bearer token, and exits
+
+Example:
+
+```shell
+go run . -createNewProfile -streamKey MyStream
+```
 
 ## Stream Profile Policy
 
 The `STREAM_PROFILE_POLICY` environment variable controls who is allowed to initiate streaming sessions based on profile reservation status.
 
-| Value                  | Description                                                                                                                      |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `ANYONE_WITH_RESERVED` | If Stream keys are reserved in advance, only a valid token can be used with them. If not reserved, anyone can used the streamkey |
-| `RESERVED`             | Only users with a valid token **and** a reserved stream key are allowed to stream. This is the most restrictive mode.            |
+| Value                  | Description                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ANYONE_WITH_RESERVED` | Reserved stream keys require a valid token. Unreserved stream keys may still be used by anyone.                    |
+| `RESERVED`             | Only users with a valid token **and** a reserved stream key are allowed to stream. This is the most restrictive mode. |
+
+Any other value currently falls back to `ANYONE_WITH_RESERVED` behavior.
 
 ## Webhooks
 
 When `WEBHOOK_URL` is set Broadcast Box sends a webhook for every publish and subscribe. If this webhook is rejected the video session is disconnected.
+
+The webhook payload includes:
+
+- `action` (`whip-connect` for publishers, `whep-connect` for viewers)
+- `bearerToken`
+- `queryParams`
+- `ip`
+- `userAgent`
+
+The webhook must return HTTP `200 OK` with a JSON body like `{ "streamKey": "YourResolvedStreamKey" }`.
+Any other status code rejects the session.
 
 This enables you to implement authorization or logging for broadcasting (WHIP) and subscribing (WHEP) independently.
 
@@ -312,12 +406,36 @@ If you wish to disable the test set the environment variable `NETWORK_TEST_ON_ST
 
 The backend exposes the following endpoints to support WebRTC streaming and server-side monitoring:
 
-| Endpoint      | Description                                                                                                       |
-| ------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `/api/whip`   | Initiates a WHIP session for broadcasting video via WebRTC. Requires the Authorization header with a bearer token |
-| `/api/whep`   | Initiates a WHEP session for video playback via WebRTC.                                                           |
-| `/api/status` | Returns the status of all active WHIP streams. If a Stream Profile is not public, it will not be included.        |
-| `/api/log`    | Retrieves current server logs. Useful for debugging and monitoring runtime activity.                              |
+| Endpoint                             | Description                                                                                                                            |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/whip`                          | Initiates a WHIP session for broadcasting via WebRTC. Requires an `Authorization: Bearer <token>` header.                              |
+| `/api/whip/{sessionID}`              | `PATCH` handles WHIP trickle ICE for an existing session and `DELETE` closes it. Requires the same bearer token.                       |
+| `/api/whip/profile`                  | `GET`/`POST` endpoint for reading or updating the reserved profile (MOTD/privacy) associated with the supplied bearer token.           |
+| `/api/whep`                          | Initiates a WHEP session for playback via WebRTC. Requires an `Authorization: Bearer <streamKey>` header.                              |
+| `/api/whep/{sessionID}`              | `PATCH` handles WHEP trickle ICE for an existing playback session.                                                                     |
+| `/api/sse/{sessionID}`               | Server-sent events for stream status and available layers.                                                                             |
+| `/api/layer/{sessionID}`             | Switches audio/video layers for a WHEP session.                                                                                        |
+| `/api/status`                        | Returns the status of all active public WHIP streams. Pass `?key=<streamKey>` to fetch one active stream by key.                       |
+| `/api/log`                           | Returns the current log file when `LOGGING_API_ENABLED=TRUE`. If `LOGGING_API_KEY` is set, this endpoint also requires a bearer token. |
+| `/api/admin/login`                   | Validates the admin bearer token configured in `FRONTEND_ADMIN_TOKEN`.                                                                 |
+| `/api/admin/status`                  | Returns full session state for the admin UI, including private streams.                                                                |
+| `/api/admin/profiles`                | Lists configured stream profiles for the admin UI.                                                                                     |
+| `/api/admin/profiles/add-profile`    | Creates a new stream profile.                                                                                                          |
+| `/api/admin/profiles/remove-profile` | Removes an existing stream profile.                                                                                                    |
+| `/api/admin/profiles/reset-token`    | Rotates the token for an existing stream profile.                                                                                      |
+| `/api/admin/logging`                 | Returns the current log file for the admin UI.                                                                                         |
+
+All `/api/admin/*` endpoints require the `FRONTEND_ADMIN_TOKEN` bearer token.
+
+The frontend ships the following browser routes:
+
+| Route                  | Description                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `/`                    | Home page for joining an existing stream or navigating to browser publishing.                 |
+| `/publish/{streamKey}` | Browser publisher for screen/webcam streaming and reserved profile settings.                  |
+| `/statistics`          | Live stream and subscriber statistics derived from `/api/status`.                             |
+| `/admin`               | Admin portal for status, profiles, and log viewing when `FRONTEND_ADMIN_TOKEN` is set.        |
+| `/{streamKey}`         | Player page for a stream. The built-in UI can add more streams to create a multi-view layout. |
 
 [license-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [license-url]: https://opensource.org/licenses/MIT
