@@ -8,8 +8,12 @@ import { StatusProvider } from "./providers/StatusProvider";
 import { HeaderProvider } from './providers/HeaderProvider';
 import { LocaleProvider } from './providers/LocaleProvider';
 
-// @ts-ignore
-const root = ReactDOM.createRoot(document.getElementById('root'))
+const rootElement = document.getElementById('root')
+if (rootElement === null) {
+	throw new Error("Missing root element (#root)")
+}
+
+const root = ReactDOM.createRoot(rootElement)
 const path = import.meta.env.PUBLIC_URL;
 
 root.render(
