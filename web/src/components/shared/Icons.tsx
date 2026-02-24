@@ -1,4 +1,3 @@
-import React from "react"
 
 export type IconType = "People" | "Camera" | "SquaresPlus" | "CodeBracketSquare" | "Language" | "Copy"
 

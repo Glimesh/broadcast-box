@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { VideoCameraIcon, VideoCameraSlashIcon } from "@heroicons/react/16/solid";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 

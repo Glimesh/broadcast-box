@@ -1,5 +1,4 @@
-﻿import React, { useEffect } from "react";
-import { useState } from "react";
+﻿import React from "react";
 import Button from "./Button";
 import ErrorMessagePanel from "./ErrorMessagePanel";
 
@@ -18,13 +17,7 @@ interface Props {
 }
 
 export default function ModalMessageBox(props: Props) {
-	const [isOpen, setIsOpen] = useState<boolean>(props.isOpen);
-
-	useEffect(() => {
-		setIsOpen(() => props.isOpen)
-	}, [props.isOpen])
-
-	if (!isOpen) {
+	if (!props.isOpen) {
 		return <></>;
 	}
 
@@ -32,7 +25,7 @@ export default function ModalMessageBox(props: Props) {
 		<div className="flex justify-center items-center h-screen absolute z-10">
 			<div
 				className="fixed inset-0 bg-transparent flex items-center justify-center"
-				onClick={() => props.canCloseOnBackgroundClick && setIsOpen(false)}
+				onClick={() => props.canCloseOnBackgroundClick && props.onDeny?.()}
 			>
 				<div
 					className="p-6 rounded-lg shadow-lg w-1/2 bg-gray-800"
@@ -60,13 +53,12 @@ export default function ModalMessageBox(props: Props) {
 							/>
 						)}
 
-						<Button
-							title="Close"
-							onClick={() => {
-								props.onDeny?.();
-								setIsOpen(false);
-							}}
-						/>
+							<Button
+								title="Close"
+								onClick={() => {
+									props.onDeny?.();
+								}}
+							/>
 
 					</div>
 				</div>

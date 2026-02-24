@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface StreamStatus {
 	streamKey: string;
@@ -66,9 +66,7 @@ class FetchError extends Error {
 }
 
 const fetchStatus = (
-	// eslint-disable-next-line no-unused-vars
 	onSuccess?: (statusResults: StatusResult[]) => void,
-	// eslint-disable-next-line no-unused-vars
 	onError?: (error: FetchError) => void
 ) =>
 	fetch(`/api/status`, {
@@ -95,7 +93,6 @@ interface StatusProviderContextProps {
 	subscribe: () => void
 	unsubscribe: () => void
 
-	// eslint-disable-next-line no-unused-vars
 	setCurrentStreamStatus: (status: StreamStatus) => void
 }
 
@@ -110,66 +107,71 @@ export const StatusContext = React.createContext<StatusProviderContextProps>({
 
 export function StatusProvider(props: StatusProviderProps) {
 	const [streamStatus, setStreamStatus] = useState<StatusResult[] | undefined>(undefined)
-	const [currentStreamStatus, setCurrentStreamStatus] = useState<StreamStatus | undefined>(undefined)
+	const [currentStreamStatus, setCurrentStreamStatusState] = useState<StreamStatus | undefined>(undefined)
 	const intervalRef = useRef<number | undefined>(undefined)
 	const subscribers = useRef<number>(0)
 
-	const fetchStatusResultHandler = (result: StatusResult[]) => {
+	const fetchStatusResultHandler = useCallback((result: StatusResult[]) => {
 		setStreamStatus(() => result);
-	}
+	}, [])
 
-	const fetchStatusErrorHandler = (error: FetchError) => {
+	const fetchStatusErrorHandler = useCallback((error: FetchError) => {
 		if (error.status === 503) {
 			setStreamStatus(() => undefined);
 		}
-	}
+	}, [])
 
-	const refreshStatus = async () => {
+	const refreshStatus = useCallback(async () => {
 		await fetchStatus(fetchStatusResultHandler, fetchStatusErrorHandler)
-	}
+	}, [fetchStatusErrorHandler, fetchStatusResultHandler])
 
-	const stopFetching = () => {
+	const refreshStatusContext = useCallback(() => {
+		void refreshStatus()
+	}, [refreshStatus])
+
+	const stopFetching = useCallback(() => {
 		clearInterval(intervalRef.current)
 		intervalRef.current = undefined
-	}
+	}, [])
 
-	const subscribe = () => {
-		subscribers.current++;
-
-		if (subscribers.current >= 1) {
-			startFetching()
-		}
-	}
-
-	const unsubscribe = () => {
-		subscribers.current--;
-
-		if (subscribers.current === 0) {
-			stopFetching()
-		}
-	}
-
-	const startFetching = () => {
+	const startFetching = useCallback(() => {
 		if (!intervalRef.current) {
 			intervalRef.current = setInterval(() => {
 				void refreshStatus()
 			}, STATUS_POLL_INTERVAL_MS)
 		}
-	}
+	}, [refreshStatus])
 
-	useEffect(() => stopFetching, [])
+	const subscribe = useCallback(() => {
+		subscribers.current++;
+
+		if (subscribers.current >= 1) {
+			startFetching()
+		}
+	}, [startFetching])
+
+	const unsubscribe = useCallback(() => {
+		subscribers.current--;
+
+		if (subscribers.current === 0) {
+			stopFetching()
+		}
+	}, [stopFetching])
+
+	const setCurrentStreamStatus = useCallback((value: StreamStatus) => {
+		setCurrentStreamStatusState(() => value)
+	}, [])
+
+	useEffect(() => stopFetching, [stopFetching])
 
 	const state = useMemo<StatusProviderContextProps>(() => ({
 		activeStreamsStatus: streamStatus,
 		currentStreamStatus: currentStreamStatus,
-		refreshStatus: () => {
-			void refreshStatus()
-		},
+		refreshStatus: refreshStatusContext,
 		subscribe: subscribe,
 		unsubscribe: unsubscribe,
-		setCurrentStreamStatus: (value: StreamStatus) => setCurrentStreamStatus(() => value)
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}), [streamStatus, currentStreamStatus]);
+		setCurrentStreamStatus: setCurrentStreamStatus
+	}), [currentStreamStatus, refreshStatusContext, setCurrentStreamStatus, streamStatus, subscribe, unsubscribe]);
 
 	return (
 		<StatusContext.Provider value={state}>

@@ -10,14 +10,12 @@ interface LocaleProviderProps {
 interface LocaleProviderContextProps {
 	locale: localeInterface
 
-	// eslint-disable-next-line no-unused-vars
 	setLocale: (locale: LocaleType) => void
 }
 
 export const LocaleContext = React.createContext<LocaleProviderContextProps>({
 	locale: locale_en,
-	// eslint-disable-next-line no-unused-vars
-	setLocale: (_: LocaleType) => { }
+	setLocale: () => { }
 });
 
 export function LocaleProvider(props: LocaleProviderProps) {

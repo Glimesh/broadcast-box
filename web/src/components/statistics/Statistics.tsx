@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { StatusContext, StatusResult, WhepSession } from "../../providers/StatusProvider";
 import { useNavigate } from "react-router-dom";
 import Button from "../shared/Button";
@@ -8,11 +8,12 @@ const Statistics = () => {
   const { activeStreamsStatus: streamStatus, refreshStatus, subscribe, unsubscribe } = useContext(StatusContext);
   const navigate = useNavigate();
   const { locale } = useContext(LocaleContext)
+  const [nowMs, setNowMs] = useState<number>(() => Date.now())
 
   const sortByStreamKey = (a: StatusResult, b: StatusResult) => a.streamKey.localeCompare(b.streamKey)
   const sortByUuid = (a: WhepSession, b: WhepSession) => a.id.localeCompare(b.id)
   const bytesToMbps = (bytesPerSecond: number) => ((bytesPerSecond * 8) / 1_000_000).toFixed(2);
-  const runtime = (startTime: Date): number => Date.now() - startTime.getTime()
+  const runtime = (startTime: Date): number => nowMs - startTime.getTime()
   const formatRuntime = (ms: number): string => { 
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms / (1000 * 60)) % 60);
@@ -26,8 +27,15 @@ const Statistics = () => {
     refreshStatus();
 
     return () => unsubscribe();
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshStatus, subscribe, unsubscribe]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowMs(Date.now())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="p-6 min-h-screen">

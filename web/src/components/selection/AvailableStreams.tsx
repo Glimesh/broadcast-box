@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusContext, StatusResult } from "../../providers/StatusProvider";
 import Button from "../shared/Button";
@@ -11,7 +11,6 @@ interface StreamEntry {
 
 interface AvailableStreamsProps {
   showHeader?: boolean;
-	// eslint-disable-next-line no-unused-vars
   onClickOverride?: (streamKey: string) => void;
 }
 
@@ -20,28 +19,21 @@ const AvailableStreams = (props: AvailableStreamsProps) => {
   const { locale } = useContext(LocaleContext)
 
   const { activeStreamsStatus: streamStatus, refreshStatus, subscribe, unsubscribe } = useContext(StatusContext)
-  const [streams, setStreams] = useState<StreamEntry[] | undefined>(undefined);
-
-  const sortByStreamKey = (a: StatusResult, b: StatusResult) => a.streamKey.localeCompare(b.streamKey)
 
   useEffect(() => {
     subscribe()
     refreshStatus()
 
     return () => unsubscribe()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshStatus, subscribe, unsubscribe]);
 
-  useEffect(() => {
-    setStreams(() =>
-      streamStatus?.filter((resultEntry) => resultEntry.videoTracks.length > 0)
-        .sort(sortByStreamKey)
-        .map((resultEntry: StatusResult) => ({
-          streamKey: resultEntry.streamKey,
-          videoStreams: resultEntry.videoTracks,
-          motd: resultEntry.motd
-        })));
-  }, [streamStatus])
+  const streams = useMemo<StreamEntry[] | undefined>(() =>
+    streamStatus?.filter((resultEntry) => resultEntry.videoTracks.length > 0)
+      .sort((a: StatusResult, b: StatusResult) => a.streamKey.localeCompare(b.streamKey))
+      .map((resultEntry: StatusResult) => ({
+        streamKey: resultEntry.streamKey,
+        motd: resultEntry.motd
+      })), [streamStatus])
 
   const onWatchStreamClick = (key: string) => {
     if (key !== '') {

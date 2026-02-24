@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
@@ -34,8 +34,10 @@ const Player = (props: PlayerProps) => {
 	})
 
 	const [currentLayersStatus, setCurrentLayersStatus] = useState<CurrentLayersMessage | undefined>()
-	const [audioLayers, setAudioLayers] = useState([]);
-	const [videoLayers, setVideoLayers] = useState([]);
+	const [audioLayers, setAudioLayers] = useState<string[]>([]);
+	const [videoLayers, setVideoLayers] = useState<string[]>([]);
+	const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null)
+	const [layerEndpoint, setLayerEndpoint] = useState<string>('')
 	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 
@@ -46,8 +48,12 @@ const Player = (props: PlayerProps) => {
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
 	const streamVideoPlayerId = streamKey + "_videoPlayer";
+	const setVideoRef = useCallback((element: HTMLVideoElement | null) => {
+		videoRef.current = element
+		setVideoElement(element)
+	}, [])
 
-	const peerConnectionConfig: SetupPeerConnectionProps = {
+	const peerConnectionConfig = useMemo<SetupPeerConnectionProps>(() => ({
 		streamKey: streamKey,
 		videoRef: videoRef,
 		layerEndpointRef: layerEndpointRef,
@@ -55,6 +61,7 @@ const Player = (props: PlayerProps) => {
 		onStreamRestart: () => console.log("PeerConnection.onStreamRestart: Missing setup"),
 		onAudioLayerChange: (layers) => setAudioLayers(layers),
 		onVideoLayerChange: (layers) => setVideoLayers(layers),
+		onLayerEndpointChange: (endpoint) => setLayerEndpoint(endpoint),
 		onLayerStatus: (status) => setCurrentLayersStatus(status),
 		onStreamStatus: (status) => {
 			setCurrentStreamStatus(() => status)
@@ -73,7 +80,7 @@ const Player = (props: PlayerProps) => {
 			setStreamState("Loading")
 		},
 		onError: () => setStreamState("Error"),
-	}
+	}), [streamKey])
 
 	const handleEnterFullscreen = () => {
 		const videoElement = videoRef.current as FullscreenElement | null;
@@ -99,7 +106,7 @@ const Player = (props: PlayerProps) => {
 	};
 
 
-	const resetTimer = (isVisible: boolean) => {
+	const resetTimer = useCallback((isVisible: boolean) => {
 		setVideoOverlayVisible(() => isVisible);
 
 		if (videoOverlayVisibleTimeoutRef) {
@@ -109,19 +116,21 @@ const Player = (props: PlayerProps) => {
 		videoOverlayVisibleTimeoutRef.current = setTimeout(() => {
 			setVideoOverlayVisible(() => false)
 		}, 2500)
-	}
+	}, [])
 
 	const handleVideoPlayerClick = () => {
 		lastClickTimeRef.current = Date.now();
 
-		clickTimeoutRef.current = setTimeout(() => {
-			const timeSinceLastClick = Date.now() - lastClickTimeRef.current;
-			if (timeSinceLastClick >= clickDelay && (timeSinceLastClick - clickDelay) < 5000) {
-				videoRef.current?.paused
-					? videoRef.current?.play()
-					: videoRef.current?.pause();
-			}
-		}, clickDelay);
+			clickTimeoutRef.current = setTimeout(() => {
+				const timeSinceLastClick = Date.now() - lastClickTimeRef.current;
+				if (timeSinceLastClick >= clickDelay && (timeSinceLastClick - clickDelay) < 5000) {
+					if (videoRef.current?.paused) {
+						void videoRef.current.play()
+					} else {
+						videoRef.current?.pause()
+					}
+				}
+			}, clickDelay);
 	};
 
 	const handleVideoPlayerDoubleClick = () => {
@@ -131,38 +140,46 @@ const Player = (props: PlayerProps) => {
 	};
 
 	useEffect(() => {
-		const handleOverlayTimer = (isVisible: boolean) => resetTimer(isVisible)
-
 		const player = document.getElementById(streamVideoPlayerId)
-		player?.addEventListener('mouseup', () => handleOverlayTimer(true))
-		player?.addEventListener('mousemove', () => handleOverlayTimer(true))
-		player?.addEventListener('mouseenter', () => handleOverlayTimer(true))
-		player?.addEventListener('mouseleave', () => handleOverlayTimer(false))
+		const handleMouseUp = () => resetTimer(true)
+		const handleMouseMove = () => resetTimer(true)
+		const handleMouseEnter = () => resetTimer(true)
+		const handleMouseLeave = () => resetTimer(false)
+		player?.addEventListener('mouseup', handleMouseUp)
+		player?.addEventListener('mousemove', handleMouseMove)
+		player?.addEventListener('mouseenter', handleMouseEnter)
+		player?.addEventListener('mouseleave', handleMouseLeave)
 
-		peerConnectionConfig.onStreamRestart = () => {
-			PeerConnectionSetup(peerConnectionConfig)
+		let currentPeerConnection: RTCPeerConnection | null = null
+		const beforeUnloadHandler = () => currentPeerConnection?.close()
+		window.addEventListener("beforeunload", beforeUnloadHandler)
+
+		const setupPeerConnection = () => {
+			const setupProps: SetupPeerConnectionProps = {
+				...peerConnectionConfig,
+				onStreamRestart: setupPeerConnection,
+			}
+
+			PeerConnectionSetup(setupProps)
 				.then((peerConnection) => {
-					window.addEventListener("beforeunload", () => peerConnection.close())
+					currentPeerConnection = peerConnection
 				})
 				.catch((err) => console.log("PeerConnectionConfig.Error", err))
 		}
 
-		PeerConnectionSetup(peerConnectionConfig)
-			.then((peerConnection) => {
-				window.addEventListener("beforeunload", () => peerConnection.close())
-			})
-			.catch((err) => console.log("PeerConnectionConfig.Error", err))
+		setupPeerConnection()
 
 		return () => {
-			player?.removeEventListener('mouseup', () => handleOverlayTimer)
-			player?.removeEventListener('mouseenter', () => handleOverlayTimer)
-			player?.removeEventListener('mouseleave', () => handleOverlayTimer)
-			player?.removeEventListener('mousemove', () => handleOverlayTimer)
+			player?.removeEventListener('mouseup', handleMouseUp)
+			player?.removeEventListener('mouseenter', handleMouseEnter)
+			player?.removeEventListener('mouseleave', handleMouseLeave)
+			player?.removeEventListener('mousemove', handleMouseMove)
 
+			window.removeEventListener("beforeunload", beforeUnloadHandler)
+			currentPeerConnection?.close()
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [])
+	}, [peerConnectionConfig, resetTimer, streamVideoPlayerId])
 
 	return (
 		<div
@@ -196,7 +213,7 @@ const Player = (props: PlayerProps) => {
 				>
 
 					{/*Buttons */}
-					{videoRef.current !== null && (
+						{videoElement !== null && (
 						<div className="absolute bottom-0 h-8 w-full flex place-items-end z-30">
 							<div
 								onClick={(e) => e.stopPropagation()}
@@ -204,21 +221,29 @@ const Player = (props: PlayerProps) => {
 
 								<PlayPauseComponent videoRef={videoRef} />
 
-								<VolumeComponent
-									isMuted={videoRef.current?.muted ?? false}
-									isDisabled={audioLayers.length === 0}
-									onVolumeChanged={(newValue) => videoRef.current!.volume = newValue / 100}
-									onStateChanged={(newState) => videoRef.current!.muted = newState}
-								/>
+									<VolumeComponent
+										isMuted={videoElement.muted}
+										isDisabled={audioLayers.length === 0}
+										onVolumeChanged={(newValue) => {
+											if (videoRef.current) {
+												videoRef.current.volume = newValue / 100
+											}
+										}}
+										onStateChanged={(newState) => {
+											if (videoRef.current) {
+												videoRef.current.muted = newState
+											}
+										}}
+									/>
 
 								<div className="w-full pointer-events-none"></div>
 
 								<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
-								<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
-								{audioLayers.length > 1 && (
-									<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpointRef.current} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
-								)}
-								<Square2StackIcon onClick={() => videoRef.current?.requestPictureInPicture()} />
+									<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpoint} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
+									{audioLayers.length > 1 && (
+										<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpoint} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
+									)}
+									<Square2StackIcon onClick={() => videoElement?.requestPictureInPicture()} />
 								<ArrowsPointingOutIcon onClick={handleEnterFullscreen} />
 							</div>
 						</div>)
@@ -250,19 +275,19 @@ const Player = (props: PlayerProps) => {
 
 				</div>
 
-				<video
-					key={`${streamVideoPlayerId}_video`}
-					ref={videoRef}
+					<video
+						key={`${streamVideoPlayerId}_video`}
+						ref={setVideoRef}
 					autoPlay
 					muted
 					playsInline
 					className="rounded-md w-full h-full relative bg-gray-950"
 					onPlaying={() => setStreamState(() => "Playing")}
 					onLoadStart={() => setStreamState(() => "Loading")}
-					onLoadedData={(event) => {
-						console.log("VideoPlayer.onLoadedMetadata", event)
-						videoRef.current?.play()
-					}}
+						onLoadedData={(event) => {
+							console.log("VideoPlayer.onLoadedMetadata", event)
+							event.currentTarget.play()
+						}}
 					onError={(error) => console.log("VideoPlayer.Error", error)}
 					onErrorCapture={(error) => console.log("VideoPlayer.ErrorCapture", error)}
 					onEnded={() => setStreamState(() => "Offline")}

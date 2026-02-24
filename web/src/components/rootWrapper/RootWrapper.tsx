@@ -1,6 +1,5 @@
 import { useContext } from 'react';
 import { Link, Outlet } from 'react-router-dom'
-import React from 'react';
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import { HeaderContext } from '../../providers/HeaderProvider';
 import LocalesModal from '../shared/ModalLocaleSelector';

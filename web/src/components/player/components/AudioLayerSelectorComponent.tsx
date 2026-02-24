@@ -1,4 +1,4 @@
-﻿import React, { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { MusicalNoteIcon } from "@heroicons/react/20/solid";
 
 interface QualityComponentProps {
@@ -25,7 +25,7 @@ const AudioLayerSelectorComponent = (props: QualityComponentProps) => {
 		setCurrentLayer(event.target.value)
 	}
 
-	let layerList = [
+	const layerList = [
 		currentLayer,
 		...props.layers.filter(layer => layer !== currentLayer)
 	].map(layer => <option key={`layerEncodingId_${layer}`} value={layer}>{layer}</option>)

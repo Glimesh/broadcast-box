@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import TextInputDialog from "../shared/TextInputDialog";
 import ErrorMessagePanel from "../shared/ErrorMessagePanel";
 import AdminFrontpage from "./Frontpage";

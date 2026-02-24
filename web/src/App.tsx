@@ -1,4 +1,3 @@
-import React from "react";
 import { Routes, Route } from "react-router-dom";
 
 import BrowserBroadcaster from "./components/broadcast/Broadcast";

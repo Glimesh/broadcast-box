@@ -1,4 +1,4 @@
-﻿import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
@@ -45,11 +45,16 @@ function BrowserBroadcaster() {
 
 	const endStream = () => navigate('/')
 	const requestMedia = (source: MediaSource) => {
+		if (!navigator.mediaDevices) {
+			setMediaAccessError(() => ErrorMessageEnum.NoMediaDevices);
+			return
+		}
+
 		setUseDisplayMedia(source)
 		setMediaRequestCount(prev => prev + 1)
 	}
 
-	const stopLocalMediaStream = (localMediaStream: MediaStream | null) => {
+	const stopLocalMediaStream = useCallback((localMediaStream: MediaStream | null) => {
 		if (!localMediaStream) {
 			return
 		}
@@ -57,13 +62,13 @@ function BrowserBroadcaster() {
 		localMediaStream
 			.getTracks()
 			.forEach((streamTrack: MediaStreamTrack) => streamTrack.stop())
-	}
+	}, [])
 
-	const getSenderByKind = (peerConnection: RTCPeerConnection, kind: "audio" | "video") => {
+	const getSenderByKind = useCallback((peerConnection: RTCPeerConnection, kind: "audio" | "video") => {
 		return peerConnection.getTransceivers().find(transceiver => transceiver.sender.track?.kind === kind)?.sender ??
 			peerConnection.getTransceivers().find(transceiver => transceiver.receiver.track.kind === kind)?.sender ??
 			null
-	}
+	}, [])
 
 	useEffect(() => {
 		return () => {
@@ -73,20 +78,14 @@ function BrowserBroadcaster() {
 			peerConnectionRef.current?.close()
 			peerConnectionRef.current = null
 		}
-	}, [])
+	}, [stopLocalMediaStream])
 
 	useEffect(() => {
 		if (useDisplayMedia === "None") {
 			return;
 		}
 
-		if (!navigator.mediaDevices) {
-			setMediaAccessError(() => ErrorMessageEnum.NoMediaDevices);
-			setUseDisplayMedia(() => "None")
-			return
-		}
-
-		let cancelled = false
+			let cancelled = false
 
 		const mediaPromise = useDisplayMedia == "Screen" ?
 			navigator.mediaDevices.getDisplayMedia(mediaOptions) :
@@ -230,8 +229,7 @@ function BrowserBroadcaster() {
 		return () => {
 			cancelled = true
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [videoRef, useDisplayMedia, mediaRequestCount, location.pathname])
+		}, [getSenderByKind, mediaRequestCount, stopLocalMediaStream, streamKey, useDisplayMedia])
 
 	useEffect(() => {
 		hasSignalRef.current = hasSignal;

@@ -1,5 +1,5 @@
 import { ArrowPathIcon, XMarkIcon } from "@heroicons/react/16/solid";
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Button from "../../shared/Button";
 import ModalTextInput from "../../shared/ModalTextInput";
 import ModalMessageBox from "../../shared/ModalMessageBox";
@@ -24,10 +24,6 @@ const ProfilesPage = () => {
   const [isAddProfileModalOpen, setIsAddProfileModalOpen] = useState<boolean>(false);
   const [isRemoveProfileModalOpen, setIsRemoveProfileModalOpen] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>();
-
-  useEffect(() => {
-    refreshProfiles();
-  }, []);
 
   const copyTokenToClipboard = (token: string) => navigator.clipboard.writeText(token)
 
@@ -112,6 +108,10 @@ const ProfilesPage = () => {
       refreshProfiles();
     });
   };
+
+  useEffect(() => {
+    refreshProfiles();
+  }, []);
 
 
   return (

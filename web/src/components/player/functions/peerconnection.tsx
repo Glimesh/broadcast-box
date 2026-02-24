@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { parseLinkHeader } from "@web3-storage/parse-link-header";
 import { StreamStatus } from "../../../providers/StatusProvider";
 import { RefObject } from "react";
@@ -16,6 +15,18 @@ export interface CurrentLayersMessage {
 	videoSequenceNumber: number
 }
 
+interface LayerEncoding {
+	encodingId: string
+}
+
+interface LayersMessageTrack {
+	layers: LayerEncoding[]
+}
+
+interface LayersMessagePayload {
+	[mediaId: string]: LayersMessageTrack | undefined
+}
+
 enum SetupPeerConnectionError {
 	INVALID_WHEP_RESPONSE
 }
@@ -31,8 +42,9 @@ export interface SetupPeerConnectionProps {
 	onError: (error: SetupPeerConnectionError) => void,
 	onStreamStatus: (status: StreamStatus) => void,
 	onLayerStatus: (layers: CurrentLayersMessage) => void,
-	onAudioLayerChange: (layers: []) => void,
-	onVideoLayerChange: (layers: []) => void,
+	onAudioLayerChange: (layers: string[]) => void,
+	onVideoLayerChange: (layers: string[]) => void,
+	onLayerEndpointChange?: (endpoint: string) => void,
 	onStateChange: (state: SetupPeerConnectionStateChange) => void,
 	onStreamRestart: () => void,
 }
@@ -60,6 +72,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		onLayerStatus,
 		onAudioLayerChange,
 		onVideoLayerChange,
+		onLayerEndpointChange,
 		onStateChange,
 		onError } = props
 
@@ -119,6 +132,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	}
 
 	layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
+	onLayerEndpointChange?.(layerEndpointRef.current)
 	const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
 
 	evtSource.onerror = (ev: Event) => {
@@ -149,9 +163,11 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 
 	// Receive layers
 	evtSource.addEventListener("layers", event => {
-		const parsed = JSON.parse(event.data)
-		onVideoLayerChange(parsed['1']['layers'].map((layer: any) => layer.encodingId))
-		onAudioLayerChange(parsed['2']['layers'].map((layer: any) => layer.encodingId))
+		const parsed = JSON.parse(event.data) as LayersMessagePayload
+		const videoLayerIds = parsed['1']?.layers.map((layer) => layer.encodingId) ?? []
+		const audioLayerIds = parsed['2']?.layers.map((layer) => layer.encodingId) ?? []
+		onVideoLayerChange(videoLayerIds)
+		onAudioLayerChange(audioLayerIds)
 	})
 
 	const answer = await whepResponse.text()

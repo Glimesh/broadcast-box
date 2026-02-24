@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from "react";
 import { LocaleContext, LocaleTypes } from "../../providers/LocaleProvider";
-import React from "react";
 import Button from '../shared/Button';
 import { getIcon } from "./Icons";
 
@@ -12,15 +11,15 @@ interface Props {
 }
 
 export function LocalesModal(props: Props) {
+  const { onClose, canCloseOnBackgroundClick } = props
   const { setLocale } = useContext(LocaleContext)
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isOpen) {
-      props.onClose?.()
+      onClose?.()
     }
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen])
+  }, [isOpen, onClose])
 
   if (!isOpen) {
     return (
@@ -46,13 +45,14 @@ export function LocalesModal(props: Props) {
       {isOpen && (
         <div
           className="fixed flex justify-end top-12 right-1 w-full h-full "
-          onClick={() => props.canCloseOnBackgroundClick && setIsOpen(false)}
+          onClick={() => canCloseOnBackgroundClick && setIsOpen(false)}
         >
           <div
             className="flex flex-col p-4 w-52 bg-gray-800 gap-2 h-min border-gray-500 border rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {LocaleTypes.map((localeSelection) => <Button
+              key={localeSelection.locale}
               title={localeSelection.name}
               stretch
               onClick={() => {

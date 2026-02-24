@@ -1,4 +1,3 @@
-import React from "react";
 import { getIcon, IconType } from "./Icons";
 
 interface Props {

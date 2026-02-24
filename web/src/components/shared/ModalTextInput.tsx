@@ -1,5 +1,4 @@
 ﻿import React, { useContext, useEffect, useRef } from "react";
-import { useState } from "react";
 import { LocaleContext } from "../../providers/LocaleProvider";
 import ErrorMessagePanel from "./ErrorMessagePanel";
 
@@ -11,10 +10,8 @@ interface Props<T extends string | number> {
 	placeholder?: string;
 	children?: React.ReactNode;
 	isOpen: boolean;
-	// eslint-disable-next-line no-unused-vars
 	onAccept?: (result: T) => void;
 	onDeny?: () => void;
-	// eslint-disable-next-line no-unused-vars
 	onChange?: (result: T) => void;
 	onClose?: () => void;
 	initialValue?: T;
@@ -26,30 +23,30 @@ export default function ModalTextInput<T extends string | number>(
 	props: Props<T>,
 ) {
 	const { locale } = useContext(LocaleContext)
-	const [isOpen, setIsOpen] = useState<boolean>(props.isOpen);
+	const { onClose } = props
 	const valueRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		setIsOpen(() => props.isOpen)
-	}, [props.isOpen])
-
-	useEffect(() => {
-		if (!isOpen) {
-			props.onClose?.()
+		if (!props.isOpen) {
+			onClose?.()
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isOpen])
+	}, [onClose, props.isOpen])
 
-	if (!isOpen) {
+	if (!props.isOpen) {
 		return <></>;
 	}
 
 	return (
 		<div className="flex justify-center items-center h-screen absolute z-10">
-			<div
-				className="flex fixed inset-0 bg-transparent items-center justify-center"
-				onClick={() => props.canCloseOnBackgroundClick && setIsOpen(false)}
-			>
+				<div
+					className="flex fixed inset-0 bg-transparent items-center justify-center"
+					onClick={() => {
+						if (props.canCloseOnBackgroundClick) {
+							props.onDeny?.();
+							props.onClose?.();
+						}
+					}}
+				>
 				<div
 					className="p-4 rounded-lg shadow-lg w-1/2 bg-gray-800"
 					onClick={(e) => e.stopPropagation()}
@@ -91,13 +88,13 @@ export default function ModalTextInput<T extends string | number>(
 								{locale.shared_component_text_input_modal.button_accept}
 							</button>
 						)}
-						<button
-							onClick={() => {
-								props.onDeny?.();
-								setIsOpen(false);
-							}}
-							className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
-						>
+							<button
+								onClick={() => {
+									props.onDeny?.();
+									props.onClose?.();
+								}}
+								className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
+							>
 							Close
 						</button>
 					</div>

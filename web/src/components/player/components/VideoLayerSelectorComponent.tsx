@@ -1,4 +1,4 @@
-﻿import React, { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { ChartBarIcon } from "@heroicons/react/16/solid";
 
 interface QualityComponentProps {
@@ -11,7 +11,6 @@ interface QualityComponentProps {
 const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 	const videoMediaId = "1"
 	const [isOpen, setIsOpen] = useState<boolean>(false);
-	const [currentLayer, setCurrentLayer] = useState<string>(props.currentLayer);
 
 	const onLayerChange = (event: ChangeEvent<HTMLSelectElement>) => {
 		fetch(props.layerEndpoint, {
@@ -22,10 +21,10 @@ const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 			}
 		}).catch((err) => console.error("VideoLayerSelectorComponent.onLayerChange", err))
 		setIsOpen(false)
-		setCurrentLayer(event.target.value)
 	}
 
-	let layerList = [
+	const currentLayer = props.currentLayer
+	const layerList = [
 		currentLayer,
 		...props.layers.filter(layer => layer !== currentLayer)
 	].map(layer => <option key={`layerEncodingId_${layer}`} value={layer}>{layer}</option>)
@@ -33,10 +32,6 @@ const VideoLayerSelectorComponent = (props: QualityComponentProps) => {
 	if (currentLayer === '' || layerList[0].props.value === '') {
 		layerList[0] = <option key="disabled">Auto</option>
 	}
-
-	useEffect(() => {
-		setCurrentLayer(() => props.currentLayer)
-	}, [props.currentLayer])
 
 	return (
 		<div className="h-full flex">

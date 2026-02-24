@@ -1,4 +1,4 @@
-import React, { useContext, useLayoutEffect, useState } from "react";
+import { useCallback, useContext, useLayoutEffect, useState } from "react";
 import Card from "../shared/Card";
 import Input from "../shared/Input";
 import Toggle from "../shared/Toggle";
@@ -14,19 +14,45 @@ interface Profile {
 }
 
 interface ProfileSettingsProps {
-  // eslint-disable-next-line no-unused-vars
   stateHasChanged: (isActive: boolean, streamKey: string) => void;
 }
 
 export default function ProfileSettings(props: ProfileSettingsProps) {
   const { locale } = useContext(LocaleContext)
+  const { stateHasChanged } = props
   const streamKey = location.pathname.split('/').pop()
 
   const [profileType, setProfileType] = useState<"Public" | "Reserved">("Public")
   const [isPublic, setIsPublic] = useState<"Public" | "Private">("Public")
   const [motd, setMotd] = useState<string>("")
 
-  const updateSettings = () => {
+  const getSettings = useCallback(() => {
+    return fetch(`/api/whip/profile`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${toBase64Utf8(streamKey)}`,
+      },
+    }).then((result) => {
+      if (result.status > 400 && result.status < 500 || result.status === 204) {
+        return;
+      }
+
+      return result.json()
+    }).then((result: Profile | undefined) => {
+
+      if (result === undefined) {
+        setProfileType(() => "Public")
+        return
+      }
+
+      setProfileType(() => "Reserved")
+      setIsPublic(() => result.isPublic ? "Public" : "Private")
+      setMotd(() => result.motd)
+      stateHasChanged?.(result.isActive, result.streamKey)
+    });
+  }, [stateHasChanged, streamKey])
+
+  const updateSettings = useCallback(() => {
     fetch(`/api/whip/profile`, {
       method: "POST",
       headers: {
@@ -41,39 +67,13 @@ export default function ProfileSettings(props: ProfileSettingsProps) {
         return;
       }
 
-      getSettings();
+      void getSettings();
     });
-  };
-  const getSettings = () => {
-    fetch(`/api/whip/profile`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${toBase64Utf8(streamKey)}`,
-      },
-    }).then((result) => {
-      if (result.status > 400 && result.status < 500 || result.status === 204) {
-        return;
-      }
-
-      return result.json()
-    }).then((result: Profile) => {
-
-      if (result === undefined) {
-        setProfileType(() => "Public")
-        return
-      }
-
-      setProfileType(() => "Reserved")
-      setIsPublic(() => result.isPublic ? "Public" : "Private")
-      setMotd(() => result.motd)
-      props.stateHasChanged?.(result.isActive, result.streamKey)
-    });
-  };
+  }, [getSettings, isPublic, motd, streamKey]);
 
   useLayoutEffect(() => {
-    getSettings()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    void getSettings()
+  }, [getSettings])
 
   if (profileType === "Public") {
     return <></>

@@ -1,56 +1,52 @@
-﻿/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
-import React, {useEffect, useState} from "react";
+import { useEffect, useState, type RefObject } from "react";
 import {PauseIcon, PlayIcon} from "@heroicons/react/16/solid";
 
 interface PlayPauseComponentProps {
-	videoRef: React.RefObject<HTMLVideoElement | null>;
+	videoRef: RefObject<HTMLVideoElement | null>;
 }
 
 const PlayPauseComponent = (props: PlayPauseComponentProps) => {
+	const { videoRef } = props;
 	const [isPaused, setIsPaused] = useState<boolean>(true);
 
 	useEffect(() => {
-		if (props.videoRef.current === null) {
+		const videoElement = videoRef.current
+		if (videoElement === null) {
 			return;
 		}
 
-		const canPlayHandler = (_: Event) => props.videoRef.current?.play()
-		const playingHandler = (_: Event) => setIsPaused(() => false)
-		const pauseHandler = (_: Event) => setIsPaused(() => true);
+		const canPlayHandler = () => videoElement.play()
+		const playingHandler = () => setIsPaused(() => false)
+		const pauseHandler = () => setIsPaused(() => true);
 
-		props.videoRef.current.addEventListener("canplay", canPlayHandler)
-		props.videoRef.current.addEventListener("playing", playingHandler)
-		props.videoRef.current.addEventListener("pause", pauseHandler)
+		videoElement.addEventListener("canplay", canPlayHandler)
+		videoElement.addEventListener("playing", playingHandler)
+		videoElement.addEventListener("pause", pauseHandler)
 
 		return () => {
-			if (props.videoRef.current) {
-				props.videoRef.current.removeEventListener("canplay", canPlayHandler);
-				props.videoRef.current.removeEventListener("playing", playingHandler);
-				props.videoRef.current.removeEventListener("pause", pauseHandler);
-			}
+			videoElement.removeEventListener("canplay", canPlayHandler);
+			videoElement.removeEventListener("playing", playingHandler);
+			videoElement.removeEventListener("pause", pauseHandler);
 		}
-	}, [props.videoRef.current]);
+	}, [videoRef]);
 
 	useEffect(() => {
 		if(isPaused){
-			props.videoRef.current?.pause();
+			videoRef.current?.pause();
 		}
 		if(!isPaused){
-			props.videoRef.current?.play().catch((err) => console.error("VideoError", err));
+			videoRef.current?.play().catch((err) => console.error("VideoError", err));
 		}
-	}, [isPaused]);
-
-	if (props.videoRef.current === null) {
-		return <></>;
-	}
+	}, [isPaused, videoRef]);
 
 	if (isPaused) {
-		return <PlayIcon onClick={() => props.videoRef.current?.play()}/>
+		return <PlayIcon onClick={() => videoRef.current?.play()}/>
 	}
 	if (!isPaused) {
-		return <PauseIcon onClick={() => props.videoRef.current?.pause()}/>
+		return <PauseIcon onClick={() => videoRef.current?.pause()}/>
 	}
+
+	return null;
 }
 
 export default PlayPauseComponent

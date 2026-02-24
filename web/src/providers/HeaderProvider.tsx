@@ -2,7 +2,6 @@
 
 interface HeaderProviderContextProps {
 	title: string;
-	// eslint-disable-next-line no-unused-vars
 	setTitle: (trtle: string) => void
 }
 
