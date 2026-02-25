@@ -26,19 +26,23 @@ export const useChatSession = (streamKey: string, adapter?: ChatAdapter, connect
 	const [status, setStatus] = useState<ChatStatus>("disconnected");
 	const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
+	const [prevAdapter, setPrevAdapter] = useState(adapter);
+	const [prevStreamKey, setPrevStreamKey] = useState(streamKey);
+	if (prevAdapter !== adapter || prevStreamKey !== streamKey) {
+		setPrevAdapter(adapter);
+		setPrevStreamKey(streamKey);
 		setMessages([]);
 		setError(null);
+		setStatus(adapter ? "connecting" : "disconnected");
+	}
 
+	useEffect(() => {
 		if (!adapter) {
-			setStatus("disconnected");
 			return;
 		}
 
 		let unsubscribe = () => {};
 		let stopped = false;
-
-		setStatus("connecting");
 
 		unsubscribe = adapter.subscribe(
 			(message) => {

@@ -53,8 +53,6 @@ const Player = (props: PlayerProps) => {
 	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 
-	const [, setResetCounter] = useState(0)
-
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
