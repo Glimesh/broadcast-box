@@ -124,8 +124,8 @@ const PlayerPage = () => {
               motd={streamStatuses[streamKeys[0]]?.motd ?? ""}
               className="px-1"
             />
-            <div className="flex flex-col lg:flex-row gap-4 w-full items-stretch">
-              <div className="min-w-0 flex-1">
+            <div className="relative flex flex-col gap-4 w-full">
+              <div className={`min-w-0 transition-[margin] duration-200 ${isChatOpen ? 'lg:mr-[21rem]' : ''}`}>
                 <Player
                   key={`${streamKeys[0]}_player`}
                   streamKey={streamKeys[0]}
