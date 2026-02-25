@@ -28,18 +28,7 @@ type ChatOutbound =
 interface PendingMessage {
 	resolve(): void;
 	reject(error: Error): void;
-}
-
-interface ChatMessageHandler {
-	(message: Message): void;
-}
-
-interface ChatStatusHandler {
-	(status: ChatStatus): void;
-}
-
-interface ChatErrorHandler {
-	(error: string): void;
+	timeout: ReturnType<typeof setTimeout>;
 }
 
 const createMessageId = () => {
@@ -58,9 +47,9 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 	private channel: RTCDataChannel | null = null;
 	private pending = new Map<string, PendingMessage>();
 
-	private onMessage: ChatMessageHandler | null = null;
-	private onStatus: ChatStatusHandler | null = null;
-	private onError: ChatErrorHandler | null = null;
+	private onMessage: ((message: Message) => void) | null = null;
+	private onStatus: ((status: ChatStatus) => void) | null = null;
+	private onError: ((error: string) => void) | null = null;
 
 	private handleOpen = () => {
 		this.onStatus?.("connecting");
@@ -104,6 +93,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 			case "chat.ack": {
 				const pendingItem = this.pending.get(payload.clientMsgId);
 				if (pendingItem) {
+					clearTimeout(pendingItem.timeout);
 					pendingItem.resolve();
 					this.pending.delete(payload.clientMsgId);
 				}
@@ -116,6 +106,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 				if (payload.clientMsgId) {
 					const pendingItem = this.pending.get(payload.clientMsgId);
 					if (pendingItem) {
+						clearTimeout(pendingItem.timeout);
 						pendingItem.reject(new Error(payload.error));
 						this.pending.delete(payload.clientMsgId);
 					}
@@ -137,9 +128,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 		this.channel.addEventListener("error", this.handleError);
 		this.channel.addEventListener("message", this.handleMessage);
 
-		this.onStatus?.(
-			this.channel.readyState === "open" ? "connecting" : "connecting",
-		);
+		this.onStatus?.("connecting");
 	}
 
 	detachChannel() {
@@ -157,13 +146,15 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 	}
 
 	private rejectPending(reason: string) {
-		this.pending.forEach((item) => item.reject(new Error(reason)));
+		this.pending.forEach((item) => {
+			clearTimeout(item.timeout);
+			item.reject(new Error(reason));
+		});
 		this.pending.clear();
 	}
 
 	async connect(streamKey: string): Promise<void> {
 		this.streamKey = streamKey;
-		this.onStatus?.("connecting");
 	}
 
 	subscribe(
@@ -214,11 +205,17 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 		const rawPayload = JSON.stringify(payload);
 
 		return new Promise<void>((resolve, reject) => {
-			this.pending.set(clientMsgId, { resolve, reject });
+			const timeout = setTimeout(() => {
+				this.pending.delete(clientMsgId);
+				reject(new Error("Chat message timed out"));
+			}, 10_000);
+
+			this.pending.set(clientMsgId, { resolve, reject, timeout });
 
 			try {
 				this.channel?.send(rawPayload);
 			} catch (error) {
+				clearTimeout(timeout);
 				this.pending.delete(clientMsgId);
 				reject(
 					error instanceof Error

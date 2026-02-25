@@ -6,7 +6,7 @@ import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
 import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
 import { ChatAdapter } from '../../hooks/useChatSession';
-import { ArrowsPointingOutIcon, Square2StackIcon } from '@heroicons/react/20/solid';
+import { ArrowsPointingOutIcon, Square2StackIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import VolumeComponent from './components/VolumeComponent';
 import { StatusMessageComponent } from './components/StatusMessageComponent';
@@ -36,7 +36,7 @@ const Player = (props: PlayerProps) => {
 		onStreamStatusChange,
 		onCloseStream,
 	} = props
-	const streamKey = decodeURIComponent(props.streamKey).replace(' ', '_')
+	const streamKey = decodeURIComponent(props.streamKey).replace(/ /g, '_')
 
 	const [currentStreamStatus, setCurrentStreamStatus] = useState<StreamStatus>({
 		streamKey: streamKey,
@@ -78,7 +78,7 @@ const Player = (props: PlayerProps) => {
 		onLayerEndpointChange: (endpoint) => setLayerEndpoint(endpoint),
 		onLayerStatus: (status) => setCurrentLayersStatus(status),
 		onStreamStatus: (status) => {
-			setCurrentStreamStatus(() => status)
+			setCurrentStreamStatus(status)
 			onStreamStatusChange?.(streamKey, status)
 
 			if (!status.isOnline) {
@@ -123,14 +123,14 @@ const Player = (props: PlayerProps) => {
 
 
 	const resetTimer = useCallback((isVisible: boolean) => {
-		setVideoOverlayVisible(() => isVisible);
+		setVideoOverlayVisible(isVisible);
 
 		if (videoOverlayVisibleTimeoutRef) {
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
 
 		videoOverlayVisibleTimeoutRef.current = setTimeout(() => {
-			setVideoOverlayVisible(() => false)
+			setVideoOverlayVisible(false)
 		}, 2500)
 	}, [])
 
@@ -290,17 +290,7 @@ const Player = (props: PlayerProps) => {
 							<button
 								onClick={onCloseStream}
 								className="p-2 rounded-full bg-red-400 hover:bg-red-500">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									className="h-6 w-6 text-gray-700"
-									viewBox="0 0 24 24"
-									fill="black">
-									<path
-										fillRule="evenodd"
-										d="M6.225 6.225a.75.75 0 011.06 0L12 10.94l4.715-4.715a.75.75 0 111.06 1.06L13.06 12l4.715 4.715a.75.75 0 11-1.06 1.06L12 13.06l-4.715 4.715a.75.75 0 11-1.06-1.06L10.94 12 6.225 7.285a.75.75 0 010-1.06z"
-										clipRule="evenodd"
-									/>
-								</svg>
+								<XMarkIcon className="h-6 w-6 text-black" />
 							</button>
 						)}
 					</div>
@@ -314,15 +304,15 @@ const Player = (props: PlayerProps) => {
 					muted
 					playsInline
 					className="rounded-md w-full h-full relative bg-gray-950"
-					onPlaying={() => setStreamState(() => "Playing")}
-					onLoadStart={() => setStreamState(() => "Loading")}
+					onPlaying={() => setStreamState("Playing")}
+					onLoadStart={() => setStreamState("Loading")}
 						onLoadedData={(event) => {
 							console.log("VideoPlayer.onLoadedMetadata", event)
 							event.currentTarget.play()
 						}}
 					onError={(error) => console.log("VideoPlayer.Error", error)}
 					onErrorCapture={(error) => console.log("VideoPlayer.ErrorCapture", error)}
-					onEnded={() => setStreamState(() => "Offline")}
+					onEnded={() => setStreamState("Offline")}
 				/>
 
 				</div>

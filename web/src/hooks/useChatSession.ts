@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type ChatStatus = "connecting" | "connected" | "error" | "disconnected";
 
@@ -101,13 +101,5 @@ export const useChatSession = (streamKey: string, adapter?: ChatAdapter, connect
 		[adapter],
 	);
 
-	return useMemo(
-		() => ({
-			messages,
-			status,
-			error,
-			sendMessage,
-		}),
-		[error, messages, sendMessage, status],
-	);
+	return { messages, status, error, sendMessage };
 };
