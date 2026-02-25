@@ -43,7 +43,7 @@ const createMessageId = () => {
 };
 
 export class ChatDataChannelAdapter implements ChatAdapter {
-	private streamKey = "";
+	private isConnectedToStream = false;
 	private channel: RTCDataChannel | null = null;
 	private pending = new Map<string, PendingMessage>();
 
@@ -51,19 +51,39 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 	private onStatus: ((status: ChatStatus) => void) | null = null;
 	private onError: ((error: string) => void) | null = null;
 
+	private setDisconnected(reason: string, errorMessage?: string) {
+		this.onStatus?.("disconnected");
+		if (errorMessage) {
+			this.onError?.(errorMessage);
+		}
+		this.rejectPending(reason);
+	}
+
+	private settlePending(clientMsgId: string, error?: Error) {
+		const pendingItem = this.pending.get(clientMsgId);
+		if (!pendingItem) {
+			return;
+		}
+
+		clearTimeout(pendingItem.timeout);
+		if (error) {
+			pendingItem.reject(error);
+		} else {
+			pendingItem.resolve();
+		}
+		this.pending.delete(clientMsgId);
+	}
+
 	private handleOpen = () => {
 		this.onStatus?.("connecting");
 	};
 
 	private handleClose = () => {
-		this.onStatus?.("disconnected");
-		this.rejectPending("Chat disconnected");
+		this.setDisconnected("Chat disconnected");
 	};
 
 	private handleError = () => {
-		this.onStatus?.("disconnected");
-		this.onError?.("Chat data channel error");
-		this.rejectPending("Chat data channel error");
+		this.setDisconnected("Chat data channel error", "Chat data channel error");
 	};
 
 	private handleMessage = (event: MessageEvent) => {
@@ -91,12 +111,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 				this.onMessage?.(payload.message);
 				return;
 			case "chat.ack": {
-				const pendingItem = this.pending.get(payload.clientMsgId);
-				if (pendingItem) {
-					clearTimeout(pendingItem.timeout);
-					pendingItem.resolve();
-					this.pending.delete(payload.clientMsgId);
-				}
+				this.settlePending(payload.clientMsgId);
 				return;
 			}
 			case "chat.error": {
@@ -104,12 +119,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 				this.onStatus?.("error");
 
 				if (payload.clientMsgId) {
-					const pendingItem = this.pending.get(payload.clientMsgId);
-					if (pendingItem) {
-						clearTimeout(pendingItem.timeout);
-						pendingItem.reject(new Error(payload.error));
-						this.pending.delete(payload.clientMsgId);
-					}
+					this.settlePending(payload.clientMsgId, new Error(payload.error));
 				}
 
 				return;
@@ -143,6 +153,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 		this.channel.removeEventListener("error", this.handleError);
 		this.channel.removeEventListener("message", this.handleMessage);
 		this.channel = null;
+		this.isConnectedToStream = false;
 	}
 
 	private rejectPending(reason: string) {
@@ -154,7 +165,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 	}
 
 	async connect(streamKey: string): Promise<void> {
-		this.streamKey = streamKey;
+		this.isConnectedToStream = streamKey.length > 0;
 	}
 
 	subscribe(
@@ -190,7 +201,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 			throw new Error("Chat data channel is not open");
 		}
 
-		if (!this.streamKey) {
+		if (!this.isConnectedToStream) {
 			throw new Error("Chat is not connected to stream");
 		}
 
@@ -206,8 +217,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 
 		return new Promise<void>((resolve, reject) => {
 			const timeout = setTimeout(() => {
-				this.pending.delete(clientMsgId);
-				reject(new Error("Chat message timed out"));
+				this.settlePending(clientMsgId, new Error("Chat message timed out"));
 			}, 10_000);
 
 			this.pending.set(clientMsgId, { resolve, reject, timeout });
@@ -215,12 +225,13 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 			try {
 				this.channel?.send(rawPayload);
 			} catch (error) {
-				clearTimeout(timeout);
-				this.pending.delete(clientMsgId);
-				reject(
+				const sendError =
 					error instanceof Error
 						? error
-						: new Error("Failed to send chat message"),
+						: new Error("Failed to send chat message");
+				this.settlePending(
+					clientMsgId,
+					sendError,
 				);
 			}
 		});

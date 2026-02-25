@@ -246,8 +246,8 @@ const ChatPanel = (props: ChatPanelProps) => {
 	const panelClassName = variant === "sidebar"
 		? `${base} min-h-0 shrink-0 ${
 			isOpen
-				? "h-72 w-full max-h-96 opacity-100 2xl:h-auto 2xl:max-h-none 2xl:max-w-sm"
-				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent 2xl:h-auto 2xl:max-h-none 2xl:max-w-0 2xl:translate-x-2 2xl:translate-y-0"
+				? "h-80 w-full opacity-100 lg:h-auto lg:w-80"
+				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent lg:h-auto lg:max-h-none lg:max-w-0 lg:translate-x-2 lg:translate-y-0"
 		}`
 		: `${base} ${isOpen ? "max-h-96 translate-y-0 opacity-100" : "max-h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
 

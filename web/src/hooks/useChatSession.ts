@@ -21,16 +21,27 @@ export interface ChatAdapter {
 
 const MAX_MESSAGES = 1000;
 
+const appendUniqueCapped = (current: Message[], message: Message): Message[] => {
+	if (current.some((existing) => existing.id === message.id)) {
+		return current;
+	}
+
+	const next = [...current, message];
+	if (next.length <= MAX_MESSAGES) {
+		return next;
+	}
+
+	return next.slice(next.length - MAX_MESSAGES);
+};
+
 export const useChatSession = (streamKey: string, adapter?: ChatAdapter, connectionErrorMessage?: string) => {
 	const [messages, setMessages] = useState<Message[]>([]);
-	const [status, setStatus] = useState<ChatStatus>("disconnected");
+	const [status, setStatus] = useState<ChatStatus>(adapter ? "connecting" : "disconnected");
 	const [error, setError] = useState<string | null>(null);
 
-	const [prevAdapter, setPrevAdapter] = useState(adapter);
-	const [prevStreamKey, setPrevStreamKey] = useState(streamKey);
-	if (prevAdapter !== adapter || prevStreamKey !== streamKey) {
-		setPrevAdapter(adapter);
-		setPrevStreamKey(streamKey);
+	const [session, setSession] = useState({ adapter, streamKey });
+	if (session.adapter !== adapter || session.streamKey !== streamKey) {
+		setSession({ adapter, streamKey });
 		setMessages([]);
 		setError(null);
 		setStatus(adapter ? "connecting" : "disconnected");
@@ -50,18 +61,7 @@ export const useChatSession = (streamKey: string, adapter?: ChatAdapter, connect
 					return;
 				}
 
-				setMessages((current) => {
-					if (current.some((existing) => existing.id === message.id)) {
-						return current;
-					}
-
-					const next = [...current, message];
-					if (next.length <= MAX_MESSAGES) {
-						return next;
-					}
-
-					return next.slice(next.length - MAX_MESSAGES);
-				});
+				setMessages((current) => appendUniqueCapped(current, message));
 			},
 			(nextStatus) => {
 				if (!stopped) {

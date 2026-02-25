@@ -118,33 +118,35 @@ const PlayerPage = () => {
 
       <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
         {streamKeys.length === 1 ? (
-          <div className="flex w-full flex-col gap-2 2xl:flex-row 2xl:items-stretch">
-            <div className="min-w-0 flex-1 flex flex-col gap-1">
-              <StreamMOTD
-                isOnline={streamStatuses[streamKeys[0]]?.isOnline ?? false}
-                motd={streamStatuses[streamKeys[0]]?.motd ?? ""}
-                className="px-4"
-              />
-              <Player
-                key={`${streamKeys[0]}_player`}
+          <div className="w-full flex flex-col gap-1">
+            <StreamMOTD
+              isOnline={streamStatuses[streamKeys[0]]?.isOnline ?? false}
+              motd={streamStatuses[streamKeys[0]]?.motd ?? ""}
+              className="px-1"
+            />
+            <div className="flex flex-col lg:flex-row gap-4 w-full items-stretch">
+              <div className="min-w-0 flex-1">
+                <Player
+                  key={`${streamKeys[0]}_player`}
+                  streamKey={streamKeys[0]}
+                  cinemaMode={cinemaMode}
+                  isChatOpen={isChatOpen}
+                  onToggleChat={() => setIsChatOpen((prev) => !prev)}
+                  onChatAdapterChange={setStreamChatAdapter}
+                  onStreamStatusChange={setStreamStatus}
+                  onCloseStream={() => navigate("/")}
+                />
+              </div>
+
+              <ChatPanel
                 streamKey={streamKeys[0]}
-                cinemaMode={cinemaMode}
-                isChatOpen={isChatOpen}
-                onToggleChat={() => setIsChatOpen((prev) => !prev)}
-                onChatAdapterChange={setStreamChatAdapter}
-                onStreamStatusChange={setStreamStatus}
-                onCloseStream={() => navigate("/")}
+                variant="sidebar"
+                isOpen={isChatOpen}
+                adapter={chatAdapters[streamKeys[0]]}
+                displayName={chatDisplayName}
+                onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
               />
             </div>
-
-            <ChatPanel
-              streamKey={streamKeys[0]}
-              variant="sidebar"
-              isOpen={isChatOpen}
-              adapter={chatAdapters[streamKeys[0]]}
-              displayName={chatDisplayName}
-              onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
-            />
           </div>
         ) : (
           <div className="grid w-full grid-cols-2 gap-2">
