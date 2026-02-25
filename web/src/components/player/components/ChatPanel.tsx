@@ -242,12 +242,12 @@ const ChatPanel = (props: ChatPanelProps) => {
 	);
 
 	const base =
-		"flex flex-col overflow-hidden rounded-md border border-gray-700 bg-slate-900 text-gray-100 transition-[max-height,max-width,opacity,transform,border-color] duration-200 ease-out";
+		"flex flex-col overflow-hidden rounded-md border border-gray-700 bg-slate-900 text-gray-100 transition-[height,max-height,width,opacity,transform,border-color] duration-200 ease-out";
 	const panelClassName = variant === "sidebar"
 		? `${base} min-h-0 shrink-0 ${
 			isOpen
-				? "h-80 w-full opacity-100 lg:h-auto lg:w-80"
-				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent lg:h-auto lg:max-h-none lg:max-w-0 lg:translate-x-2 lg:translate-y-0"
+				? "h-80 w-full opacity-100 lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-80"
+				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-0 lg:max-h-none lg:translate-y-0 lg:translate-x-2"
 		}`
 		: `${base} ${isOpen ? "max-h-96 translate-y-0 opacity-100" : "max-h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
 
@@ -272,7 +272,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 			<div
 				ref={messageListRef}
 				onScroll={onMessageListScroll}
-				className="flex-1 overflow-y-auto px-3 py-2"
+				className="min-h-0 flex-1 overflow-y-auto px-3 py-2"
 			>
 				{error && (
 					<div className="mb-2 rounded-md border border-red-400 bg-red-950/40 px-2 py-1 text-xs text-red-200">
