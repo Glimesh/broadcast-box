@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import Player from "./Player";
 import { useNavigate } from "react-router-dom";
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
@@ -20,40 +20,12 @@ const PlayerPage = () => {
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => localStorage.getItem("chat-open") !== "false");
   const [chatAdapters, setChatAdapters] = useState<Record<string, ChatAdapter | undefined>>({});
   const [streamStatuses, setStreamStatuses] = useState<Record<string, StreamStatus | undefined>>({});
-  const [singlePlayerHeightPx, setSinglePlayerHeightPx] = useState<number | undefined>(undefined);
   const [isDisplayNameModalOpen, setIsDisplayNameModalOpen] = useState<boolean>(false);
   const [chatDisplayName, setChatDisplayName] = useState<string>(() => localStorage.getItem("chatDisplayName") ?? "");
-  const singlePlayerColumnRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem("chat-open", String(isChatOpen));
   }, [isChatOpen]);
-
-  useEffect(() => {
-    if (streamKeys.length !== 1) {
-      setSinglePlayerHeightPx(undefined);
-      return;
-    }
-
-    const playerColumnElement = singlePlayerColumnRef.current;
-    if (!playerColumnElement) {
-      return;
-    }
-
-    const updateHeight = () => {
-      setSinglePlayerHeightPx(playerColumnElement.getBoundingClientRect().height);
-    };
-
-    updateHeight();
-    const animationFrame = window.requestAnimationFrame(updateHeight);
-    const resizeObserver = new ResizeObserver(updateHeight);
-    resizeObserver.observe(playerColumnElement);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-    };
-  }, [isChatOpen, streamKeys]);
 
   const addStream = (streamKey: string) => {
     if (streamKeys.some((key: string) => key.toLowerCase() === streamKey.toLowerCase())) {
@@ -146,8 +118,8 @@ const PlayerPage = () => {
 
       <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
         {streamKeys.length === 1 ? (
-          <div className="flex w-full flex-col gap-2 2xl:flex-row 2xl:items-start">
-            <div ref={singlePlayerColumnRef} className="min-w-0 flex-1 flex flex-col gap-1">
+          <div className="flex w-full flex-col gap-2 2xl:flex-row 2xl:items-stretch">
+            <div className="min-w-0 flex-1 flex flex-col gap-1">
               <StreamMOTD
                 isOnline={streamStatuses[streamKeys[0]]?.isOnline ?? false}
                 motd={streamStatuses[streamKeys[0]]?.motd ?? ""}
@@ -170,7 +142,6 @@ const PlayerPage = () => {
               variant="sidebar"
               isOpen={isChatOpen}
               adapter={chatAdapters[streamKeys[0]]}
-              fixedHeightPx={singlePlayerHeightPx}
               displayName={chatDisplayName}
               onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
             />

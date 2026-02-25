@@ -1,10 +1,9 @@
-import React, {
+import {
 	FormEvent,
 	memo,
 	useCallback,
 	useContext,
 	useEffect,
-	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -21,6 +20,8 @@ import {
 } from "../../../hooks/useChatSession";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 
+const noop = () => {};
+
 type ChatVariant = "sidebar" | "below";
 
 interface ChatPanelProps {
@@ -28,7 +29,6 @@ interface ChatPanelProps {
 	variant: ChatVariant;
 	isOpen: boolean;
 	adapter?: ChatAdapter;
-	fixedHeightPx?: number;
 	displayName?: string;
 	onChangeDisplayNameRequested?: () => void;
 }
@@ -167,7 +167,7 @@ const getLocalizedStatus = (status: ChatStatus, locale: { status_connecting: str
 };
 
 const ChatPanel = (props: ChatPanelProps) => {
-	const { streamKey, variant, isOpen, adapter, fixedHeightPx, displayName: externalDisplayName, onChangeDisplayNameRequested } = props;
+	const { streamKey, variant, isOpen, adapter, displayName, onChangeDisplayNameRequested } = props;
 	const { locale } = useContext(LocaleContext);
 	const { messages, status, error, sendMessage } = useChatSession(
 		streamKey,
@@ -175,21 +175,12 @@ const ChatPanel = (props: ChatPanelProps) => {
 		locale.chat.error_failed_to_connect,
 	);
 
-	const [internalDisplayName, setInternalDisplayName] = useState("");
-	const displayName = externalDisplayName ?? internalDisplayName;
 	const [isSending, setIsSending] = useState(false);
 	const [sendError, setSendError] = useState<string | null>(null);
 
 	const messageListRef = useRef<HTMLDivElement>(null);
 	const shouldStickToBottomRef = useRef(true);
 	const firstBatchRef = useRef(true);
-
-	useEffect(() => {
-		const storedName = localStorage.getItem("chatDisplayName");
-		if (storedName && !externalDisplayName) {
-			setInternalDisplayName(storedName);
-		}
-	}, [externalDisplayName]);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -225,7 +216,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 
 	const onSend = useCallback(
 		async (text: string) => {
-			if (!displayName.trim()) {
+			if (!displayName?.trim()) {
 				onChangeDisplayNameRequested?.();
 				return false;
 			}
@@ -234,7 +225,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 			setSendError(null);
 
 			try {
-				await sendMessage(text.trim(), displayName.trim(), locale.chat.error_not_connected);
+				await sendMessage(text.trim(), displayName!.trim(), locale.chat.error_not_connected);
 				return true;
 			} catch (nextError) {
 				const message =
@@ -250,28 +241,19 @@ const ChatPanel = (props: ChatPanelProps) => {
 		[displayName, sendMessage, onChangeDisplayNameRequested, locale.chat.error_failed_to_send, locale.chat.error_not_connected],
 	);
 
-	const panelClassName = useMemo(() => {
-		const base =
-			"flex flex-col overflow-hidden rounded-md border border-gray-700 bg-slate-900 text-gray-100 transition-[max-height,max-width,opacity,transform,border-color] duration-200 ease-out";
-		if (variant === "sidebar") {
-			return `${base} min-h-0 shrink-0 ${
-				isOpen
-					? "h-72 w-full max-h-96 translate-x-0 translate-y-0 opacity-100 2xl:max-h-none 2xl:max-w-sm"
-					: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent 2xl:h-72 2xl:max-h-none 2xl:max-w-0 2xl:translate-x-2 2xl:translate-y-0"
-			}`;
-		}
-
-		return `${base} ${isOpen ? "max-h-96 translate-y-0 opacity-100" : "max-h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
-	}, [isOpen, variant]);
+	const base =
+		"flex flex-col overflow-hidden rounded-md border border-gray-700 bg-slate-900 text-gray-100 transition-[max-height,max-width,opacity,transform,border-color] duration-200 ease-out";
+	const panelClassName = variant === "sidebar"
+		? `${base} min-h-0 shrink-0 ${
+			isOpen
+				? "h-72 w-full max-h-96 opacity-100 2xl:h-auto 2xl:max-h-none 2xl:max-w-sm"
+				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent 2xl:h-auto 2xl:max-h-none 2xl:max-w-0 2xl:translate-x-2 2xl:translate-y-0"
+		}`
+		: `${base} ${isOpen ? "max-h-96 translate-y-0 opacity-100" : "max-h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
 
 	return (
 		<div
 			className={panelClassName}
-			style={
-				variant === "sidebar" && isOpen && fixedHeightPx
-					? { height: `${fixedHeightPx}px` }
-					: undefined
-			}
 		>
 			<div className="flex items-center justify-between border-b border-gray-700 bg-gray-900/70 px-3 py-2">
 				<div className="flex items-center gap-2 text-sm font-semibold">
@@ -317,12 +299,10 @@ const ChatPanel = (props: ChatPanelProps) => {
 			<ChatComposer
 				status={status}
 				isSending={isSending}
-				onNameRequested={onChangeDisplayNameRequested ?? (() => {})}
+				onNameRequested={onChangeDisplayNameRequested ?? noop}
 				onSend={onSend}
 				locale={locale.chat}
 			/>
-
-
 		</div>
 	);
 };

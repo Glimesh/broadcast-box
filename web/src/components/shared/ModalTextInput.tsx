@@ -52,52 +52,52 @@ export default function ModalTextInput<T extends string | number>(
 				onClick={(e) => e.stopPropagation()}
 			>
 				<h2 className="text-lg font-semibold">{props.title}</h2>
-					<p className="mb-2">{props.message}</p>
+				<p className="mb-2">{props.message}</p>
 
-					{ /*Error message*/}
-					{props.errorMessage != undefined && props.errorMessage !== "" && (
-						<ErrorMessagePanel
-							className="mb-4"
-							title={props.errorTitle ?? "Error"}
-							message={props.errorMessage}
-						/>
-					)}
-
-					{/*Input*/}
-					<input
-						className="mb-6 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200"
-						type="text"
-						ref={valueRef!}
-						placeholder={props.placeholder}
-						onKeyUp={(evt) => evt.key === "Enter" ? props.onAccept?.(valueRef.current?.value as T) : null}
-						autoFocus
+				{ /*Error message*/}
+				{props.errorMessage != undefined && props.errorMessage !== "" && (
+					<ErrorMessagePanel
+						className="mb-4"
+						title={props.errorTitle ?? "Error"}
+						message={props.errorMessage}
 					/>
+				)}
 
-					{/* Optional children */}
-					{props.children && (<div className="mb-2">
-						{props.children}
-					</div>)}
+				{/*Input*/}
+				<input
+					className="mb-6 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200"
+					type="text"
+					ref={valueRef!}
+					placeholder={props.placeholder}
+					onKeyUp={(evt) => evt.key === "Enter" ? props.onAccept?.(valueRef.current?.value as T) : null}
+					autoFocus
+				/>
 
-					{/*Buttons*/}
-					<div className="flex flex-row justify-items-stretch gap-2">
-						{props.onAccept !== null && (
-							<button
-								className="bg-green-700 text-white px-4 py-2 rounded"
-								onClick={() => props.onAccept?.(valueRef.current?.value as T)}
-							>
-								{locale.shared_component_text_input_modal.button_accept}
-							</button>
-						)}
-							<button
-								onClick={() => {
-									props.onDeny?.();
-									props.onClose?.();
-								}}
-								className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
-							>
-							Close
+				{/* Optional children */}
+				{props.children && (<div className="mb-2">
+					{props.children}
+				</div>)}
+
+				{/*Buttons*/}
+				<div className="flex flex-row justify-items-stretch gap-2">
+					{props.onAccept !== null && (
+						<button
+							className="bg-green-700 text-white px-4 py-2 rounded"
+							onClick={() => props.onAccept?.(valueRef.current?.value as T)}
+						>
+							{locale.shared_component_text_input_modal.button_accept}
 						</button>
-					</div>
+					)}
+					<button
+						onClick={() => {
+							props.onDeny?.();
+							props.onClose?.();
+						}}
+						className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
+					>
+						Close
+					</button>
+				</div>
 			</div>
 		</div>
 	);
