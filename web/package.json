@@ -37,7 +37,7 @@
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@tailwindcss/postcss": "^4.2.0",
-    "@tailwindcss/vite": "^4.1.11",
+    "@tailwindcss/vite": "^4.2.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
