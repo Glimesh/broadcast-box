@@ -249,7 +249,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 				? "h-80 w-full opacity-100 lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-80"
 				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-0 lg:max-h-none lg:translate-y-0 lg:translate-x-2"
 		}`
-		: `${base} ${isOpen ? "max-h-96 translate-y-0 opacity-100" : "max-h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
+		: `${base} ${isOpen ? "h-96 translate-y-0 opacity-100" : "h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
 
 	return (
 		<div
