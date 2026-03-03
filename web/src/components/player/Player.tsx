@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
@@ -153,6 +154,11 @@ const Player = (props: PlayerProps) => {
 		handleEnterFullscreen();
 	};
 
+	const stopOverlayClickPropagation = (event: MouseEvent<HTMLElement>) => {
+		event.preventDefault();
+		event.stopPropagation();
+	};
+
 	useEffect(() => {
 		const player = document.getElementById(streamVideoPlayerId)
 		const handleMouseUp = () => resetTimer(true)
@@ -232,7 +238,8 @@ const Player = (props: PlayerProps) => {
 						{videoElement !== null && (
 						<div className="absolute bottom-0 h-8 w-full flex place-items-end z-30">
 							<div
-								onClick={(e) => e.stopPropagation()}
+								onClick={stopOverlayClickPropagation}
+								onDoubleClick={stopOverlayClickPropagation}
 								className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8 rounded-md">
 
 								<PlayPauseComponent videoRef={videoRef} />
@@ -271,10 +278,13 @@ const Player = (props: PlayerProps) => {
 						state={streamState}
 					/>
 
-					<div className="absolute top-2 right-2 flex flex-row gap-2 pointer-events-auto z-60">
+					<div
+						onDoubleClick={stopOverlayClickPropagation}
+						className="absolute top-2 right-2 flex flex-row gap-2 pointer-events-auto z-60">
 					{!!onToggleChat && (
 						<button
 							onClick={(e) => {
+								e.preventDefault();
 								e.stopPropagation();
 								onToggleChat();
 							}}
@@ -286,7 +296,11 @@ const Player = (props: PlayerProps) => {
 
 						{!!onCloseStream && (
 							<button
-								onClick={onCloseStream}
+								onClick={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									onCloseStream();
+								}}
 								className="p-2 rounded-full bg-red-400 hover:bg-red-500">
 								<XMarkIcon className="h-6 w-6 text-black" />
 							</button>
