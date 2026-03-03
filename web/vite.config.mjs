@@ -40,7 +40,14 @@ if (process.env.USE_SSL == "TRUE") {
 console.log(`Target Backend: ${targetProtocol}${targetHostAddress}`);
 
 export default defineConfig({
-	plugins: [react(), tailwindcss()],
+	plugins: [
+		react({
+			babel: {
+				plugins: ["babel-plugin-react-compiler"],
+			},
+		}),
+		tailwindcss(),
+	],
 	server: {
 		host: targetHostAddress.split(":")[0] || "localhost",
 		open: true,
