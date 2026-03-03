@@ -132,7 +132,7 @@ const PlayerPage = () => {
                 />
 
                 <div className={isPrimarySingleStream ? "relative flex flex-col gap-4 w-full" : "flex flex-col gap-1"}>
-                  <div className={isPrimarySingleStream ? `min-w-0 transition-[margin] duration-200 ${isChatOpen ? 'lg:mr-[21rem]' : ''}` : "min-w-0"}>
+                  <div className={isPrimarySingleStream ? `min-w-0 transition-[margin] duration-200 ${isChatOpen ? (cinemaMode ? "lg:mr-80" : "lg:mr-[21rem]") : ""}` : "min-w-0"}>
                     <Player
                       key={`${streamKey}_player`}
                       streamKey={streamKey}
