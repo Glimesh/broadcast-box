@@ -319,8 +319,10 @@ These values are parsed by the Go backend and applied to WHIP/WHEP `PeerConnecti
 | `CHAT_DEFAULT_TTL`      | How long idle chat sessions stay alive before they expire.     |
 | `CHAT_CLEANUP_INTERVAL` | How often expired chat sessions are cleaned up.                |
 
-Broadcast Box also attaches a WebRTC data channel (`bb-chat-v1`) to WHIP/WHEP peer connections for simple
-per-stream chat state, although the bundled frontend does not currently expose a chat UI.
+Broadcast Box attaches a WebRTC data channel (`bb-chat-v1`) to WHIP/WHEP peer connections for simple per-stream
+chat state. The bundled frontend does not currently expose a chat UI, but you can connect from your own client.
+
+See [CONNECTING.md](internal/chat/CONNECTING.md) for the message contract and a minimal standalone client example.
 
 ## CLI Flags
 
