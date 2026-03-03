@@ -44,16 +44,11 @@ func LoadEnvironmentVariables() {
 
 func loadConfigs() error {
 	if os.Getenv(appEnv) == "development" {
-		log.Println("Environment: Loading `" + envFileDevelopment + "`")
-		if err := godotenv.Load(envFileDevelopment); err != nil {
-			log.Printf("Environment: Could not load `%s`: %v", envFileDevelopment, err)
-		}
-		return nil
+		return loadOptionalEnvironmentFile(envFileDevelopment)
 	}
 
-	log.Println("Environment: Loading `" + envFileProduction + "`")
-	if err := godotenv.Load(envFileProduction); err != nil {
-		log.Printf("Environment: Could not load `%s`: %v", envFileProduction, err)
+	if err := loadOptionalEnvironmentFile(envFileProduction); err != nil {
+		return err
 	}
 
 	if os.Getenv(FrontendDisabled) == "" {
@@ -62,6 +57,22 @@ func loadConfigs() error {
 		} else if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func loadOptionalEnvironmentFile(fileName string) error {
+	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+		log.Printf("Environment: `%s` not found, continuing with system environment", fileName)
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	log.Println("Environment: Loading `" + fileName + "`")
+	if err := godotenv.Load(fileName); err != nil {
+		return err
 	}
 
 	return nil
