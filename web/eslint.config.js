@@ -9,7 +9,7 @@ export default [
   ...tseslint.configs["flat/recommended"],
   react.configs.flat.recommended,
   react.configs.flat["jsx-runtime"],
-  reactHooks.configs.flat.recommended,
+  reactHooks.configs.flat["recommended-latest"],
   {
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
