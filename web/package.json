@@ -43,7 +43,7 @@
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
-    "@vitejs/plugin-basic-ssl": "^2.1.4",
+    "@vitejs/plugin-basic-ssl": "^2.2.0",
     "@vitejs/plugin-react": "^5.1.4",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.3",
