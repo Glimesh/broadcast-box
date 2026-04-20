@@ -6,9 +6,9 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@web3-storage/parse-link-header": "^3.1.0",
-    "dotenv": "^17.3.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "dotenv": "^17.4.2",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "scripts": {
     "start": "vite",
@@ -35,25 +35,25 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-transform-private-property-in-object": "^7.21.11",
-    "@eslint/js": "^9.39.3",
-    "@tailwindcss/postcss": "^4.2.1",
-    "@tailwindcss/vite": "^4.2.1",
+    "@babel/plugin-transform-private-property-in-object": "^7.28.6",
+    "@eslint/js": "^9.39.4",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.56.1",
-    "@typescript-eslint/parser": "^8.56.1",
-    "@vitejs/plugin-basic-ssl": "^2.1.4",
-    "@vitejs/plugin-react": "^5.1.4",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "eslint": "^9.39.3",
+    "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "globals": "^17.4.0",
-    "postcss": "^8.5.8",
-    "react-router-dom": "^7.13.1",
-    "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.5.0",
+    "postcss": "^8.5.10",
+    "react-router-dom": "^7.14.1",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.9"
   }
 }
