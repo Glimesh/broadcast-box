@@ -12,7 +12,6 @@ const (
 	EnableProfiling            = "ENABLE_PROFILING"
 
 	// SSL
-	useSSL  = "USE_SSL"
 	SSLKey  = "SSL_KEY"
 	SSLCert = "SSL_CERT"
 
@@ -25,6 +24,11 @@ const (
 	FrontendDisabled   = "DISABLE_FRONTEND"
 	frontendPath       = "FRONTEND_PATH"
 	FrontendAdminToken = "FRONTEND_ADMIN_TOKEN"
+
+	// CHAT
+	ChatMaxHistory      = "CHAT_MAX_HISTORY"
+	ChatDefaultTTL      = "CHAT_DEFAULT_TTL"
+	ChatCleanupInterval = "CHAT_CLEANUP_INTERVAL"
 
 	// WEBRTC
 	IncludeLoopbackCandidate = "INCLUDE_LOOPBACK_CANDIDATE"
