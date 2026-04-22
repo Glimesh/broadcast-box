@@ -85,7 +85,7 @@ const locale_en: localeInterface = {
   player: {
     message_is_not_online: "is not currently streaming",
     message_loading_video: "Loading video",
-    message_error: "Error loading video",
+    message_error: "Error",
 
     stream_status_offline: "Offline"
   },
