@@ -15,7 +15,7 @@ const PlayerPage = () => {
   const navigate = useNavigate();
   const { locale } = useContext(LocaleContext);
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
-  const [streamKeys, setStreamKeys] = useState<string[]>([ window.location.pathname.substring(1) ]);
+  const [streamKeys, setStreamKeys] = useState<string[]>([window.location.pathname.substring(1)]);
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => localStorage.getItem("chat-open") !== "false");
   const [chatAdapters, setChatAdapters] = useState<Record<string, ChatAdapter | undefined>>({});
@@ -125,14 +125,8 @@ const PlayerPage = () => {
 
             return (
               <div key={`${streamKey}_player_card`} className="min-w-0 flex flex-col gap-1">
-                <StreamMOTD
-                  isOnline={streamStatuses[streamKey]?.isOnline ?? false}
-                  motd={streamStatuses[streamKey]?.motd ?? ""}
-                  className={isPrimarySingleStream ? "px-1" : "px-4"}
-                />
-
                 <div className={isPrimarySingleStream ? "relative flex flex-col gap-4 w-full" : "flex flex-col gap-1"}>
-                  <div className={isPrimarySingleStream ? `min-w-0 transition-[margin] duration-200 ${isChatOpen ? (cinemaMode ? "lg:mr-80" : "lg:mr-[21rem]") : ""}` : "min-w-0"}>
+                  <div className={isPrimarySingleStream ? `min-w-0 transition-[margin] duration-200 ${isChatOpen ? (cinemaMode ? "lg:mr-80" : "lg:mr-84") : ""}` : "min-w-0"}>
                     <Player
                       key={`${streamKey}_player`}
                       streamKey={streamKey}
@@ -154,6 +148,12 @@ const PlayerPage = () => {
                     onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
                   />
                 </div>
+                <StreamMOTD
+                  isOnline={streamStatuses[streamKey]?.isOnline ?? false}
+                  motd={streamStatuses[streamKey]?.motd ?? ""}
+                  className={isPrimarySingleStream ? "px-1" : "px-4"}
+                />
+
               </div>
             );
           })}
