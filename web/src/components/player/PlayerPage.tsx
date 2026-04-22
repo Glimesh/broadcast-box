@@ -20,7 +20,7 @@ const PlayerPage = () => {
   const { width: playerGridWidth, containerRef: playerGridRef } = useContainerWidth();
   const { locale } = useContext(LocaleContext);
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
-  const [streamKeys, setStreamKeys] = useState<string[]>([ window.location.pathname.substring(1) ]);
+  const [streamKeys, setStreamKeys] = useState<string[]>([window.location.pathname.substring(1)]);
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => localStorage.getItem("chat-open") !== "false");
   const [chatAdapters, setChatAdapters] = useState<Record<string, ChatAdapter | undefined>>({});
@@ -158,12 +158,6 @@ const PlayerPage = () => {
             {streamKeys.map((streamKey) => {
               return (
                 <div key={`${streamKey}_player_card`} className="min-w-0 flex h-full flex-col gap-1 overflow-hidden">
-                  <StreamMOTD
-                    isOnline={streamStatuses[streamKey]?.isOnline ?? false}
-                    motd={streamStatuses[streamKey]?.motd ?? ""}
-                    className={isSingleStream ? "px-1" : "px-4"}
-                  />
-
                   <div className={isSingleStream ? "relative flex min-h-0 flex-1 flex-col gap-4 w-full" : "flex min-h-0 flex-1 flex-col gap-1"}>
                     <div className={isSingleStream ? `min-w-0 min-h-0 flex-1 transition-[margin] duration-200 ${isSingleStreamChatSidebar ? (cinemaMode ? "mr-80" : "mr-[21rem]") : ""}` : "min-w-0 min-h-0 flex-1"}>
                       <Player
@@ -188,6 +182,12 @@ const PlayerPage = () => {
                       onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
                     />
                   </div>
+
+                  <StreamMOTD
+                    isOnline={streamStatuses[streamKey]?.isOnline ?? false}
+                    motd={streamStatuses[streamKey]?.motd ?? ""}
+                    className={isSingleStream ? "px-1" : "px-4"}
+                  />
                 </div>
               );
             })}
@@ -195,7 +195,7 @@ const PlayerPage = () => {
         </div>
 
         {/*Footer menu*/}
-        <div className="flex flex-row gap-2">
+        <div className="mt-4 flex flex-row gap-2">
           <Button
             title={cinemaMode ? locale.player_page.cinema_mode_disable : locale.player_page.cinema_mode_enable}
             onClick={toggleCinemaMode}
