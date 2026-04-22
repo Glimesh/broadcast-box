@@ -4,6 +4,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 const (
@@ -53,21 +55,21 @@ type Manager struct {
 
 func NewManager() *Manager {
 	maxHistory := DefaultMaxHistory
-	if val := os.Getenv("CHAT_MAX_HISTORY"); val != "" {
+	if val := os.Getenv(environment.ChatMaxHistory); val != "" {
 		if i, err := strconv.Atoi(val); err == nil {
 			maxHistory = i
 		}
 	}
 
 	defaultTTL := DefaultTTL
-	if val := os.Getenv("CHAT_DEFAULT_TTL"); val != "" {
+	if val := os.Getenv(environment.ChatDefaultTTL); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			defaultTTL = d
 		}
 	}
 
 	cleanupInterval := DefaultCleanupInterval
-	if val := os.Getenv("CHAT_CLEANUP_INTERVAL"); val != "" {
+	if val := os.Getenv(environment.ChatCleanupInterval); val != "" {
 		if d, err := time.ParseDuration(val); err == nil && d > 0 {
 			cleanupInterval = d
 		}
