@@ -210,7 +210,7 @@ const Player = (props: PlayerProps) => {
 				className="inline-block w-full relative z-0 aspect-video rounded-md"
 				style={cinemaMode ? {
 					maxHeight: '100vh',
-					maxWidth: '100vw',
+					maxWidth: '100%',
 				} : {}}>
 
 				<div className="absolute flex rounded-md w-full h-full">

@@ -122,14 +122,17 @@ const PlayerPage = () => {
         <div className={isSingleStream ? "w-full" : "grid w-full grid-cols-2 gap-2"}>
           {streamKeys.map((streamKey, index) => {
             const isPrimarySingleStream = isSingleStream && index === 0;
+            const showStreamMOTD = !cinemaMode;
 
             return (
               <div key={`${streamKey}_player_card`} className="min-w-0 flex flex-col gap-1">
-                <StreamMOTD
-                  isOnline={streamStatuses[streamKey]?.isOnline ?? false}
-                  motd={streamStatuses[streamKey]?.motd ?? ""}
-                  className={isPrimarySingleStream ? "px-1" : "px-4"}
-                />
+                {showStreamMOTD && (
+                  <StreamMOTD
+                    isOnline={streamStatuses[streamKey]?.isOnline ?? false}
+                    motd={streamStatuses[streamKey]?.motd ?? ""}
+                    className={isPrimarySingleStream ? "px-1" : "px-4"}
+                  />
+                )}
 
                 <div className={isPrimarySingleStream ? "relative flex flex-col gap-4 w-full" : "flex flex-col gap-1"}>
                   <div className={isPrimarySingleStream ? `min-w-0 transition-[margin] duration-200 ${isChatOpen ? (cinemaMode ? "lg:mr-80" : "lg:mr-[21rem]") : ""}` : "min-w-0"}>
