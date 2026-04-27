@@ -50,7 +50,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.5.0",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.12",
     "react-router-dom": "^7.14.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3",
