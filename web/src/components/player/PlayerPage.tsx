@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useState } from "react";
+import ReactGridLayout, { useContainerWidth } from "react-grid-layout";
 import Player from "./Player";
 import { useNavigate } from "react-router-dom";
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
@@ -11,8 +12,12 @@ import { ChatAdapter } from "../../hooks/useChatSession";
 import { StreamMOTD } from "./components/StreamMOTD";
 import { StreamStatus } from "../../providers/StatusProvider";
 
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+
 const PlayerPage = () => {
   const navigate = useNavigate();
+  const { width: playerGridWidth, containerRef: playerGridRef } = useContainerWidth();
   const { locale } = useContext(LocaleContext);
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
   const [streamKeys, setStreamKeys] = useState<string[]>([ window.location.pathname.substring(1) ]);
@@ -86,6 +91,18 @@ const PlayerPage = () => {
   }, []);
 
   const isSingleStream = streamKeys.length === 1;
+  const playerGridColumns = isSingleStream ? 1 : 2;
+  const playerGridGap = 8;
+  const playerGridRowHeight = 16;
+  const playerGridItemPixelWidth = (playerGridWidth - playerGridGap * (playerGridColumns - 1)) / playerGridColumns;
+  const playerGridItemWidth = 12 / playerGridColumns;
+  const isSingleStreamChatSidebar = isSingleStream && isChatOpen && playerGridItemPixelWidth >= 1024;
+  const chatSidebarWidth = cinemaMode ? 320 : 336;
+  const chatBelowHeight = isChatOpen && !isSingleStreamChatSidebar ? (isSingleStream ? 336 : 388) : 0;
+  const playerWidth = Math.max(0, playerGridItemPixelWidth - (isSingleStreamChatSidebar ? chatSidebarWidth : 0));
+  const playerGridCardHeight = Math.ceil(playerWidth * 9 / 16 + 24 + chatBelowHeight);
+  const playerGridCardRows = Math.max(1, Math.ceil((playerGridCardHeight + playerGridGap) / (playerGridRowHeight + playerGridGap)));
+  const chatPanelVariant = isSingleStreamChatSidebar ? "sidebar" : (isSingleStream ? "compact-below" : "below");
 
   return (
     <div>
@@ -118,43 +135,56 @@ const PlayerPage = () => {
         />
       )}
 
-      <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container gap-2"}`} >
-        <div className={isSingleStream ? "w-full" : "grid w-full grid-cols-2 gap-2"}>
-          {streamKeys.map((streamKey) => {
-            return (
-              <div key={`${streamKey}_player_card`} className="min-w-0 flex flex-col gap-1">
-                <StreamMOTD
-                  isOnline={streamStatuses[streamKey]?.isOnline ?? false}
-                  motd={streamStatuses[streamKey]?.motd ?? ""}
-                  className={isSingleStream ? "px-1" : "px-4"}
-                />
+      <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container"}`} >
+        <div ref={playerGridRef} className="w-full">
+          <ReactGridLayout
+            layout={streamKeys.map((streamKey, index) => ({
+              i: `${streamKey}_player_card`,
+              x: (index % playerGridColumns) * playerGridItemWidth,
+              y: Math.floor(index / playerGridColumns) * playerGridCardRows,
+              w: playerGridItemWidth,
+              h: playerGridCardRows,
+            }))}
+            width={playerGridWidth}
+            gridConfig={{ cols: 12, rowHeight: playerGridRowHeight, margin: [playerGridGap, playerGridGap], containerPadding: [0, 0] }}
+          >
+            {streamKeys.map((streamKey) => {
+              return (
+                <div key={`${streamKey}_player_card`} className="min-w-0 flex h-full flex-col gap-1 overflow-hidden">
+                  <StreamMOTD
+                    isOnline={streamStatuses[streamKey]?.isOnline ?? false}
+                    motd={streamStatuses[streamKey]?.motd ?? ""}
+                    className={isSingleStream ? "px-1" : "px-4"}
+                  />
 
-                <div className={isSingleStream ? "relative flex flex-col gap-4 w-full" : "flex flex-col gap-1"}>
-                  <div className={isSingleStream ? `min-w-0 transition-[margin] duration-200 ${isChatOpen ? (cinemaMode ? "lg:mr-80" : "lg:mr-[21rem]") : ""}` : "min-w-0"}>
-                    <Player
-                      key={`${streamKey}_player`}
+                  <div className={isSingleStream ? "relative flex min-h-0 flex-1 flex-col gap-4 w-full" : "flex min-h-0 flex-1 flex-col gap-1"}>
+                    <div className={isSingleStream ? `min-w-0 min-h-0 flex-1 transition-[margin] duration-200 ${isSingleStreamChatSidebar ? (cinemaMode ? "mr-80" : "mr-[21rem]") : ""}` : "min-w-0 min-h-0 flex-1"}>
+                      <Player
+                        key={`${streamKey}_player`}
+                        streamKey={streamKey}
+                        cinemaMode={cinemaMode}
+                        fillContainer
+                        isChatOpen={isChatOpen}
+                        onToggleChat={() => setIsChatOpen((prev) => !prev)}
+                        onChatAdapterChange={setStreamChatAdapter}
+                        onStreamStatusChange={setStreamStatus}
+                        onCloseStream={isSingleStream ? () => navigate("/") : () => removeStream(streamKey)}
+                      />
+                    </div>
+
+                    <ChatPanel
                       streamKey={streamKey}
-                      cinemaMode={cinemaMode}
-                      isChatOpen={isChatOpen}
-                      onToggleChat={() => setIsChatOpen((prev) => !prev)}
-                      onChatAdapterChange={setStreamChatAdapter}
-                      onStreamStatusChange={setStreamStatus}
-                      onCloseStream={isSingleStream ? () => navigate("/") : () => removeStream(streamKey)}
+                      variant={chatPanelVariant}
+                      isOpen={isChatOpen}
+                      adapter={chatAdapters[streamKey]}
+                      displayName={chatDisplayName}
+                      onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
                     />
                   </div>
-
-                  <ChatPanel
-                    streamKey={streamKey}
-                    variant={isSingleStream ? "sidebar" : "below"}
-                    isOpen={isChatOpen}
-                    adapter={chatAdapters[streamKey]}
-                    displayName={chatDisplayName}
-                    onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
-                  />
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </ReactGridLayout>
         </div>
 
         {/*Footer menu*/}

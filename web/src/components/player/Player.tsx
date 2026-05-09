@@ -15,6 +15,7 @@ import { StatusMessageComponent } from './components/StatusMessageComponent';
 interface PlayerProps {
 	streamKey: string;
 	cinemaMode: boolean;
+	fillContainer?: boolean;
 	isChatOpen?: boolean;
 	onToggleChat?(): void;
 	onChatAdapterChange?(streamKey: string, adapter: ChatAdapter | undefined): void;
@@ -31,6 +32,7 @@ interface FullscreenElement extends HTMLElement {
 const Player = (props: PlayerProps) => {
 	const {
 		cinemaMode,
+		fillContainer = false,
 		isChatOpen,
 		onToggleChat,
 		onChatAdapterChange,
@@ -203,11 +205,11 @@ const Player = (props: PlayerProps) => {
 	}, [onChatAdapterChange, onStreamStatusChange, peerConnectionConfig, resetTimer, streamKey, streamVideoPlayerId])
 
 	return (
-		<div className="w-full flex items-end">
+		<div className={`w-full flex items-end ${fillContainer ? "h-full" : ""}`}>
 			<div
 				key={`${streamVideoPlayerId}`}
 				id={streamVideoPlayerId}
-				className="inline-block w-full relative z-0 aspect-video rounded-md"
+				className={`inline-block w-full relative z-0 rounded-md ${fillContainer ? "h-full" : "aspect-video"}`}
 				style={cinemaMode ? {
 					maxHeight: '100vh',
 					maxWidth: '100vw',

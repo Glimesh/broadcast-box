@@ -22,7 +22,7 @@ import { LocaleContext } from "../../../providers/LocaleProvider";
 
 const noop = () => {};
 
-type ChatVariant = "sidebar" | "below";
+type ChatVariant = "sidebar" | "compact-below" | "below";
 
 interface ChatPanelProps {
 	streamKey: string;
@@ -243,13 +243,14 @@ const ChatPanel = (props: ChatPanelProps) => {
 
 	const base =
 		"flex flex-col overflow-hidden rounded-md border border-gray-700 bg-slate-900 text-gray-100 transition-[height,max-height,width,opacity,transform,border-color] duration-200 ease-out";
+	const belowHeightClass = variant === "compact-below" ? "h-80" : "h-96";
 	const panelClassName = variant === "sidebar"
 		? `${base} min-h-0 shrink-0 ${
 			isOpen
-				? "h-80 w-full opacity-100 lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-80"
-				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-0 lg:max-h-none lg:translate-y-0 lg:translate-x-2"
+				? "absolute top-0 right-0 h-full w-80 opacity-100"
+				: "absolute top-0 right-0 h-full w-0 max-h-none translate-x-2 translate-y-0 opacity-0 pointer-events-none border-transparent"
 		}`
-		: `${base} ${isOpen ? "h-96 translate-y-0 opacity-100" : "h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
+		: `${base} ${isOpen ? `${belowHeightClass} translate-y-0 opacity-100` : "h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
 
 	return (
 		<div
