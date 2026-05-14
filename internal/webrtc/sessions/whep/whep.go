@@ -19,7 +19,7 @@ func CreateNewWHEP(
 	pliSender func(),
 	chatManager *chat.Manager,
 ) (w *WHEPSession) {
-	slog.Info("WHEPSession.CreateNewWHEP", "whepSessionID", whepSessionID)
+	slog.Debug("WHEPSession.CreateNewWHEP", "whepSessionID", whepSessionID)
 
 	w = &WHEPSession{
 		SessionID:               whepSessionID,
@@ -45,16 +45,16 @@ func CreateNewWHEP(
 func (w *WHEPSession) Close() {
 	// Close WHEP channels
 	w.SessionClose.Do(func() {
-		slog.Info("WHEPSession.Close")
+		slog.Debug("WHEPSession.Close")
 		w.IsSessionClosed.Store(true)
 
 		// Close PeerConnection
-		slog.Info("WHEPSession.Close.PeerConnection.GracefulClose")
+		slog.Debug("WHEPSession.Close.PeerConnection.GracefulClose")
 		err := w.PeerConnection.Close()
 		if err != nil {
 			slog.Error("WHEPSession.Close.PeerConnection.Error", "err", err)
 		}
-		slog.Info("WHEPSession.Close.PeerConnection.GracefulClose.Completed")
+		slog.Debug("WHEPSession.Close.PeerConnection.GracefulClose.Completed")
 
 		// Empty tracks
 		w.AudioLock.Lock()
@@ -109,7 +109,7 @@ func (w *WHEPSession) GetWHEPSessionStatus() (state SessionState) {
 
 // Sets the requested audio layer for this WHEP session.
 func (w *WHEPSession) SetAudioLayer(encodingID string) {
-	slog.Info("Setting Audio Layer")
+	slog.Debug("Setting Audio Layer")
 	w.AudioLayerCurrent.Store(encodingID)
 	w.IsWaitingForKeyframe.Store(true)
 	w.SendPLI()
@@ -117,7 +117,7 @@ func (w *WHEPSession) SetAudioLayer(encodingID string) {
 
 // Sets the requested video layer for this WHEP session.
 func (w *WHEPSession) SetVideoLayer(encodingID string) {
-	slog.Info("Setting Video Layer")
+	slog.Debug("Setting Video Layer")
 
 	w.VideoLock.Lock()
 	w.VideoLayerCurrent.Store(encodingID)

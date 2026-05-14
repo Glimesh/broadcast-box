@@ -305,6 +305,7 @@ These values are parsed by the Go backend and applied to WHIP/WHEP `PeerConnecti
 | Variable                      | Description                                                                                               |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `LOGGING_ENABLED`             | Enables logging system.                                                                                   |
+| `LOGGING_LEVEL`               | Minimum slog level: `DEBUG`, `INFO`, `WARN`, or `ERROR`. Defaults to `INFO`.                              |
 | `LOGGING_DIRECTORY`           | Directory to store log files.                                                                             |
 | `LOGGING_SINGLEFILE`          | Logs everything into a single file called 'log'. Default is log files are stamped with current date.     |
 | `LOGGING_NEW_FILE_ON_STARTUP` | Creates a new log file on each startup. Either a new 'log' file, or replaces the current dates log file. |

@@ -20,12 +20,27 @@ var (
 )
 
 func SetupLogger() {
+	slog.SetLogLoggerLevel(parseLogLevel())
+
 	if strings.EqualFold(os.Getenv(loggingEnabled), "false") {
 		return
 	}
 
 	setupLoggerForDate(time.Now().Format("20060102"))
 	startLogRotation()
+}
+
+func parseLogLevel() slog.Level {
+	switch strings.ToUpper(os.Getenv(loggingLevel)) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "WARN":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 func setupLoggerForDate(date string) {
