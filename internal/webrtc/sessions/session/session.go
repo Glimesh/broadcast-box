@@ -6,6 +6,7 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/server/helpers"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whip"
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func (session *Session) SetOnClose(onClose func()) {
 
 // Add WHEP viewer session
 func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec, videoRTCPSender *webrtc.RTPSender, pliSender func()) (err error) {
-	log.Println("WHIPSessionManager.WHIPSession.AddWHEPSession")
+	helpers.DebugSessionLog("WHIPSessionManager.WHIPSession.AddWHEPSession")
 
 	whepSession := whep.CreateNewWHEP(
 		whepSessionID,
@@ -53,7 +54,7 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 
 // Add host
 func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
-	log.Println("Session.AddHost")
+	helpers.DebugSessionLog("Session.AddHost")
 
 	for {
 		host := s.Host.Load()
@@ -169,16 +170,16 @@ func (s *Session) Close() {
 // Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
 func (s *Session) isEmpty() bool {
 	if s.hasWHEPSessions() {
-		log.Println("Session.IsEmpty.HasWHEPSessions (false):", s.StreamKey)
+		helpers.DebugSessionLog("Session.IsEmpty.HasWHEPSessions (false):", s.StreamKey)
 		return false
 	}
 
 	if s.isStreaming() {
-		log.Println("Session.IsEmpty.IsActive (false):", s.StreamKey)
+		helpers.DebugSessionLog("Session.IsEmpty.IsActive (false):", s.StreamKey)
 		return false
 	}
 
-	log.Println("Session.IsEmpty (true):", s.StreamKey)
+	helpers.DebugSessionLog("Session.IsEmpty (true):", s.StreamKey)
 	return true
 }
 
@@ -193,12 +194,12 @@ func (s *Session) isStreaming() bool {
 	host.TracksLock.RLock()
 
 	if len(host.AudioTracks) != 0 {
-		log.Println("Session.IsActive.AudioTracks", len(host.AudioTracks))
+		helpers.DebugSessionLog("Session.IsActive.AudioTracks", len(host.AudioTracks))
 		host.TracksLock.RUnlock()
 		return true
 	}
 	if len(host.VideoTracks) != 0 {
-		log.Println("Session.IsActive.VideoTracks", len(host.VideoTracks))
+		helpers.DebugSessionLog("Session.IsActive.VideoTracks", len(host.VideoTracks))
 		host.TracksLock.RUnlock()
 		return true
 	}
@@ -209,7 +210,7 @@ func (s *Session) isStreaming() bool {
 
 func (s *Session) hasWHEPSessions() bool {
 	s.WHEPSessionsLock.RLock()
-	log.Println("Session.HasWHEPSessions:", len(s.WHEPSessions))
+	helpers.DebugSessionLog("Session.HasWHEPSessions:", len(s.WHEPSessions))
 
 	if len(s.WHEPSessions) == 0 {
 		s.WHEPSessionsLock.RUnlock()

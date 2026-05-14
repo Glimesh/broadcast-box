@@ -6,20 +6,21 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
+	"github.com/glimesh/broadcast-box/internal/server/helpers"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/session"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 )
 
 // Prepare the WHIP Session Manager
 func (m *SessionManager) Setup() {
-	log.Println("WHIPSessionManager.Setup")
+	helpers.DebugSessionLog("WHIPSessionManager.Setup")
 
 	m.sessions = make(map[string]*session.Session)
 }
 
 // Add new session
 func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *session.Session, err error) {
-	log.Println("SessionManager.AddWHIPSession")
+	helpers.DebugSessionLog("SessionManager.AddWHIPSession")
 
 	s = &session.Session{
 
@@ -32,7 +33,7 @@ func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *ses
 		ChatManager:  m.ChatManager,
 	}
 	s.SetOnClose(func() {
-		log.Println("SessionManager.Session.Done")
+		helpers.DebugSessionLog("SessionManager.Session.Done")
 		m.sessionsLock.Lock()
 		delete(m.sessions, profile.StreamKey)
 		m.sessionsLock.Unlock()
@@ -50,10 +51,10 @@ func (m *SessionManager) GetOrAddSession(profile authorization.PublicProfile, is
 	session, ok := m.GetSessionByID(profile.StreamKey)
 
 	if !ok {
-		log.Println("SessionManager.GetOrAddStream: Adding", profile.StreamKey)
+		helpers.DebugSessionLog("SessionManager.GetOrAddStream: Adding", profile.StreamKey)
 		session, err = m.addSession(profile)
 	} else if isWHIP {
-		log.Println("SessionManager.GetOrAddStream: Updating", profile.StreamKey)
+		helpers.DebugSessionLog("SessionManager.GetOrAddStream: Updating", profile.StreamKey)
 		session.UpdateStreamStatus(profile)
 	}
 
@@ -62,7 +63,7 @@ func (m *SessionManager) GetOrAddSession(profile authorization.PublicProfile, is
 
 // Get Session by id
 func (m *SessionManager) GetSessionByID(streamKey string) (session *session.Session, foundSession bool) {
-	log.Println("SessionManager.GetSessionByID", streamKey)
+	helpers.DebugSessionLog("SessionManager.GetSessionByID", streamKey)
 
 	m.sessionsLock.RLock()
 	defer m.sessionsLock.RUnlock()
@@ -73,7 +74,7 @@ func (m *SessionManager) GetSessionByID(streamKey string) (session *session.Sess
 
 // Gets the current state of all sessions
 func (m *SessionManager) GetSessionStates(includePrivateStreams bool) (result []session.StreamSessionState) {
-	log.Println("SessionManager.GetSessionStates: IsAdmin", includePrivateStreams)
+	helpers.DebugSessionLog("SessionManager.GetSessionStates: IsAdmin", includePrivateStreams)
 	m.sessionsLock.RLock()
 	copiedSessions := make(map[string]*session.Session)
 	maps.Copy(copiedSessions, m.sessions)
@@ -149,7 +150,7 @@ func (m *SessionManager) GetSessionStates(includePrivateStreams bool) (result []
 
 // Update the provided session information
 func (m *SessionManager) UpdateProfile(profile *authorization.PersonalProfile) {
-	log.Println("WHIPSessionManager.UpdateProfile")
+	helpers.DebugSessionLog("WHIPSessionManager.UpdateProfile")
 	m.sessionsLock.RLock()
 	whipSession, ok := m.sessions[profile.StreamKey]
 	m.sessionsLock.RUnlock()
