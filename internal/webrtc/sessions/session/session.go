@@ -27,7 +27,7 @@ func (session *Session) SetOnClose(onClose func()) {
 
 // Add WHEP viewer session
 func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec, videoRTCPSender *webrtc.RTPSender, pliSender func()) (err error) {
-	slog.Info("WHIPSessionManager.WHIPSession.AddWHEPSession")
+	slog.Debug("WHIPSessionManager.WHIPSession.AddWHEPSession")
 
 	whepSession := whep.CreateNewWHEP(
 		whepSessionID,
@@ -53,7 +53,7 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 
 // Add host
 func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
-	slog.Info("Session.AddHost")
+	slog.Debug("Session.AddHost")
 
 	for {
 		host := s.Host.Load()
@@ -169,16 +169,16 @@ func (s *Session) Close() {
 // Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
 func (s *Session) isEmpty() bool {
 	if s.hasWHEPSessions() {
-		slog.Info("Session.IsEmpty.HasWHEPSessions (false)", "streamKey", s.StreamKey)
+		slog.Debug("Session.IsEmpty.HasWHEPSessions (false)", "streamKey", s.StreamKey)
 		return false
 	}
 
 	if s.isStreaming() {
-		slog.Info("Session.IsEmpty.IsActive (false)", "streamKey", s.StreamKey)
+		slog.Debug("Session.IsEmpty.IsActive (false)", "streamKey", s.StreamKey)
 		return false
 	}
 
-	slog.Info("Session.IsEmpty (true)", "streamKey", s.StreamKey)
+	slog.Debug("Session.IsEmpty (true)", "streamKey", s.StreamKey)
 	return true
 }
 
@@ -193,12 +193,12 @@ func (s *Session) isStreaming() bool {
 	host.TracksLock.RLock()
 
 	if len(host.AudioTracks) != 0 {
-		slog.Info("Session.IsActive.AudioTracks", "count", len(host.AudioTracks))
+		slog.Debug("Session.IsActive.AudioTracks", "count", len(host.AudioTracks))
 		host.TracksLock.RUnlock()
 		return true
 	}
 	if len(host.VideoTracks) != 0 {
-		slog.Info("Session.IsActive.VideoTracks", "count", len(host.VideoTracks))
+		slog.Debug("Session.IsActive.VideoTracks", "count", len(host.VideoTracks))
 		host.TracksLock.RUnlock()
 		return true
 	}
@@ -209,7 +209,7 @@ func (s *Session) isStreaming() bool {
 
 func (s *Session) hasWHEPSessions() bool {
 	s.WHEPSessionsLock.RLock()
-	slog.Info("Session.HasWHEPSessions", "count", len(s.WHEPSessions))
+	slog.Debug("Session.HasWHEPSessions", "count", len(s.WHEPSessions))
 
 	if len(s.WHEPSessions) == 0 {
 		s.WHEPSessionsLock.RUnlock()
