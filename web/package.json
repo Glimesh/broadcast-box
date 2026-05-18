@@ -52,7 +52,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
     "postcss": "^8.5.14",
-    "react-router-dom": "^7.15.0",
+    "react-router-dom": "^7.15.1",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.13"
