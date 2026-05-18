@@ -86,7 +86,7 @@ const locale_da: localeInterface = {
   player: {
     message_is_not_online: "streamer ikke i øjeblikket",
     message_loading_video: "Indlæser video",
-    message_error: "Fejl ved indlæsning af video",
+    message_error: "Fejl",
 
     stream_status_offline: "Offline"
   },
