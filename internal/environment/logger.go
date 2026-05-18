@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,18 +24,18 @@ func SetupLogger() {
 		return
 	}
 
+	setupLoggerForDate(time.Now().Format("20060102"))
 	startLogRotation()
 }
 
 func setupLoggerForDate(date string) {
 	logFile, err := getLogFileWriter()
 	if err != nil {
-		log.Printf("Failed to open log file: %v", err)
+		slog.Error("Failed to open log file", "err", err)
 		return
 	}
 
-	multiWriter := io.MultiWriter(os.Stdout, logFile)
-	log.SetOutput(multiWriter)
+	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
 	currentDate = date
 }
 
@@ -56,12 +57,12 @@ func GetLogFileReader() (logFile *os.File, err error) {
 	logDir, _, _ := getLogfilePath()
 	logFilePath, err := getLatestLogFile(logDir)
 	if err != nil {
-		log.Println("Logger Error:", err)
+		slog.Error("Logger Error", "err", err)
 	}
 
 	file, err := os.Open(logFilePath)
 	if err != nil {
-		log.Println("Logger Error:", err)
+		slog.Error("Logger Error", "err", err)
 	}
 
 	return file, err
@@ -71,7 +72,8 @@ func getLogFileWriter() (logFile *os.File, err error) {
 	logDir, _, logFilePath := getLogfilePath()
 
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
-		log.Fatalf("Failed to create log directory: %v", err)
+		slog.Error("Failed to create log directory", "err", err)
+		os.Exit(1)
 	}
 
 	if envLogTruncateExistingFile := strings.EqualFold(os.Getenv(loggingNewFileOnStartup), "true"); envLogTruncateExistingFile {
@@ -81,9 +83,8 @@ func getLogFileWriter() (logFile *os.File, err error) {
 	}
 
 	if err != nil {
-		log.Println("Logger Error: FilePath", logFilePath)
-		log.Fatalf("Logger Error: %v", err)
-		return nil, err
+		slog.Error("Logger Error", "filePath", logFilePath, "err", err)
+		os.Exit(1)
 	}
 
 	return logFile, nil

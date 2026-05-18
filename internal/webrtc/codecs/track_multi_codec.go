@@ -1,7 +1,7 @@
 package codecs
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
@@ -66,7 +66,7 @@ func (t *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecPar
 		}
 
 		if t.payloadTypeOpus != 0 {
-			log.Println("WHIPSession.TrackMultiCodec: Binding AudioTrack Type for", t.streamID, "-", t.currentPayloadType)
+			slog.Info("WHIPSession.TrackMultiCodec: Binding AudioTrack Type", "streamID", t.streamID, "payloadType", t.currentPayloadType)
 
 			t.kind = webrtc.RTPCodecTypeAudio
 			return webrtc.RTPCodecParameters{
@@ -108,7 +108,7 @@ func (t *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecPar
 		}
 	}
 
-	log.Println("WHEPSession.TrackMultiCodec: Binding VideoTrack Type for", t.streamID, "-", t.currentPayloadType)
+	slog.Info("WHEPSession.TrackMultiCodec: Binding VideoTrack Type", "streamID", t.streamID, "payloadType", t.currentPayloadType)
 	t.kind = webrtc.RTPCodecTypeVideo
 	return webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
@@ -129,7 +129,7 @@ func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) erro
 	packet.SSRC = uint32(t.ssrc)
 
 	if codec != t.codec {
-		log.Println("WHEPSession.TrackMultiCodec.WriteRTP: Setting Codec on", t.streamID, "(", t.RID(), ")", "from", t.codec, "to", codec)
+		slog.Info("WHEPSession.TrackMultiCodec.WriteRTP: Setting Codec", "streamID", t.streamID, "rid", t.RID(), "from", t.codec, "to", codec)
 		t.codec = codec
 
 		switch t.codec {
@@ -154,7 +154,7 @@ func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) erro
 		t.errorCount += 1
 
 		if t.errorCount%50 == 0 {
-			log.Println("WHIPSession.TrackMultiCodec.WriteRTP.Error(", t.errorCount, ")", err)
+			slog.Error("WHIPSession.TrackMultiCodec.WriteRTP.Error", "errorCount", t.errorCount, "err", err)
 			return err
 		}
 	}

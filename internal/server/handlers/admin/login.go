@@ -2,7 +2,7 @@ package admin
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
@@ -17,13 +17,13 @@ func LoginHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	sessionResult := verifyAdminSession(request)
 	if !sessionResult.IsValid {
-		log.Println("Admin login failed")
+		slog.Info("Admin login failed")
 		helpers.LogHTTPError(responseWriter, sessionResult.ErrorMessage, http.StatusUnauthorized)
 		return
 	}
 
 	err := json.NewEncoder(responseWriter).Encode(sessionResult)
 	if err != nil {
-		log.Println("API.Admin.Login Error", err)
+		slog.Error("API.Admin.Login Error", "err", err)
 	}
 }

@@ -1,7 +1,7 @@
 package whip
 
 import (
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/chatdc"
@@ -9,7 +9,7 @@ import (
 )
 
 func (w *WHIPSession) registerWHIPHandlers(peerConnection *webrtc.PeerConnection, streamKey string) {
-	log.Println("WHIPSession.RegisterHandlers")
+	slog.Info("WHIPSession.RegisterHandlers")
 
 	// PeerConnection OnTrack handler
 	w.PeerConnection.OnTrack(w.onTrackHandler(peerConnection, streamKey))
@@ -30,7 +30,7 @@ func (w *WHIPSession) registerWHIPHandlers(peerConnection *webrtc.PeerConnection
 func (w *WHIPSession) onICEConnectionStateChangeHandler() func(webrtc.ICEConnectionState) {
 	return func(state webrtc.ICEConnectionState) {
 		if state == webrtc.ICEConnectionStateFailed || state == webrtc.ICEConnectionStateClosed {
-			log.Println("WHIPSession.PeerConnection.OnICEConnectionStateChange", w.ID)
+			slog.Info("WHIPSession.PeerConnection.OnICEConnectionStateChange", "id", w.ID)
 			w.notifyClosed()
 		}
 	}
@@ -38,7 +38,7 @@ func (w *WHIPSession) onICEConnectionStateChangeHandler() func(webrtc.ICEConnect
 
 func (w *WHIPSession) onTrackHandler(peerConnection *webrtc.PeerConnection, streamKey string) func(*webrtc.TrackRemote, *webrtc.RTPReceiver) {
 	return func(remoteTrack *webrtc.TrackRemote, rtpReceiver *webrtc.RTPReceiver) {
-		log.Println("WHIPSession.PeerConnection.OnTrackHandler", w.ID)
+		slog.Info("WHIPSession.PeerConnection.OnTrackHandler", "id", w.ID)
 
 		if strings.HasPrefix(remoteTrack.Codec().MimeType, "audio") {
 			// Handle audio stream
@@ -48,23 +48,23 @@ func (w *WHIPSession) onTrackHandler(peerConnection *webrtc.PeerConnection, stre
 			w.videoWriter(remoteTrack, streamKey, peerConnection)
 		}
 
-		log.Println("WHIPSession.OnTrackHandler.TrackStopped", remoteTrack.RID())
+		slog.Info("WHIPSession.OnTrackHandler.TrackStopped", "rid", remoteTrack.RID())
 	}
 }
 
 func (w *WHIPSession) onConnectionStateChange() func(webrtc.PeerConnectionState) {
 	return func(state webrtc.PeerConnectionState) {
-		log.Println("WHIPSession.PeerConnection.OnConnectionStateChange", state)
+		slog.Info("WHIPSession.PeerConnection.OnConnectionStateChange", "state", state)
 
 		switch state {
 		case webrtc.PeerConnectionStateClosed:
 			w.notifyClosed()
 		case webrtc.PeerConnectionStateFailed:
-			log.Println("WHIPSession.PeerConnection.OnConnectionStateChange: Host removed", w.ID)
+			slog.Info("WHIPSession.PeerConnection.OnConnectionStateChange: Host removed", "id", w.ID)
 			w.notifyClosed()
 
 		case webrtc.PeerConnectionStateConnected:
-			log.Println("WHIPSession.PeerConnection.OnConnectionStateChange: Host connected", w.ID)
+			slog.Info("WHIPSession.PeerConnection.OnConnectionStateChange: Host connected", "id", w.ID)
 
 		}
 	}

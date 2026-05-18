@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -70,7 +70,7 @@ func CallWebhook(url string, action action, bearerToken string, request *http.Re
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			log.Println("webhook request failed closing response body")
+			slog.Error("webhook request failed closing response body")
 		}
 	}()
 

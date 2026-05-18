@@ -1,18 +1,21 @@
 package codecs
 
 import (
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/pion/webrtc/v4"
 )
 
 func RegisterCodecs(mediaEngine *webrtc.MediaEngine) {
 	if err := registerVideoCodecs(mediaEngine); err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to register video codecs", "err", err)
+		os.Exit(1)
 	}
 
 	if err := registerAudioCodecs(mediaEngine); err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to register audio codecs", "err", err)
+		os.Exit(1)
 	}
 }
 
@@ -20,13 +23,13 @@ func registerAudioCodecs(mediaEngine *webrtc.MediaEngine) []error {
 	errors := []error{}
 	for _, codec := range audioCodecs {
 		if err := mediaEngine.RegisterCodec(codec, webrtc.RTPCodecTypeAudio); err != nil {
-			log.Println("Error registering codec", codec.MimeType)
+			slog.Error("Error registering codec", "mimeType", codec.MimeType)
 			errors = append(errors, err)
 		}
 	}
 
 	if len(errors) != 0 {
-		log.Println("Errors registering codecs", len(errors))
+		slog.Error("Errors registering codecs", "count", len(errors))
 		return errors
 	}
 
@@ -37,13 +40,13 @@ func registerVideoCodecs(mediaEngine *webrtc.MediaEngine) []error {
 	errors := []error{}
 	for _, codec := range videoCodecs {
 		if err := mediaEngine.RegisterCodec(codec, webrtc.RTPCodecTypeVideo); err != nil {
-			log.Println("Error registering codec", codec.MimeType)
+			slog.Error("Error registering codec", "mimeType", codec.MimeType)
 			errors = append(errors, err)
 		}
 	}
 
 	if len(errors) != 0 {
-		log.Println("Errors registering codecs", len(errors))
+		slog.Error("Errors registering codecs", "count", len(errors))
 		return errors
 	}
 

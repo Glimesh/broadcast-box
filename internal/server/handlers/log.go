@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -33,18 +33,18 @@ func logHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	file, err := environment.GetLogFileReader()
 	if err != nil {
-		log.Println("API.Log Error:", err)
+		slog.Error("API.Log Error", "err", err)
 	}
 
 	responseWriter.Header().Set("Content-Type", "text/plain")
 
 	if _, err := io.Copy(responseWriter, file); err != nil {
-		log.Println("API.Log: Error writing file to response", err)
+		slog.Error("API.Log: Error writing file to response", "err", err)
 		helpers.LogHTTPError(responseWriter, "Invalid request", http.StatusBadRequest)
 	}
 
 	err = file.Close()
 	if err != nil {
-		log.Println("API.Log Error:", err)
+		slog.Error("API.Log Error", "err", err)
 	}
 }

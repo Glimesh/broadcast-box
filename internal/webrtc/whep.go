@@ -1,7 +1,7 @@
 package webrtc
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -74,7 +74,7 @@ func WHEP(offer string, streamKey string) (string, string, error) {
 	}
 
 	<-gatherComplete
-	log.Println("WHEPSession.GatheringCompletePromise: Completed Gathering for", streamKey)
+	slog.Info("WHEPSession.GatheringCompletePromise: Completed Gathering", "streamKey", streamKey)
 
 	return utils.DebugOutputAnswer(utils.AppendCandidateToAnswer(peerConnection.LocalDescription().SDP)),
 		whepSessionID,
