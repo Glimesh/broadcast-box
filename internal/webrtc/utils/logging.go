@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -10,7 +10,7 @@ import (
 
 func DebugOutputOffer(offer string) string {
 	if strings.EqualFold(os.Getenv(environment.DebugPrintOffer), "true") {
-		log.Println(offer)
+		slog.Info("Offer", "sdp", offer)
 	}
 
 	return offer
@@ -18,7 +18,7 @@ func DebugOutputOffer(offer string) string {
 
 func DebugOutputAnswer(answer string) string {
 	if strings.EqualFold(os.Getenv(environment.DebugPrintAnswer), "true") {
-		log.Println(answer)
+		slog.Info("Answer", "sdp", answer)
 	}
 
 	return answer

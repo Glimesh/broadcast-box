@@ -2,13 +2,13 @@ package utils
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 )
 
 func ToJSONString(content any) (jsonString string, err error) {
 	jsonResult, err := json.Marshal(content)
 	if err != nil {
-		log.Println("Error converting response", content, "to Json")
+		slog.Error("Error converting response to Json", "content", content, "err", err)
 		return "", err
 	}
 

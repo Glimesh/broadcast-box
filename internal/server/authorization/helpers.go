@@ -2,7 +2,7 @@ package authorization
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -15,7 +15,7 @@ func assureProfilePath() {
 
 	err := os.MkdirAll(profilePath, os.ModePerm)
 	if err != nil {
-		log.Println("Authorization: Error creating profile path folder folder:", err)
+		slog.Error("Authorization: Error creating profile path folder folder", "err", err)
 		return
 	}
 }
@@ -25,7 +25,7 @@ func hasExistingStreamKey(streamKey string) bool {
 	files, err := os.ReadDir(profilePath)
 
 	if err != nil {
-		log.Println("Authorization: Error reading profile directory", err)
+		slog.Error("Authorization: Error reading profile directory", "err", err)
 		return false
 	}
 
@@ -44,7 +44,7 @@ func hasExistingBearerToken(bearerToken string) bool {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		log.Println("Authorization: Error reading profile directory", err)
+		slog.Error("Authorization: Error reading profile directory", "err", err)
 		return false
 	}
 
@@ -62,7 +62,7 @@ func getProfileFileNameByStreamKey(streamKey string) (string, error) {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		log.Println("Authorization: Error reading profile directory", err)
+		slog.Error("Authorization: Error reading profile directory", "err", err)
 		return "", err
 	}
 
@@ -82,7 +82,7 @@ func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		log.Println("Authorization: Error reading profile directory", err)
+		slog.Error("Authorization: Error reading profile directory", "err", err)
 		return "", err
 	}
 

@@ -3,7 +3,7 @@ package whip
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"mime"
 	"net/http"
 	"os"
@@ -25,14 +25,14 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	authHeader := request.Header.Get("Authorization")
 
 	if authHeader == "" {
-		log.Println("Authorization was not set")
+		slog.Info("Authorization was not set")
 		helpers.LogHTTPError(responseWriter, "Authorization was not set", http.StatusBadRequest)
 		return
 	}
 
 	token := helpers.ResolveBearerToken(authHeader)
 	if token == "" {
-		log.Println("Authorization was invalid")
+		slog.Info("Authorization was invalid")
 		helpers.LogHTTPError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
 		return
 	}
@@ -41,14 +41,14 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		sessionID := getSessionIDFromWHIPPath(request.URL.Path)
 
 		if sessionID == "" {
-			log.Println("API.WHIP.Delete Error: Missing session id")
+			slog.Info("API.WHIP.Delete Error: Missing session id")
 			helpers.LogHTTPError(responseWriter, "Missing session id", http.StatusBadRequest)
 			return
 		}
 
-		log.Println("API.WHIP.Delete: Removing session", sessionID)
+		slog.Info("API.WHIP.Delete: Removing session", "sessionID", sessionID)
 		if err := deleteHandler(responseWriter, sessionID); err != nil {
-			log.Println("API.WHIP.Delete Error:", err)
+			slog.Error("API.WHIP.Delete Error", "err", err)
 			helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		}
 
@@ -57,7 +57,7 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	offer, err := io.ReadAll(request.Body)
 	if err != nil || string(offer) == "" {
-		log.Println("Error reading offer")
+		slog.Info("Error reading offer")
 		helpers.LogHTTPError(responseWriter, "error reading offer", http.StatusBadRequest)
 		return
 	}
@@ -68,21 +68,21 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	switch os.Getenv(environment.StreamProfilePolicy) {
 	// Only approved profiles are allowed to stream
 	case authorization.StreamPolicyReservedOnly:
-		log.Println("Policy:", authorization.StreamPolicyReservedOnly)
+		slog.Info("Stream Policy Selected", "policy", authorization.StreamPolicyReservedOnly)
 		profile, err := authorization.GetPublicProfile(token)
 		if err != nil {
-			log.Println("Unauthorized login attempt with bearer", token)
+			slog.Info("Unauthorized login attempt", "token", token)
 			responseWriter.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		userProfile = *profile
 
 	default:
-		log.Println("Policy:", authorization.StreamPolicyWithReserved)
+		slog.Info("Stream Policy Selected", "policy", authorization.StreamPolicyWithReserved)
 
 		// If using a streamKey check if it has been reserved
 		if authorization.IsProfileReserved(token) {
-			log.Println("Unauthorized login attempt with bearer", token, " - Streamkey has been reserved")
+			slog.Info("Unauthorized login attempt with reserved Streamkey", "token", token)
 			responseWriter.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -121,7 +121,7 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if request.Method == http.MethodPatch {
 
 		if contentType := request.Header.Get("Content-Type"); contentType != "application/trickle-ice-sdpfrag" {
-			log.Println("API.WHIP.Patch Error: Invalid patch request")
+			slog.Info("API.WHIP.Patch Error: Invalid patch request")
 			helpers.LogHTTPError(responseWriter, "Invalid patch request", http.StatusBadRequest)
 			return
 		}
@@ -129,14 +129,14 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		sessionID := getSessionIDFromWHIPPath(request.URL.Path)
 
 		if sessionID == "" {
-			log.Println("API.WHIP.Patch Error: Missing session id")
+			slog.Info("API.WHIP.Patch Error: Missing session id")
 			helpers.LogHTTPError(responseWriter, "Missing session id", http.StatusBadRequest)
 			return
 		}
 
-		log.Println("API.WHIP.Patch: Patching session", sessionID)
+		slog.Info("API.WHIP.Patch: Patching session", "sessionID", sessionID)
 		if err := patchHandler(responseWriter, request, sessionID, string(offer)); err != nil {
-			log.Println("API.WHIP.Patch Error:", err)
+			slog.Error("API.WHIP.Patch Error:", "err", err)
 			helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		}
 
@@ -155,9 +155,9 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.WriteHeader(http.StatusCreated)
 
 	if _, err = fmt.Fprint(responseWriter, whipAnswer); err != nil {
-		log.Println("API.WHIP Error", err)
+		slog.Error("API.WHIP Error", "err", err)
 	} else {
-		log.Println("API.WHIP Completed")
+		slog.Info("API.WHIP Completed")
 	}
 
 }

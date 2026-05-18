@@ -2,7 +2,7 @@ package admin
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -21,7 +21,7 @@ type sessionResponse struct {
 func verifyAdminSession(request *http.Request) *sessionResponse {
 	token := helpers.ResolveBearerToken(request.Header.Get("Authorization"))
 	if token == "" {
-		log.Println("Authorization was not set")
+		slog.Info("Authorization was not set")
 
 		return &sessionResponse{
 			IsValid:      false,
@@ -55,7 +55,7 @@ func verifyValidMethod(expectedMethod string, responseWriter http.ResponseWriter
 		})
 
 		if err != nil {
-			log.Println("Admin.Helpers Error:", err)
+			slog.Error("Admin.Helpers Error", "err", err)
 			return false
 		}
 

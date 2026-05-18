@@ -2,7 +2,7 @@ package session
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -27,7 +27,7 @@ func (session *Session) SetOnClose(onClose func()) {
 
 // Add WHEP viewer session
 func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConnection, audioTrack *codecs.TrackMultiCodec, videoTrack *codecs.TrackMultiCodec, videoRTCPSender *webrtc.RTPSender, pliSender func()) (err error) {
-	log.Println("WHIPSessionManager.WHIPSession.AddWHEPSession")
+	slog.Info("WHIPSessionManager.WHIPSession.AddWHEPSession")
 
 	whepSession := whep.CreateNewWHEP(
 		whepSessionID,
@@ -53,7 +53,7 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 
 // Add host
 func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
-	log.Println("Session.AddHost")
+	slog.Info("Session.AddHost")
 
 	for {
 		host := s.Host.Load()
@@ -96,11 +96,11 @@ func (s *Session) RemoveHost() {
 
 	host := s.Host.Swap(nil)
 	if host == nil {
-		log.Println("Session.RemoveHost", s.StreamKey, "- No host to remove")
+		slog.Info("Session.RemoveHost", "streamKey", s.StreamKey, "msg", "No host to remove")
 		return
 	}
 
-	log.Println("Session.RemoveHost", s.StreamKey)
+	slog.Info("Session.RemoveHost", "streamKey", s.StreamKey)
 	s.HasHost.Store(false)
 
 	host.WHEPSessionsSnapshot.Store(make(map[string]*whep.WHEPSession))
@@ -109,7 +109,7 @@ func (s *Session) RemoveHost() {
 }
 
 func (s *Session) handleWHEPClose(whepSessionID string) {
-	log.Println("Session.HandleWHEPClose:", s.StreamKey, " - ", whepSessionID)
+	slog.Info("Session.HandleWHEPClose", "streamKey", s.StreamKey, "whepSessionID", whepSessionID)
 
 	s.WHEPSessionsLock.Lock()
 	_, ok := s.WHEPSessions[whepSessionID]
@@ -162,23 +162,23 @@ func (s *Session) close() {
 }
 
 func (s *Session) Close() {
-	log.Println("Session.Close", s.StreamKey)
+	slog.Info("Session.Close", "streamKey", s.StreamKey)
 	s.close()
 }
 
 // Returns true is no WHIP tracks are present, and no WHEP sessions are waiting for incoming streams
 func (s *Session) isEmpty() bool {
 	if s.hasWHEPSessions() {
-		log.Println("Session.IsEmpty.HasWHEPSessions (false):", s.StreamKey)
+		slog.Info("Session.IsEmpty.HasWHEPSessions (false)", "streamKey", s.StreamKey)
 		return false
 	}
 
 	if s.isStreaming() {
-		log.Println("Session.IsEmpty.IsActive (false):", s.StreamKey)
+		slog.Info("Session.IsEmpty.IsActive (false)", "streamKey", s.StreamKey)
 		return false
 	}
 
-	log.Println("Session.IsEmpty (true):", s.StreamKey)
+	slog.Info("Session.IsEmpty (true)", "streamKey", s.StreamKey)
 	return true
 }
 
@@ -193,12 +193,12 @@ func (s *Session) isStreaming() bool {
 	host.TracksLock.RLock()
 
 	if len(host.AudioTracks) != 0 {
-		log.Println("Session.IsActive.AudioTracks", len(host.AudioTracks))
+		slog.Info("Session.IsActive.AudioTracks", "count", len(host.AudioTracks))
 		host.TracksLock.RUnlock()
 		return true
 	}
 	if len(host.VideoTracks) != 0 {
-		log.Println("Session.IsActive.VideoTracks", len(host.VideoTracks))
+		slog.Info("Session.IsActive.VideoTracks", "count", len(host.VideoTracks))
 		host.TracksLock.RUnlock()
 		return true
 	}
@@ -209,7 +209,7 @@ func (s *Session) isStreaming() bool {
 
 func (s *Session) hasWHEPSessions() bool {
 	s.WHEPSessionsLock.RLock()
-	log.Println("Session.HasWHEPSessions:", len(s.WHEPSessions))
+	slog.Info("Session.HasWHEPSessions", "count", len(s.WHEPSessions))
 
 	if len(s.WHEPSessions) == 0 {
 		s.WHEPSessionsLock.RUnlock()

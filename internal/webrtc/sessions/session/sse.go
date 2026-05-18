@@ -1,7 +1,7 @@
 package session
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/utils"
 )
@@ -11,7 +11,7 @@ func (s *Session) GetSessionStatsEvent() string {
 
 	status, err := utils.ToJSONString(s.GetStreamStatus())
 	if err != nil {
-		log.Println("GetSessionStatsJsonString Error:", err)
+		slog.Error("GetSessionStatsJsonString Error", "err", err)
 		return ""
 	}
 

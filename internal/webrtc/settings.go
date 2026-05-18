@@ -8,7 +8,7 @@ import (
 	"github.com/pion/ice/v4"
 	"github.com/pion/webrtc/v4"
 
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 
@@ -73,7 +73,8 @@ func setupTCPMux(settingEngine *webrtc.SettingEngine, tcpMuxCache map[string]ice
 		if !ok {
 			tcpListener, err := net.ListenTCP("tcp", tcpAddr)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("TCP Listen Error", "err", err)
+				os.Exit(1)
 			}
 
 			tcpMux = webrtc.NewICETCPMux(nil, tcpListener, 8)
@@ -111,7 +112,8 @@ func getTCPMuxAddress() *net.TCPAddr {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", sharedAddress)
 
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Configuration error", "err", err)
+			os.Exit(1)
 		}
 
 		return tcpAddr
@@ -129,7 +131,8 @@ func getUDPMuxPort(isWHIP bool) int {
 	if isWHIP && whipPort != "" {
 		port, err := strconv.Atoi(whipPort)
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Configuration error", "err", err)
+			os.Exit(1)
 		}
 
 		return port
@@ -139,7 +142,8 @@ func getUDPMuxPort(isWHIP bool) int {
 	if !isWHIP && whepPort != "" {
 		port, err := strconv.Atoi(whepPort)
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Configuration error", "err", err)
+			os.Exit(1)
 		}
 
 		return port
@@ -149,7 +153,8 @@ func getUDPMuxPort(isWHIP bool) int {
 	if sharedPort != "" {
 		port, err := strconv.Atoi(sharedPort)
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Configuration error", "err", err)
+			os.Exit(1)
 		}
 
 		return port
@@ -161,9 +166,9 @@ func getUDPMuxPort(isWHIP bool) int {
 
 func setUDPMuxPort(isWHIP bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption, settingEngine *webrtc.SettingEngine) {
 	if isWHIP {
-		log.Println("Setting up WHIP UDP Mux to", udpMuxPort)
+		slog.Info("Setting up WHIP UDP Mux", "port", udpMuxPort)
 	} else {
-		log.Println("Setting up WHEP UDP Mux to", udpMuxPort)
+		slog.Info("Setting up WHEP UDP Mux", "port", udpMuxPort)
 	}
 
 	udpMux, ok := udpMuxCache[udpMuxPort]
@@ -173,7 +178,8 @@ func setUDPMuxPort(isWHIP bool, udpMuxPort int, udpMuxCache map[int]*ice.MultiUD
 		newUDPMux, err := ice.NewMultiUDPMuxFromPort(udpMuxPort, udpMuxOpts...)
 
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Configuration error", "err", err)
+			os.Exit(1)
 		}
 
 		udpMuxCache[udpMuxPort] = newUDPMux
@@ -209,7 +215,8 @@ func setupNAT(settingEngine *webrtc.SettingEngine) {
 			AsCandidateType: natICECandidateType,
 			Mode:            webrtc.ICEAddressRewriteAppend,
 		}); err != nil {
-			log.Fatal("Configuration error: INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP:", err)
+			slog.Error("Configuration error: INCLUDE_PUBLIC_IP_IN_NAT_1_TO_1_IP", "err", err)
+			os.Exit(1)
 		}
 
 	}
