@@ -299,6 +299,7 @@ These values are parsed by the Go backend and applied to WHIP/WHEP `PeerConnecti
 | `DEBUG_PRINT_ANSWER`         | Prints WebRTC answers sent to clients.      |
 | `DEBUG_INCOMING_API_REQUEST` | Logs incoming API request paths.            |
 | `DEBUG_PRINT_SSE_MESSAGES`   | Logs Server-Sent Events messages.           |
+| `DEBUG_SESSION_MANAGER`      | Logs SessionManager messages.               |
 
 ### Logging
 

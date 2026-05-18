@@ -53,6 +53,7 @@ const (
 	DebugPrintAnswer        = "DEBUG_PRINT_ANSWER"
 	DebugPrintOffer         = "DEBUG_PRINT_OFFER"
 	DebugPrintSSEMessages   = "DEBUG_PRINT_SSE_MESSAGES"
+	DebugSessionManager	= "DEBUG_SESSION_MANAGER"
 
 	// LOGGING
 	loggingEnabled          = "LOGGING_ENABLED"
