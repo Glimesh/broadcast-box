@@ -30,6 +30,7 @@ func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *ses
 
 		WHEPSessions: map[string]*whep.WHEPSession{},
 		ChatManager:  m.ChatManager,
+		DataManager:  m.DataManager,
 	}
 	s.SetOnClose(func() {
 		slog.Debug("SessionManager.Session.Done")

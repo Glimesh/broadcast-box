@@ -6,6 +6,7 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/glimesh/broadcast-box/internal/webrtc/interceptors"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 	"github.com/pion/ice/v4"
@@ -13,9 +14,10 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-func Setup(chatManager *chat.Manager) {
+func Setup(chatManager *chat.Manager, dataManager *datadc.Manager) {
 	manager.SessionsManager = &manager.SessionManager{
 		ChatManager: chatManager,
+		DataManager: dataManager,
 	}
 	manager.SessionsManager.Setup()
 
