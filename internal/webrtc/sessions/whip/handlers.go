@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/chatdc"
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -20,10 +21,13 @@ func (w *WHIPSession) registerWHIPHandlers(peerConnection *webrtc.PeerConnection
 	// PeerConnection OnConnectionStateChange
 	w.PeerConnection.OnConnectionStateChange(w.onConnectionStateChange())
 
-	// PeerConnection DataChannel chat handler
+	// PeerConnection DataChannel handlers
 	w.PeerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
-		handler := chatdc.NewHandler(w.ChatManager)
-		handler.Bind(streamKey, w.ID, dataChannel)
+		chatHandler := chatdc.NewHandler(w.ChatManager)
+		chatHandler.Bind(streamKey, w.ID, dataChannel)
+
+		dataHandler := datadc.NewHandler(w.DataManager)
+		dataHandler.Bind(streamKey, w.ID, dataChannel)
 	})
 }
 

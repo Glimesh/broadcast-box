@@ -6,6 +6,7 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -18,6 +19,7 @@ func CreateNewWHEP(
 	peerConnection *webrtc.PeerConnection,
 	pliSender func(),
 	chatManager *chat.Manager,
+	dataManager *datadc.Manager,
 ) (w *WHEPSession) {
 	slog.Debug("WHEPSession.CreateNewWHEP", "whepSessionID", whepSessionID)
 
@@ -32,6 +34,7 @@ func CreateNewWHEP(
 		pliSender:               pliSender,
 		videoBitrateWindowStart: time.Now(),
 		ChatManager:             chatManager,
+		DataManager:             dataManager,
 	}
 
 	w.AudioLayerCurrent.Store("")

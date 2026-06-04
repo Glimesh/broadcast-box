@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/chat"
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whip"
 )
@@ -31,4 +32,5 @@ type Session struct {
 	WHEPSessions     map[string]*whep.WHEPSession
 
 	ChatManager *chat.Manager
+	DataManager *datadc.Manager
 }
