@@ -31,3 +31,23 @@
 		border-color: var(--color-gray-200, currentColor);
 	}
 }
+
+@theme {
+	--animate-reaction-float: reaction-float 1400ms ease-out forwards;
+
+	@keyframes reaction-float {
+		0% {
+			opacity: 0;
+			transform: translate3d(var(--reaction-x, 0), 8px, 0) scale(0.7);
+		}
+
+		18% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 0;
+			transform: translate3d(var(--reaction-x, 0), -64px, 0) scale(1.2);
+		}
+	}
+}

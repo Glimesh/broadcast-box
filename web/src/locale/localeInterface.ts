@@ -191,6 +191,7 @@ export interface localeInterface {
   chat: {
     title: string,
     placeholder_input: string,
+    button_reaction_title: string,
     button_change_display_name_title: string,
     button_send_title: string,
     status_connecting: string,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MouseEvent } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
@@ -7,7 +7,8 @@ import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
 import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
 import { ChatAdapter } from '../../hooks/useChatSession';
-import { ArrowsPointingOutIcon, Square2StackIcon, XMarkIcon } from '@heroicons/react/20/solid';
+import type { ReactionAdapter, ReactionStatus } from './functions/reactionDataChannel';
+import { ArrowsPointingOutIcon, Square2StackIcon, HeartIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import VolumeComponent from './components/VolumeComponent';
 import { StatusMessageComponent } from './components/StatusMessageComponent';
@@ -17,8 +18,12 @@ interface PlayerProps {
 	cinemaMode: boolean;
 	fillContainer?: boolean;
 	isChatOpen?: boolean;
+	localReactionEventId?: number;
+	reactionAdapter?: ReactionAdapter;
 	onToggleChat?(): void;
 	onChatAdapterChange?(streamKey: string, adapter: ChatAdapter | undefined): void;
+	onReactionAdapterChange?(streamKey: string, adapter: ReactionAdapter | undefined): void;
+	onReactionStatusChange?(streamKey: string, status: ReactionStatus | undefined): void;
 	onStreamStatusChange?(streamKey: string, status: StreamStatus): void;
 	onCloseStream?(): void;
 }
@@ -34,8 +39,12 @@ const Player = (props: PlayerProps) => {
 		cinemaMode,
 		fillContainer = false,
 		isChatOpen,
+		localReactionEventId = 0,
+		reactionAdapter,
 		onToggleChat,
 		onChatAdapterChange,
+		onReactionAdapterChange,
+		onReactionStatusChange,
 		onStreamStatusChange,
 		onCloseStream,
 	} = props
@@ -57,11 +66,13 @@ const Player = (props: PlayerProps) => {
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
 	const [isVideoMuted, setIsVideoMuted] = useState<boolean>(true)
 	const [videoVolume, setVideoVolume] = useState<number>(50)
+	const [reactionAnimations, setReactionAnimations] = useState<{ id: number; x: number }[]>([])
 
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const layerEndpointRef = useRef<string>('');
 	const videoOverlayVisibleTimeoutRef = useRef<number | undefined>(undefined);
+	const reactionAnimationIdRef = useRef(0);
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
 	const streamVideoPlayerId = streamKey + "_videoPlayer";
@@ -99,7 +110,16 @@ const Player = (props: PlayerProps) => {
 		},
 		onError: () => setStreamState("Error"),
 		onChatAdapterChange: (adapter) => onChatAdapterChange?.(streamKey, adapter),
-	}), [onChatAdapterChange, onStreamStatusChange, streamKey])
+		onReactionAdapterChange: (adapter) => onReactionAdapterChange?.(streamKey, adapter),
+	}), [onChatAdapterChange, onReactionAdapterChange, onStreamStatusChange, streamKey])
+
+	const addReactionAnimation = useCallback(() => {
+		const id = reactionAnimationIdRef.current + 1;
+		reactionAnimationIdRef.current = id;
+		const x = Math.round((Math.random() - 0.5) * 32);
+
+		setReactionAnimations((current) => [...current.slice(-7), { id, x }]);
+	}, []);
 
 	const handleEnterFullscreen = () => {
 		const videoElement = videoRef.current as FullscreenElement | null;
@@ -195,6 +215,7 @@ const Player = (props: PlayerProps) => {
 
 		return () => {
 			onChatAdapterChange?.(streamKey, undefined)
+			onReactionAdapterChange?.(streamKey, undefined)
 			player?.removeEventListener('mouseup', handleMouseUp)
 			player?.removeEventListener('mouseenter', handleMouseEnter)
 			player?.removeEventListener('mouseleave', handleMouseLeave)
@@ -204,7 +225,31 @@ const Player = (props: PlayerProps) => {
 			currentPeerConnection?.close()
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-	}, [onChatAdapterChange, onStreamStatusChange, peerConnectionConfig, resetTimer, streamKey, streamVideoPlayerId])
+	}, [onChatAdapterChange, onReactionAdapterChange, onStreamStatusChange, peerConnectionConfig, resetTimer, streamKey, streamVideoPlayerId])
+
+	useEffect(() => {
+		if (!reactionAdapter) {
+			return;
+		}
+
+		const unsubscribe = reactionAdapter.subscribe(
+			addReactionAnimation,
+			(status) => onReactionStatusChange?.(streamKey, status),
+			(error) => console.log("ReactionDataChannel.Error", error),
+		);
+		reactionAdapter.connect(streamKey).catch((err) => console.log("ReactionDataChannel.Connect.Error", err));
+
+		return () => {
+			unsubscribe();
+			onReactionStatusChange?.(streamKey, undefined);
+		};
+	}, [addReactionAnimation, onReactionStatusChange, reactionAdapter, streamKey]);
+
+	useEffect(() => {
+		if (localReactionEventId > 0) {
+			addReactionAnimation();
+		}
+	}, [addReactionAnimation, localReactionEventId]);
 
 	return (
 		<div className={`w-full flex items-end ${fillContainer ? "h-full" : ""}`}>
@@ -348,6 +393,17 @@ const Player = (props: PlayerProps) => {
 					onErrorCapture={(error) => console.log("VideoPlayer.ErrorCapture", error)}
 					onEnded={() => setStreamState("Offline")}
 				/>
+
+					<div className="pointer-events-none absolute right-5 bottom-10 z-70 h-20 w-14 overflow-visible">
+						{reactionAnimations.map((reaction) => (
+							<HeartIcon
+								key={reaction.id}
+								className="animate-reaction-float absolute right-0 bottom-0 h-7 w-7 text-rose-500 drop-shadow"
+								style={{ "--reaction-x": `${reaction.x}px` } as CSSProperties}
+								onAnimationEnd={() => setReactionAnimations((current) => current.filter((item) => item.id !== reaction.id))}
+							/>
+						))}
+					</div>
 
 				</div>
 			</div>
