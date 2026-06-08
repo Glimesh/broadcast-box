@@ -8,7 +8,7 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection) {
+func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection, peers datadc.PeerStore) {
 	slog.Info("WHEPSession.RegisterHandlers")
 
 	peerConnection.OnICEConnectionStateChange(onWHEPICEConnectionStateChangeHandler(w))
@@ -16,9 +16,7 @@ func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection
 	peerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
 		chatHandler := chatdc.NewHandler(w.ChatManager)
 		chatHandler.Bind(w.StreamKey, w.SessionID, dataChannel)
-
-		dataHandler := datadc.NewHandler(w.DataManager)
-		dataHandler.Bind(w.StreamKey, w.SessionID, dataChannel)
+		datadc.Bind(w.StreamKey, peers, w.SessionID, dataChannel)
 	})
 }
 
