@@ -6,7 +6,6 @@ import (
 
 	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
-	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -27,7 +26,6 @@ type (
 		WHEPSessionsSnapshot atomic.Value
 
 		ChatManager *chat.Manager
-		DataManager *datadc.Manager
 	}
 
 	VideoTrack struct {

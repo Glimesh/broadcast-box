@@ -12,7 +12,6 @@ import (
 	"github.com/glimesh/broadcast-box/internal/networktest"
 	"github.com/glimesh/broadcast-box/internal/server"
 	"github.com/glimesh/broadcast-box/internal/webrtc"
-	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -34,8 +33,7 @@ func main() {
 	slog.Info("Booting up Broadcast Box")
 
 	chatManager := chat.NewManager()
-	dataManager := datadc.NewManager()
-	webrtc.Setup(chatManager, dataManager)
+	webrtc.Setup(chatManager)
 
 	if shouldNetworkTest := os.Getenv(environment.NetworkTestOnStart); strings.EqualFold(shouldNetworkTest, "true") {
 		networktest.RunNetworkTest()

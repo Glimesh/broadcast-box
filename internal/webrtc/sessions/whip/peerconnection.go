@@ -3,6 +3,7 @@ package whip
 import (
 	"log/slog"
 
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
 )
@@ -19,7 +20,7 @@ func (w *WHIPSession) notifyClosed() {
 	})
 }
 
-func (w *WHIPSession) AddPeerConnection(peerConnection *webrtc.PeerConnection, streamKey string) {
+func (w *WHIPSession) AddPeerConnection(peerConnection *webrtc.PeerConnection, streamKey string, peers datadc.PeerStore) {
 	slog.Info("WHIPSession.AddPeerConnection")
 
 	w.PeerConnectionLock.Lock()
@@ -34,7 +35,7 @@ func (w *WHIPSession) AddPeerConnection(peerConnection *webrtc.PeerConnection, s
 		}
 	}
 
-	w.registerWHIPHandlers(peerConnection, streamKey)
+	w.registerWHIPHandlers(peerConnection, streamKey, peers)
 }
 
 func (w *WHIPSession) RemovePeerConnection() {

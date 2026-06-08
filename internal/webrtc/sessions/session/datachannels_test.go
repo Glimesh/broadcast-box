@@ -1,14 +1,18 @@
-package datadc
+package session
 
 import (
 	"errors"
 	"testing"
 
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDataChannelBroadcast(t *testing.T) {
-	m := NewManager()
+	s := &Session{
+		StreamKey:        "stream-1",
+		DataChannelPeers: map[string]*datadc.Peer{},
+	}
 
 	// Register peers
 	senderChannel := &fakeDataChannel{}
@@ -16,13 +20,16 @@ func TestDataChannelBroadcast(t *testing.T) {
 	failingRecipientChannel := &fakeDataChannel{sendTextError: errors.New("send failed")}
 	otherStreamChannel := &fakeDataChannel{}
 
-	sender := m.register("stream-1", "sender", senderChannel)
-	recipient := m.register("stream-1", "recipient", recipientChannel)
-	failingRecipient := m.register("stream-1", "failing-recipient", failingRecipientChannel)
-	m.register("stream-2", "other-stream", otherStreamChannel)
+	sender := s.AddDataChannelPeer("sender", senderChannel)
+	recipient := s.AddDataChannelPeer("recipient", recipientChannel)
+	failingRecipient := s.AddDataChannelPeer("failing-recipient", failingRecipientChannel)
+	(&Session{
+		StreamKey:        "stream-2",
+		DataChannelPeers: map[string]*datadc.Peer{},
+	}).AddDataChannelPeer("other-stream", otherStreamChannel)
 
 	// Text broadcasts
-	m.broadcastFrom(sender, []byte("hello"), true)
+	s.BroadcastDataChannelFrom(sender, []byte("hello"), true)
 	assert.Empty(t, senderChannel.textMessages)
 	assert.Empty(t, senderChannel.binaryMessages)
 	assert.Equal(t, []string{"hello"}, recipientChannel.textMessages)
@@ -31,32 +38,38 @@ func TestDataChannelBroadcast(t *testing.T) {
 	assert.Empty(t, otherStreamChannel.binaryMessages)
 
 	// Binary broadcasts
-	m.broadcastFrom(sender, []byte{0x01, 0x02, 0x03}, false)
+	s.BroadcastDataChannelFrom(sender, []byte{0x01, 0x02, 0x03}, false)
 	assert.Equal(t, [][]byte{{0x01, 0x02, 0x03}}, recipientChannel.binaryMessages)
 	assert.Equal(t, []string{"hello"}, recipientChannel.textMessages)
 
 	// Send failures
-	assert.True(t, m.isRegistered(failingRecipient))
-	m.broadcastFrom(failingRecipient, []byte("still active"), true)
-	assert.True(t, m.isRegistered(failingRecipient))
+	assert.True(t, s.isDataChannelPeerRegistered(failingRecipient))
+	s.BroadcastDataChannelFrom(failingRecipient, []byte("still active"), true)
+	assert.True(t, s.isDataChannelPeerRegistered(failingRecipient))
 	assert.Equal(t, []string{"hello", "still active"}, recipientChannel.textMessages)
 
 	// Unregister a peer
-	m.unregister(recipient)
-	m.broadcastFrom(sender, []byte("after unregister"), true)
+	s.RemoveDataChannelPeer(recipient)
+	s.BroadcastDataChannelFrom(sender, []byte("after unregister"), true)
 	assert.Equal(t, []string{"hello", "still active"}, recipientChannel.textMessages)
 
 	// Replace a peer
 	oldChannel := &fakeDataChannel{}
 	newChannel := &fakeDataChannel{}
-	oldPeer := m.register("stream-1", "duplicate", oldChannel)
-	newPeer := m.register("stream-1", "duplicate", newChannel)
+	oldPeer := s.AddDataChannelPeer("duplicate", oldChannel)
+	newPeer := s.AddDataChannelPeer("duplicate", newChannel)
 
-	m.unregister(oldPeer)
-	assert.True(t, m.isRegistered(newPeer))
-	m.broadcastFrom(sender, []byte("replacement"), true)
+	s.RemoveDataChannelPeer(oldPeer)
+	assert.True(t, s.isDataChannelPeerRegistered(newPeer))
+	s.BroadcastDataChannelFrom(sender, []byte("replacement"), true)
 	assert.Empty(t, oldChannel.textMessages)
 	assert.Equal(t, []string{"replacement"}, newChannel.textMessages)
+}
+
+func (s *Session) isDataChannelPeerRegistered(peer *datadc.Peer) bool {
+	s.DataChannelPeersLock.RLock()
+	defer s.DataChannelPeersLock.RUnlock()
+	return s.DataChannelPeers[peer.ID()] == peer
 }
 
 type fakeDataChannel struct {
