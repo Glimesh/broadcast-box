@@ -9,6 +9,10 @@ import (
 
 const DataChannelLabel = "bb-data-v1"
 
+// 256 KiB is chrome default max message size
+// Source: https://webrtc.googlesource.com/src/+/refs/heads/main/api/sctp_transport_interface.h#156
+const MaxPayloadBytes = 256 * 1024
+
 type PeerStore interface {
 	AddDataChannelPeer(peerID string, channel Sender) *Peer
 	RemoveDataChannelPeer(peer *Peer)
@@ -80,6 +84,20 @@ func Bind(streamKey string, peers PeerStore, peerID string, dataChannel *webrtc.
 		register()
 	})
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		if len(msg.Data) > MaxPayloadBytes {
+			slog.Warn(
+				"DataDC.Bind: oversized payload rejected",
+				"streamKey", streamKey,
+				"peerID", peerID,
+				"payloadBytes", len(msg.Data),
+				"maxPayloadBytes", MaxPayloadBytes,
+			)
+			if err := dataChannel.Close(); err != nil {
+				slog.Error("DataDC.Bind: close oversized payload sender error", "streamKey", streamKey, "peerID", peerID, "err", err)
+			}
+			return
+		}
+
 		peers.BroadcastDataChannelFrom(register(), msg.Data, msg.IsString)
 	})
 	dataChannel.OnClose(func() {
