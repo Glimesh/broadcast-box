@@ -6,8 +6,9 @@ Use the WebRTC data channel label `bb-data-v1` to broadcast raw payloads to othe
 
 - Data channel label: `bb-data-v1`
 - Arbitrary payloads, either text or binary
+- Maximum payload size: 256 KiB (matches Chrome's default)
 
-The server does not define an application protocol for this channel. Every message payload is copied and forwarded as-is to currently open `bb-data-v1` channels for the same stream, excluding the sender.
+The server does not define an application protocol for this channel. Every message payload up to the maximum size is copied and forwarded as-is to currently open `bb-data-v1` channels for the same stream, excluding the sender.
 
 ## Simple client example
 
