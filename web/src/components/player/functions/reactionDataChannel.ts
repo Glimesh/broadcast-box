@@ -51,7 +51,7 @@ export class ReactionDataChannelAdapter implements ReactionAdapter {
 				this.onReaction?.();
 			}
 		} catch {
-			this.onError?.("Invalid reaction payload");
+			return;
 		}
 	};
 
