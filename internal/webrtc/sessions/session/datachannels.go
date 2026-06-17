@@ -2,6 +2,7 @@ package session
 
 import (
 	"log/slog"
+	"sync"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 )
@@ -51,15 +52,22 @@ func (s *Session) BroadcastDataChannelFrom(sender *datadc.Peer, payload []byte, 
 	}
 	s.DataChannelPeersLock.RUnlock()
 
+	var wg sync.WaitGroup
 	for _, recipient := range recipients {
-		if err := recipient.Send(payload, isString); err != nil {
-			slog.Error(
-				"DataDC.Broadcast: send error",
-				"streamKey", s.StreamKey,
-				"senderPeerID", sender.ID(),
-				"recipientPeerID", recipient.ID(),
-				"err", err,
-			)
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if err := recipient.Send(payload, isString); err != nil {
+				slog.Error(
+					"DataDC.Broadcast: send error",
+					"streamKey", s.StreamKey,
+					"senderPeerID", sender.ID(),
+					"recipientPeerID", recipient.ID(),
+					"err", err,
+				)
+			}
+		}()
 	}
+	wg.Wait()
 }
