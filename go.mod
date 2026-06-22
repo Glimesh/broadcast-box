@@ -29,7 +29,7 @@ require (
 	github.com/pion/mdns/v2 v2.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/sctp v1.10.0 // indirect
-	github.com/pion/sdp/v3 v3.0.18
+	github.com/pion/sdp/v3 v3.0.19
 	github.com/pion/srtp/v3 v3.0.11 // indirect
 	github.com/pion/stun/v3 v3.1.5 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
