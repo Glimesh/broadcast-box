@@ -36,7 +36,7 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-transform-private-property-in-object": "^7.28.6",
+    "@babel/plugin-transform-private-property-in-object": "^8.0.1",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/postcss": "^4.3.0",
     "@tailwindcss/vite": "^4.3.0",
