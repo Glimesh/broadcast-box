@@ -8,7 +8,7 @@
     "@web3-storage/parse-link-header": "^3.1.0",
     "dotenv": "^17.4.2",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6",
+    "react-dom": "^19.2.7",
     "react-grid-layout": "^2.2.3"
   },
   "scripts": {
