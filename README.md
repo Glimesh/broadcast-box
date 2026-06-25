@@ -73,7 +73,23 @@ If the supplied bearer token belongs to a reserved profile, the page also expose
 the stream MOTD and toggle public/private visibility without leaving the publish flow.
 
 ### FFmpeg Broadcasting
-The following broadcasts a test feed to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
+
+The following simple example broadcasts `video-test.mp4` to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
+
+```shell
+ffmpeg -re -i video-test.mp4 -bf 0 -f whip -authorization ffmpeg-test https://b.siobud.com/api/whip
+```
+
+For now, FFmpeg WHIP only supports H.264 (`libx264`) and Opus and will use them by default if the `-vcodec` and `-acodec`
+options are omitted. However, you can use any H.264 encoder, such as:
+
+```shell
+ffmpeg -hwaccel vulkan -re -i video-test.mp4 -bf 0 -vcodec h264_vaapi \
+  -vf 'format=nv12|vulkan,hwupload' -init_hw_device vulkan \
+  -f whip -authorization ffmpeg-test https://b.siobud.com/api/whip
+```
+
+The following complex example broadcasts a test feed to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
 
 ```shell
 ffmpeg \
