@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
 	ChatBubbleLeftRightIcon,
+	HeartIcon,
 	PencilSquareIcon,
 	PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
@@ -30,6 +31,7 @@ interface ChatPanelProps {
 	isOpen: boolean;
 	adapter?: ChatAdapter;
 	displayName?: string;
+	onReaction?: () => void;
 	onChangeDisplayNameRequested?: () => void;
 }
 
@@ -69,16 +71,18 @@ interface ChatComposerProps {
 	status: ChatStatus;
 	isSending: boolean;
 	onNameRequested(): void;
+	onReaction?: () => void;
 	onSend(text: string): Promise<boolean>;
 	locale: {
 		placeholder_input: string;
+		button_reaction_title: string;
 		button_change_display_name_title: string;
 		button_send_title: string;
 	};
 }
 
 const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
-	const { status, isSending, onNameRequested, onSend, locale } = props;
+	const { status, isSending, onNameRequested, onReaction, onSend, locale } = props;
 	const [text, setText] = useState("");
 	const canSend =
 		text.trim().length > 0 && !isSending && status === "connected";
@@ -102,6 +106,16 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 			className="border-t border-gray-700 bg-gray-900/70 p-3"
 		>
 			<div className="flex items-center gap-2">
+				<button
+					type="button"
+					onClick={onReaction}
+					disabled={!onReaction}
+					className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-rose-300 hover:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-600"
+					title={locale.button_reaction_title}
+				>
+					<HeartIcon className="h-5 w-5" />
+				</button>
+
 				<input
 					type="text"
 					value={text}
@@ -167,7 +181,7 @@ const getLocalizedStatus = (status: ChatStatus, locale: { status_connecting: str
 };
 
 const ChatPanel = (props: ChatPanelProps) => {
-	const { streamKey, variant, isOpen, adapter, displayName, onChangeDisplayNameRequested } = props;
+	const { streamKey, variant, isOpen, adapter, displayName, onReaction, onChangeDisplayNameRequested } = props;
 	const { locale } = useContext(LocaleContext);
 	const { messages, status, error, sendMessage } = useChatSession(
 		streamKey,
@@ -302,6 +316,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 				status={status}
 				isSending={isSending}
 				onNameRequested={onChangeDisplayNameRequested ?? noop}
+				onReaction={onReaction}
 				onSend={onSend}
 				locale={locale.chat}
 			/>

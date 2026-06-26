@@ -4,17 +4,19 @@ import (
 	"log/slog"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/chatdc"
+	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/pion/webrtc/v4"
 )
 
-func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection) {
+func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection, peers datadc.PeerStore) {
 	slog.Info("WHEPSession.RegisterHandlers")
 
 	peerConnection.OnICEConnectionStateChange(onWHEPICEConnectionStateChangeHandler(w))
 
 	peerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
-		handler := chatdc.NewHandler(w.ChatManager)
-		handler.Bind(w.StreamKey, w.SessionID, dataChannel)
+		chatHandler := chatdc.NewHandler(w.ChatManager)
+		chatHandler.Bind(w.StreamKey, w.SessionID, dataChannel)
+		datadc.Bind(w.StreamKey, peers, w.SessionID, dataChannel)
 	})
 }
 

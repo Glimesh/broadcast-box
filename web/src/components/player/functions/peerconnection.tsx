@@ -2,7 +2,8 @@ import { parseLinkHeader } from "@web3-storage/parse-link-header";
 import { StreamStatus } from "../../../providers/StatusProvider";
 import { RefObject } from "react";
 import { ChatAdapter } from "../../../hooks/useChatSession";
-import { ChatDataChannelAdapter, DATA_CHANNEL_LABEL } from "./chatDataChannel";
+import { ChatDataChannelAdapter, DATA_CHANNEL_LABEL as CHAT_DATA_CHANNEL_LABEL } from "./chatDataChannel";
+import { ReactionAdapter, ReactionDataChannelAdapter, DATA_CHANNEL_LABEL as REACTION_DATA_CHANNEL_LABEL } from "./reactionDataChannel";
 
 export interface CurrentLayersMessage {
 	id: string,
@@ -51,6 +52,7 @@ export interface SetupPeerConnectionProps {
 	onStateChange: (state: SetupPeerConnectionStateChange) => void,
 	onStreamRestart: () => void,
 	onChatAdapterChange?: (adapter: ChatAdapter | undefined) => void,
+	onReactionAdapterChange?: (adapter: ReactionAdapter | undefined) => void,
 }
 
 const stopVideoTrack = (videoElement: HTMLVideoElement | null) => {
@@ -79,7 +81,8 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		onLayerEndpointChange,
 		onStateChange,
 		onError,
-		onChatAdapterChange } = props
+		onChatAdapterChange,
+		onReactionAdapterChange } = props
 
 	if (videoRef.current === null){
 		throw new Error("PeerConnection.VideoRef is null")
@@ -90,10 +93,14 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 
 	// Create peerconnection
 	const peerConnection = await createPeerConnection()
-	const chatDataChannel = peerConnection.createDataChannel(DATA_CHANNEL_LABEL)
+	const chatDataChannel = peerConnection.createDataChannel(CHAT_DATA_CHANNEL_LABEL)
 	const chatAdapter = new ChatDataChannelAdapter()
 	chatAdapter.attachChannel(chatDataChannel)
 	onChatAdapterChange?.(chatAdapter)
+	const reactionDataChannel = peerConnection.createDataChannel(REACTION_DATA_CHANNEL_LABEL)
+	const reactionAdapter = new ReactionDataChannelAdapter()
+	reactionAdapter.attachChannel(reactionDataChannel)
+	onReactionAdapterChange?.(reactionAdapter)
 
 	// Config
 	peerConnection.addTransceiver('audio', { direction: 'recvonly' })
@@ -148,7 +155,9 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		console.error("PeerConnection.EventSource", ev)
 		evtSource.close();
 		chatAdapter.detachChannel()
+		reactionAdapter.detachChannel()
 		onChatAdapterChange?.(undefined)
+		onReactionAdapterChange?.(undefined)
 		onStateChange(SetupPeerConnectionStateChange.OFFLINE)
 	}
 
@@ -158,7 +167,9 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 
 		evtSource.close()
 		chatAdapter.detachChannel()
+		reactionAdapter.detachChannel()
 		onChatAdapterChange?.(undefined)
+		onReactionAdapterChange?.(undefined)
 		peerConnection.close()
 
 		onStreamRestart()
@@ -196,7 +207,9 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 			peerConnection.connectionState === 'disconnected'
 		) {
 			chatAdapter.detachChannel()
+			reactionAdapter.detachChannel()
 			onChatAdapterChange?.(undefined)
+			onReactionAdapterChange?.(undefined)
 		}
 	})
 

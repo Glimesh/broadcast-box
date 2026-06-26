@@ -45,7 +45,7 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 	s.WHEPSessions[whepSessionID] = whepSession
 	s.WHEPSessionsLock.Unlock()
 	s.updateHostWHEPSessionsSnapshot()
-	whepSession.RegisterWHEPHandlers(peerConnection)
+	whepSession.RegisterWHEPHandlers(peerConnection, s)
 	go s.handleWHEPVideoRTCPSender(whepSession, videoRTCPSender)
 
 	return nil
@@ -78,7 +78,7 @@ func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
 	}
 	host.SetOnClosed(s.handleHostClosed)
 
-	host.AddPeerConnection(peerConnection, s.StreamKey)
+	host.AddPeerConnection(peerConnection, s.StreamKey, s)
 	if !s.Host.CompareAndSwap(nil, host) {
 		host.RemovePeerConnection()
 		host.RemoveTracks()

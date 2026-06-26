@@ -9,6 +9,7 @@ import AvailableStreams from "../selection/AvailableStreams";
 import { LocaleContext } from "../../providers/LocaleProvider";
 import ChatPanel from "./components/ChatPanel";
 import { ChatAdapter } from "../../hooks/useChatSession";
+import type { ReactionAdapter, ReactionStatus } from "./functions/reactionDataChannel";
 import { StreamMOTD } from "./components/StreamMOTD";
 import { StreamStatus } from "../../providers/StatusProvider";
 
@@ -24,6 +25,9 @@ const PlayerPage = () => {
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => localStorage.getItem("chat-open") !== "false");
   const [chatAdapters, setChatAdapters] = useState<Record<string, ChatAdapter | undefined>>({});
+  const [reactionAdapters, setReactionAdapters] = useState<Record<string, ReactionAdapter | undefined>>({});
+  const [reactionStatuses, setReactionStatuses] = useState<Record<string, ReactionStatus | undefined>>({});
+  const [localReactionEvents, setLocalReactionEvents] = useState<Record<string, number>>({});
   const [streamStatuses, setStreamStatuses] = useState<Record<string, StreamStatus | undefined>>({});
   const [isDisplayNameModalOpen, setIsDisplayNameModalOpen] = useState<boolean>(false);
   const [chatDisplayName, setChatDisplayName] = useState<string>(() => localStorage.getItem("chatDisplayName") ?? "");
@@ -53,6 +57,32 @@ const PlayerPage = () => {
     });
   }, []);
 
+  const setStreamReactionAdapter = useCallback((streamKey: string, adapter: ReactionAdapter | undefined) => {
+    setReactionAdapters((current) => {
+      if (current[streamKey] === adapter) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [streamKey]: adapter,
+      };
+    });
+  }, []);
+
+  const setStreamReactionStatus = useCallback((streamKey: string, status: ReactionStatus | undefined) => {
+    setReactionStatuses((current) => {
+      if (current[streamKey] === status) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [streamKey]: status,
+      };
+    });
+  }, []);
+
   const setStreamStatus = useCallback((streamKey: string, status: StreamStatus | undefined) => {
     setStreamStatuses((current) => {
       if (current[streamKey] === status) {
@@ -73,6 +103,21 @@ const PlayerPage = () => {
       delete next[streamKey];
       return next;
     });
+    setReactionAdapters((current) => {
+      const next = { ...current };
+      delete next[streamKey];
+      return next;
+    });
+    setReactionStatuses((current) => {
+      const next = { ...current };
+      delete next[streamKey];
+      return next;
+    });
+    setLocalReactionEvents((current) => {
+      const next = { ...current };
+      delete next[streamKey];
+      return next;
+    });
     setStreamStatuses((current) => {
       const next = { ...current };
       delete next[streamKey];
@@ -89,6 +134,23 @@ const PlayerPage = () => {
     localStorage.setItem("chatDisplayName", trimmedValue);
     setIsDisplayNameModalOpen(false);
   }, []);
+
+  const sendReaction = useCallback(async (streamKey: string) => {
+    const adapter = reactionAdapters[streamKey];
+    if (!adapter || reactionStatuses[streamKey] !== "connected") {
+      return;
+    }
+
+    try {
+      await adapter.send();
+      setLocalReactionEvents((current) => ({
+        ...current,
+        [streamKey]: (current[streamKey] ?? 0) + 1,
+      }));
+    } catch (error) {
+      console.log("ReactionDataChannel.Send.Error", error);
+    }
+  }, [reactionAdapters, reactionStatuses]);
 
   const isSingleStream = streamKeys.length === 1;
   const playerGridColumns = isSingleStream ? 1 : 2;
@@ -166,8 +228,12 @@ const PlayerPage = () => {
                         cinemaMode={cinemaMode}
                         fillContainer
                         isChatOpen={isChatOpen}
+                        localReactionEventId={localReactionEvents[streamKey] ?? 0}
+                        reactionAdapter={reactionAdapters[streamKey]}
                         onToggleChat={() => setIsChatOpen((prev) => !prev)}
                         onChatAdapterChange={setStreamChatAdapter}
+                        onReactionAdapterChange={setStreamReactionAdapter}
+                        onReactionStatusChange={setStreamReactionStatus}
                         onStreamStatusChange={setStreamStatus}
                         onCloseStream={isSingleStream ? () => navigate("/") : () => removeStream(streamKey)}
                       />
@@ -179,6 +245,7 @@ const PlayerPage = () => {
                       isOpen={isChatOpen}
                       adapter={chatAdapters[streamKey]}
                       displayName={chatDisplayName}
+                      onReaction={reactionStatuses[streamKey] === "connected" ? () => sendReaction(streamKey) : undefined}
                       onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
                     />
                   </div>

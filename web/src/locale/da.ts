@@ -185,6 +185,7 @@ const locale_da: localeInterface = {
   chat: {
     title: "Chat",
     placeholder_input: "Skriv en besked",
+    button_reaction_title: "Send reaktion",
     button_change_display_name_title: "Skift visningsnavn",
     button_send_title: "Send besked",
     status_connecting: "forbinder",
