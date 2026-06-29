@@ -39,7 +39,7 @@
     "@babel/plugin-transform-private-property-in-object": "^8.0.1",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/postcss": "^4.3.0",
-    "@tailwindcss/vite": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.61.1",
