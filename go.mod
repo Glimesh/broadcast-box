@@ -8,7 +8,7 @@ require (
 	github.com/pion/dtls/v3 v3.1.4
 	github.com/pion/ice/v4 v4.2.7
 	github.com/pion/interceptor v0.1.45
-	github.com/pion/rtcp v1.2.16
+	github.com/pion/rtcp v1.2.17
 	github.com/pion/rtp v1.10.2
 	github.com/pion/webrtc/v4 v4.2.15
 	github.com/stretchr/testify v1.11.1
