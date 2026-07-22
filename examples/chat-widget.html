@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0%);
+            }
+        }
+
+        body {
+            color: white;
+            font-family: Arial;
+            font-size: 48px;
+        }
+
+        #chat {
+            bottom: 0;
+            position: absolute;
+            width: 100vw;
+        }
+
+        .message {
+            animation: slideIn 0.5s;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 18px 24px;
+            word-break: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="chat"></div>
+
+    <script>
+        let peerConnection = null;
+        let chatChannel = null;
+
+        // !! CHANGE THE SETTINGS BELOW !!
+
+        const whepURL = "https://b.siobud.com/api/whep";
+        const streamKey = "YOUR_STREAM_KEY_HERE";
+        const maxMessageHistory = 100;
+
+        // !! CHANGE THE SETTINGS ABOVE !!
+
+        function getNameColor(displayName) {
+            let hash = 0;
+
+            for (let i = 0; i < displayName.length; i++) {
+                hash = displayName.charCodeAt(i) + ((hash << 5) - hash);
+            }
+
+            return `hsl(${Math.abs(hash) % 360}, 70%, 60%)`;
+        }
+
+        function addChatMessage(displayName, text) {
+            const chat = document.getElementById("chat");
+
+            while (chat.childElementCount >= maxMessageHistory) {
+                chat.firstElementChild.remove();
+            }
+
+            const message = document.createElement("div");
+            message.className = "message";
+
+            const messageName = document.createElement("div");
+            messageName.style.cssText = `color:${getNameColor(displayName)};font-weight:bold`;
+            messageName.textContent = `${displayName}:`;
+
+            const messageContent = document.createElement("div");
+            messageContent.textContent = text;
+
+            message.appendChild(messageName);
+            message.appendChild(messageContent);
+
+            chat.appendChild(message);
+        }
+
+        async function loadChat() {
+
+            if (peerConnection) {
+                peerConnection.close();
+            }
+
+            peerConnection = new RTCPeerConnection();
+
+            chatChannel = peerConnection.createDataChannel("bb-chat-v1");
+
+            chatChannel.onmessage = ({ data }) => {
+                const payload = JSON.parse(data);
+
+                switch (payload.type) {
+                    case "chat.history":
+                        payload.events.forEach((event) => {
+                            addChatMessage(
+                                event.message.displayName,
+                                event.message.text
+                            );
+                        });
+                        break;
+                    case "chat.message":
+                        addChatMessage(
+                            payload.message.displayName,
+                            payload.message.text
+                        );
+                        break;
+                }
+            };
+
+            peerConnection.addTransceiver("audio", {
+                direction: "recvonly"
+            });
+            peerConnection.addTransceiver("video", {
+                direction: "recvonly"
+            });
+
+            const offer = await peerConnection.createOffer();
+
+            await peerConnection.setLocalDescription(offer);
+
+            const response = await fetch(whepURL, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${streamKey}`,
+                    "Content-Type": "application/sdp"
+                },
+                body: offer.sdp
+            });
+
+            const answer = await response.text();
+
+            await peerConnection.setRemoteDescription({
+                type: "answer",
+                sdp: answer
+            });
+        }
+
+        window.onload = loadChat();
+    </script>
+
+</body>
+
+</html>
