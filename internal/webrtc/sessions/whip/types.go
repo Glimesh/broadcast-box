@@ -4,7 +4,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/pion/webrtc/v4"
 )
@@ -24,8 +23,6 @@ type (
 
 		// TODO: WHEPSessionsSnapshot should contain serializable state, not runtime references.
 		WHEPSessionsSnapshot atomic.Value
-
-		ChatManager *chat.Manager
 	}
 
 	VideoTrack struct {

@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/pion/webrtc/v4"
 )
@@ -47,7 +46,5 @@ type (
 		AudioPacketsWritten uint64
 		AudioSequenceNumber uint16
 		AudioLayerCurrent   atomic.Value
-
-		ChatManager *chat.Manager
 	}
 )

@@ -4,8 +4,17 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/glimesh/broadcast-box/internal/webrtc/chatdc"
 	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
+	"github.com/pion/webrtc/v4"
 )
+
+func (s *Session) registerDataChannelHandlers(peerConnection *webrtc.PeerConnection, peerID string) {
+	peerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
+		chatdc.NewHandler(s.ChatManager).Bind(s.StreamKey, peerID, dataChannel)
+		datadc.Bind(s.StreamKey, s, peerID, dataChannel)
+	})
+}
 
 func (s *Session) AddDataChannelPeer(peerID string, channel datadc.Sender) *datadc.Peer {
 	s.DataChannelPeersLock.Lock()
