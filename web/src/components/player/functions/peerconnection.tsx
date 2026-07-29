@@ -3,7 +3,8 @@ import { StreamStatus } from "../../../providers/StatusProvider";
 import { RefObject } from "react";
 import { ChatAdapter } from "../../../hooks/useChatSession";
 import { ChatDataChannelAdapter, DATA_CHANNEL_LABEL as CHAT_DATA_CHANNEL_LABEL } from "./chatDataChannel";
-import { ReactionAdapter, ReactionDataChannelAdapter, DATA_CHANNEL_LABEL as REACTION_DATA_CHANNEL_LABEL } from "./reactionDataChannel";
+
+const REACTION_DATA_CHANNEL_LABEL = "bb-data-v1";
 
 export interface CurrentLayersMessage {
 	id: string,
@@ -51,8 +52,12 @@ export interface SetupPeerConnectionProps {
 	onLayerEndpointChange?: (endpoint: string) => void,
 	onStateChange: (state: SetupPeerConnectionStateChange) => void,
 	onStreamRestart: () => void,
-	onChatAdapterChange?: (adapter: ChatAdapter | undefined) => void,
-	onReactionAdapterChange?: (adapter: ReactionAdapter | undefined) => void,
+	onDataChannelsChange?: (channels: PeerConnectionDataChannels, active: boolean) => void,
+}
+
+export interface PeerConnectionDataChannels {
+	chatAdapter: ChatAdapter,
+	reactionDataChannel: RTCDataChannel,
 }
 
 const stopVideoTrack = (videoElement: HTMLVideoElement | null) => {
@@ -81,8 +86,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		onLayerEndpointChange,
 		onStateChange,
 		onError,
-		onChatAdapterChange,
-		onReactionAdapterChange } = props
+		onDataChannelsChange } = props
 
 	if (videoRef.current === null){
 		throw new Error("PeerConnection.VideoRef is null")
@@ -96,124 +100,128 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 	const chatDataChannel = peerConnection.createDataChannel(CHAT_DATA_CHANNEL_LABEL)
 	const chatAdapter = new ChatDataChannelAdapter()
 	chatAdapter.attachChannel(chatDataChannel)
-	onChatAdapterChange?.(chatAdapter)
 	const reactionDataChannel = peerConnection.createDataChannel(REACTION_DATA_CHANNEL_LABEL)
-	const reactionAdapter = new ReactionDataChannelAdapter()
-	reactionAdapter.attachChannel(reactionDataChannel)
-	onReactionAdapterChange?.(reactionAdapter)
+	const dataChannels = { chatAdapter, reactionDataChannel }
+	let evtSource: EventSource | undefined
+	let dataChannelsPublished = false
+	let isClosed = false
 
-	// Config
-	peerConnection.addTransceiver('audio', { direction: 'recvonly' })
-	peerConnection.addTransceiver('video', { direction: 'recvonly' })
+	const clearDataChannels = () => {
+		chatAdapter.detachChannel()
+		if (dataChannelsPublished) {
+			dataChannelsPublished = false
+			onDataChannelsChange?.(dataChannels, false)
+		}
+	}
 
-	// Setup events
-	const remoteStream = new MediaStream();
-	peerConnection.ontrack = (event: RTCTrackEvent) => {
-		remoteStream.addTrack(event.track);
-		if (videoRef.current) {
-			videoRef.current!.srcObject = remoteStream;
-		} else {
-			console.log("PeerConnection.onTrack", "Could not find VideoRef")
+	const closeConnection = () => {
+		if (isClosed) {
+			return
 		}
 
-		event.track.onended = () => remoteStream.removeTrack(event.track)
-	}
-
-	// Begin negotiation
-	const offer = await peerConnection.createOffer({ iceRestart: true })
-	offer["sdp"] = offer["sdp"]!.replace("useinbandfec=1", "useinbandfec=1;stereo=1")
-
-	await peerConnection
-		.setLocalDescription(offer)
-		.catch((err) => console.error("PeerConnection.SetLocalDescription", err));
-
-	const whepResponse = await fetch(`/api/whep`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${streamKey}`,
-			'Content-Type': 'application/sdp'
-		},
-		body: offer.sdp,
-	})
-
-	if (!whepResponse.ok) {
-		console.log("PeerConnection.WhepResponse.Error", SetupPeerConnectionError.INVALID_WHEP_RESPONSE)
-		onError(SetupPeerConnectionError.INVALID_WHEP_RESPONSE)
-	}
-
-	const parsedLinkHeader = parseLinkHeader(whepResponse.headers.get('Link'))
-
-	if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
-		throw new DOMException("Missing link header");
-	}
-
-	layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
-	onLayerEndpointChange?.(layerEndpointRef.current)
-	const evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
-
-	evtSource.onerror = (ev: Event) => {
-		console.error("PeerConnection.EventSource", ev)
-		evtSource.close();
-		chatAdapter.detachChannel()
-		reactionAdapter.detachChannel()
-		onChatAdapterChange?.(undefined)
-		onReactionAdapterChange?.(undefined)
-		onStateChange(SetupPeerConnectionStateChange.OFFLINE)
-	}
-
-	// Receive current status of the whep stream
-	evtSource.addEventListener("streamStart", () => {
-		console.log("PeerConnection.EventSource", "Reset Stream", streamKey)
-
-		evtSource.close()
-		chatAdapter.detachChannel()
-		reactionAdapter.detachChannel()
-		onChatAdapterChange?.(undefined)
-		onReactionAdapterChange?.(undefined)
+		isClosed = true
+		evtSource?.close()
+		clearDataChannels()
 		peerConnection.close()
+	}
 
-		onStreamRestart()
-	})
+	try {
+		// Publish before negotiation so chat history and early raw messages have listeners.
+		// Every failure path below rolls this exact bundle back through closeConnection.
+		dataChannelsPublished = true
+		onDataChannelsChange?.(dataChannels, true)
 
-	// Receive current status of the whep stream
-	evtSource.addEventListener("status", (event: MessageEvent) => {
-		onStreamStatus(JSON.parse(event.data) as StreamStatus)
-	})
+		// Config
+		peerConnection.addTransceiver('audio', { direction: 'recvonly' })
+		peerConnection.addTransceiver('video', { direction: 'recvonly' })
 
-	// Receive current current layers of this whep stream
-	evtSource.addEventListener("currentLayers", (event: MessageEvent) => {
-		onLayerStatus(JSON.parse(event.data) as CurrentLayersMessage)
-	})
+		// Setup events
+		const remoteStream = new MediaStream();
+		peerConnection.ontrack = (event: RTCTrackEvent) => {
+			remoteStream.addTrack(event.track);
+			if (videoRef.current) {
+				videoRef.current.srcObject = remoteStream;
+			} else {
+				console.log("PeerConnection.onTrack", "Could not find VideoRef")
+			}
 
-	// Receive layers
-	evtSource.addEventListener("layers", event => {
-		const parsed = JSON.parse(event.data) as LayersMessagePayload
-		const videoLayerIds = parsed['1']?.layers.map((layer) => layer.encodingId) ?? []
-		const audioLayerIds = parsed['2']?.layers.map((layer) => layer.encodingId) ?? []
-		onVideoLayerChange(videoLayerIds)
-		onAudioLayerChange(audioLayerIds)
-	})
-
-	const answer = await whepResponse.text()
-	await peerConnection.setRemoteDescription({
-		sdp: answer,
-		type: 'answer'
-	}).catch((err) => console.error("PeerConnection.RemoteDescription", err))
-
-	peerConnection.addEventListener('connectionstatechange', () => {
-		if (
-			peerConnection.connectionState === 'closed' ||
-			peerConnection.connectionState === 'failed' ||
-			peerConnection.connectionState === 'disconnected'
-		) {
-			chatAdapter.detachChannel()
-			reactionAdapter.detachChannel()
-			onChatAdapterChange?.(undefined)
-			onReactionAdapterChange?.(undefined)
+			event.track.onended = () => remoteStream.removeTrack(event.track)
 		}
-	})
 
-	return peerConnection;
+		// Begin negotiation
+		const offer = await peerConnection.createOffer({ iceRestart: true })
+		offer["sdp"] = offer["sdp"]!.replace("useinbandfec=1", "useinbandfec=1;stereo=1")
+		await peerConnection.setLocalDescription(offer)
+
+		const whepResponse = await fetch(`/api/whep`, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${streamKey}`,
+				'Content-Type': 'application/sdp'
+			},
+			body: offer.sdp,
+		})
+
+		if (!whepResponse.ok) {
+			onError(SetupPeerConnectionError.INVALID_WHEP_RESPONSE)
+			throw new Error(`Invalid WHEP response: ${whepResponse.status}`)
+		}
+
+		const parsedLinkHeader = parseLinkHeader(whepResponse.headers.get('Link'))
+		if (parsedLinkHeader === null || parsedLinkHeader === undefined) {
+			throw new DOMException("Missing link header");
+		}
+
+		layerEndpointRef.current = `${parsedLinkHeader['urn:ietf:params:whep:ext:core:layer'].url}`
+		onLayerEndpointChange?.(layerEndpointRef.current)
+		evtSource = new EventSource(`${parsedLinkHeader['urn:ietf:params:whep:ext:core:server-sent-events'].url}`)
+
+		evtSource.onerror = (ev: Event) => {
+			console.error("PeerConnection.EventSource", ev)
+			closeConnection()
+			onStateChange(SetupPeerConnectionStateChange.OFFLINE)
+		}
+
+		evtSource.addEventListener("streamStart", () => {
+			console.log("PeerConnection.EventSource", "Reset Stream", streamKey)
+			closeConnection()
+			onStreamRestart()
+		})
+
+		evtSource.addEventListener("status", (event: MessageEvent) => {
+			onStreamStatus(JSON.parse(event.data) as StreamStatus)
+		})
+
+		evtSource.addEventListener("currentLayers", (event: MessageEvent) => {
+			onLayerStatus(JSON.parse(event.data) as CurrentLayersMessage)
+		})
+
+		evtSource.addEventListener("layers", event => {
+			const parsed = JSON.parse(event.data) as LayersMessagePayload
+			const videoLayerIds = parsed['1']?.layers.map((layer) => layer.encodingId) ?? []
+			const audioLayerIds = parsed['2']?.layers.map((layer) => layer.encodingId) ?? []
+			onVideoLayerChange(videoLayerIds)
+			onAudioLayerChange(audioLayerIds)
+		})
+
+		const answer = await whepResponse.text()
+		await peerConnection.setRemoteDescription({ sdp: answer, type: 'answer' })
+
+		peerConnection.addEventListener('connectionstatechange', () => {
+			if (
+				peerConnection.connectionState === 'closed' ||
+				peerConnection.connectionState === 'failed' ||
+				peerConnection.connectionState === 'disconnected'
+			) {
+				closeConnection()
+			}
+		})
+
+		return peerConnection;
+	} catch (error) {
+		closeConnection()
+		throw error
+	}
 }
 
 async function createPeerConnection(): Promise<RTCPeerConnection> {
