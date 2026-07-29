@@ -19,7 +19,7 @@ import (
 // This is the maximum inbound message size for every data channel on a peer connection.
 // 256 KiB matches Chrome's default maximum message size.
 // Source: https://webrtc.googlesource.com/src/+/refs/heads/main/api/sctp_transport_interface.h#156
-const maxDataChannelMessageBytes uint32 = 256 * 1024
+const maxDataChannelMessageBytes uint32 = 256 * 1024 + 1
 
 func getSettingEngine(isWHIP bool, tcpMuxCache map[string]ice.TCPMux, udpMuxCache map[int]*ice.MultiUDPMuxDefault) (settingEngine webrtc.SettingEngine) {
 	var (

@@ -8,7 +8,10 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-const dataChannelLabel = "bb-data-v1"
+const (
+	dataChannelLabel           = "bb-data-v1"
+	dataChannelMaxPayloadBytes = 256 * 1024
+)
 
 type dataChannelSender interface {
 	Send(data []byte) error
@@ -69,6 +72,20 @@ func (s *Session) bindDataChannel(peerID string, dataChannel *webrtc.DataChannel
 		register()
 	})
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		if len(msg.Data) > dataChannelMaxPayloadBytes {
+			slog.Warn(
+				"DataDC.Bind: oversized payload rejected",
+				"streamKey", s.StreamKey,
+				"peerID", peerID,
+				"payloadBytes", len(msg.Data),
+				"maxPayloadBytes", dataChannelMaxPayloadBytes,
+			)
+			if err := dataChannel.Close(); err != nil {
+				slog.Error("DataDC.Bind: close oversized payload sender error", "streamKey", s.StreamKey, "peerID", peerID, "err", err)
+			}
+			return
+		}
+
 		s.broadcastDataChannelFrom(register(), msg.Data, msg.IsString)
 	})
 	dataChannel.OnClose(func() {
