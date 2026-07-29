@@ -5,78 +5,155 @@ import (
 	"sync"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/chatdc"
-	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/pion/webrtc/v4"
 )
+
+const dataChannelLabel = "bb-data-v1"
+
+type dataChannelSender interface {
+	Send(data []byte) error
+	SendText(s string) error
+}
+
+type dataChannelPeer struct {
+	id      string
+	channel dataChannelSender
+
+	writeLock sync.Mutex
+}
 
 func (s *Session) registerDataChannelHandlers(peerConnection *webrtc.PeerConnection, peerID string) {
 	peerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
 		chatdc.NewHandler(s.ChatManager).Bind(s.StreamKey, peerID, dataChannel)
-		datadc.Bind(s.StreamKey, s, peerID, dataChannel)
+		s.bindDataChannel(peerID, dataChannel)
 	})
 }
 
-func (s *Session) AddDataChannelPeer(peerID string, channel datadc.Sender) *datadc.Peer {
-	s.DataChannelPeersLock.Lock()
-	defer s.DataChannelPeersLock.Unlock()
-
-	if s.DataChannelPeers == nil {
-		s.DataChannelPeers = map[string]*datadc.Peer{}
+func (s *Session) bindDataChannel(peerID string, dataChannel *webrtc.DataChannel) {
+	if dataChannel.Label() != dataChannelLabel {
+		return
 	}
 
-	peer := datadc.NewPeer(peerID, channel)
-	s.DataChannelPeers[peerID] = peer
+	var (
+		peer     *dataChannelPeer
+		peerLock sync.Mutex
+		isClosed bool
+	)
+
+	register := func() *dataChannelPeer {
+		peerLock.Lock()
+		defer peerLock.Unlock()
+		if isClosed {
+			return nil
+		}
+
+		if peer == nil {
+			peer = s.addDataChannelPeer(peerID, dataChannel)
+		}
+		return peer
+	}
+
+	closePeer := func() (*dataChannelPeer, bool) {
+		peerLock.Lock()
+		defer peerLock.Unlock()
+		if isClosed {
+			return nil, false
+		}
+
+		isClosed = true
+		return peer, true
+	}
+
+	dataChannel.OnOpen(func() {
+		slog.Info("DataDC.Bind: open", "streamKey", s.StreamKey, "peerID", peerID)
+		register()
+	})
+	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		s.broadcastDataChannelFrom(register(), msg.Data, msg.IsString)
+	})
+	dataChannel.OnClose(func() {
+		slog.Info("DataDC.Bind: closed", "streamKey", s.StreamKey, "peerID", peerID)
+		peer, _ := closePeer()
+		s.removeDataChannelPeer(peer)
+	})
+	dataChannel.OnError(func(err error) {
+		peer, didClose := closePeer()
+		if didClose {
+			slog.Error("DataDC.Bind: error", "streamKey", s.StreamKey, "peerID", peerID, "err", err)
+			s.removeDataChannelPeer(peer)
+		}
+	})
+}
+
+func (s *Session) addDataChannelPeer(peerID string, channel dataChannelSender) *dataChannelPeer {
+	s.dataChannelPeersLock.Lock()
+	defer s.dataChannelPeersLock.Unlock()
+
+	if s.dataChannelPeers == nil {
+		s.dataChannelPeers = map[string]*dataChannelPeer{}
+	}
+
+	peer := &dataChannelPeer{id: peerID, channel: channel}
+	s.dataChannelPeers[peerID] = peer
 	return peer
 }
 
-func (s *Session) RemoveDataChannelPeer(peer *datadc.Peer) {
+func (s *Session) removeDataChannelPeer(peer *dataChannelPeer) {
 	if peer == nil {
 		return
 	}
 
-	s.DataChannelPeersLock.Lock()
-	defer s.DataChannelPeersLock.Unlock()
+	s.dataChannelPeersLock.Lock()
+	defer s.dataChannelPeersLock.Unlock()
 
-	if s.DataChannelPeers[peer.ID()] == peer {
-		delete(s.DataChannelPeers, peer.ID())
+	if s.dataChannelPeers[peer.id] == peer {
+		delete(s.dataChannelPeers, peer.id)
 	}
 }
 
-func (s *Session) BroadcastDataChannelFrom(sender *datadc.Peer, payload []byte, isString bool) {
+func (s *Session) broadcastDataChannelFrom(sender *dataChannelPeer, payload []byte, isString bool) {
 	if sender == nil {
 		return
 	}
 
-	s.DataChannelPeersLock.RLock()
-	if s.DataChannelPeers[sender.ID()] != sender {
-		s.DataChannelPeersLock.RUnlock()
+	s.dataChannelPeersLock.RLock()
+	if s.dataChannelPeers[sender.id] != sender {
+		s.dataChannelPeersLock.RUnlock()
 		return
 	}
 
-	recipients := make([]*datadc.Peer, 0, len(s.DataChannelPeers))
-	for peerID, peer := range s.DataChannelPeers {
-		if peerID != sender.ID() {
+	recipients := make([]*dataChannelPeer, 0, len(s.dataChannelPeers))
+	for peerID, peer := range s.dataChannelPeers {
+		if peerID != sender.id {
 			recipients = append(recipients, peer)
 		}
 	}
-	s.DataChannelPeersLock.RUnlock()
+	s.dataChannelPeersLock.RUnlock()
 
 	var wg sync.WaitGroup
 	for _, recipient := range recipients {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			if err := recipient.Send(payload, isString); err != nil {
+		wg.Go(func() {
+			if err := recipient.send(payload, isString); err != nil {
 				slog.Error(
 					"DataDC.Broadcast: send error",
 					"streamKey", s.StreamKey,
-					"senderPeerID", sender.ID(),
-					"recipientPeerID", recipient.ID(),
+					"senderPeerID", sender.id,
+					"recipientPeerID", recipient.id,
 					"err", err,
 				)
 			}
-		}()
+		})
 	}
 	wg.Wait()
+}
+
+func (p *dataChannelPeer) send(payload []byte, isString bool) error {
+	p.writeLock.Lock()
+	defer p.writeLock.Unlock()
+
+	if isString {
+		return p.channel.SendText(string(payload))
+	}
+
+	return p.channel.Send(payload)
 }
