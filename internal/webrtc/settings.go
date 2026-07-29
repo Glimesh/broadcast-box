@@ -16,6 +16,11 @@ import (
 	"github.com/glimesh/broadcast-box/internal/ip"
 )
 
+// This is the maximum inbound message size for every data channel on a peer connection.
+// 256 KiB matches Chrome's default maximum message size.
+// Source: https://webrtc.googlesource.com/src/+/refs/heads/main/api/sctp_transport_interface.h#156
+const maxDataChannelMessageBytes uint32 = 256 * 1024
+
 func getSettingEngine(isWHIP bool, tcpMuxCache map[string]ice.TCPMux, udpMuxCache map[int]*ice.MultiUDPMuxDefault) (settingEngine webrtc.SettingEngine) {
 	var (
 		udpMuxOpts []ice.UDPMuxFromPortOption
@@ -32,6 +37,7 @@ func getSettingEngine(isWHIP bool, tcpMuxCache map[string]ice.TCPMux, udpMuxCach
 	settingEngine.DisableSRTCPReplayProtection(true)
 	settingEngine.DisableSRTPReplayProtection(true)
 	settingEngine.SetIncludeLoopbackCandidate(os.Getenv(environment.IncludeLoopbackCandidate) != "")
+	settingEngine.SetSCTPMaxMessageSize(maxDataChannelMessageBytes)
 
 	return
 }
