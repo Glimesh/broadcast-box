@@ -5,9 +5,8 @@ import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponen
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
-import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
+import { CurrentLayersMessage, PeerConnectionDataChannels, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
 import { ChatAdapter } from '../../hooks/useChatSession';
-import type { ReactionAdapter, ReactionStatus } from './functions/reactionDataChannel';
 import { ArrowsPointingOutIcon, Square2StackIcon, HeartIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import VolumeComponent from './components/VolumeComponent';
@@ -18,15 +17,14 @@ interface PlayerProps {
 	cinemaMode: boolean;
 	fillContainer?: boolean;
 	isChatOpen?: boolean;
-	localReactionEventId?: number;
-	reactionAdapter?: ReactionAdapter;
 	onToggleChat?(): void;
 	onChatAdapterChange?(streamKey: string, adapter: ChatAdapter | undefined): void;
-	onReactionAdapterChange?(streamKey: string, adapter: ReactionAdapter | undefined): void;
-	onReactionStatusChange?(streamKey: string, status: ReactionStatus | undefined): void;
+	onReactionSenderChange?(streamKey: string, sender: ReactionSender | undefined): void;
 	onStreamStatusChange?(streamKey: string, status: StreamStatus): void;
 	onCloseStream?(): void;
 }
+
+export type ReactionSender = () => void;
 
 interface FullscreenElement extends HTMLElement {
 	webkitRequestFullscreen?: () => void | Promise<void>;
@@ -39,12 +37,9 @@ const Player = (props: PlayerProps) => {
 		cinemaMode,
 		fillContainer = false,
 		isChatOpen,
-		localReactionEventId = 0,
-		reactionAdapter,
 		onToggleChat,
 		onChatAdapterChange,
-		onReactionAdapterChange,
-		onReactionStatusChange,
+		onReactionSenderChange,
 		onStreamStatusChange,
 		onCloseStream,
 	} = props
@@ -67,6 +62,7 @@ const Player = (props: PlayerProps) => {
 	const [isVideoMuted, setIsVideoMuted] = useState<boolean>(true)
 	const [videoVolume, setVideoVolume] = useState<number>(50)
 	const [reactionAnimations, setReactionAnimations] = useState<{ id: number; x: number }[]>([])
+	const [dataChannels, setDataChannels] = useState<PeerConnectionDataChannels | undefined>()
 
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
@@ -109,9 +105,10 @@ const Player = (props: PlayerProps) => {
 			setStreamState("Loading")
 		},
 		onError: () => setStreamState("Error"),
-		onChatAdapterChange: (adapter) => onChatAdapterChange?.(streamKey, adapter),
-		onReactionAdapterChange: (adapter) => onReactionAdapterChange?.(streamKey, adapter),
-	}), [onChatAdapterChange, onReactionAdapterChange, onStreamStatusChange, streamKey])
+		onDataChannelsChange: (channels, active) => {
+			setDataChannels((current) => active ? channels : current === channels ? undefined : current)
+		},
+	}), [onStreamStatusChange, streamKey])
 
 	const addReactionAnimation = useCallback(() => {
 		const id = reactionAnimationIdRef.current + 1;
@@ -195,6 +192,7 @@ const Player = (props: PlayerProps) => {
 		player?.addEventListener('mouseleave', handleMouseLeave)
 
 		let currentPeerConnection: RTCPeerConnection | null = null
+		let disposed = false
 		const beforeUnloadHandler = () => currentPeerConnection?.close()
 		window.addEventListener("beforeunload", beforeUnloadHandler)
 
@@ -206,6 +204,10 @@ const Player = (props: PlayerProps) => {
 
 			PeerConnectionSetup(setupProps)
 				.then((peerConnection) => {
+					if (disposed) {
+						peerConnection.close()
+						return
+					}
 					currentPeerConnection = peerConnection
 				})
 				.catch((err) => console.log("PeerConnectionConfig.Error", err))
@@ -214,8 +216,7 @@ const Player = (props: PlayerProps) => {
 		setupPeerConnection()
 
 		return () => {
-			onChatAdapterChange?.(streamKey, undefined)
-			onReactionAdapterChange?.(streamKey, undefined)
+			disposed = true
 			player?.removeEventListener('mouseup', handleMouseUp)
 			player?.removeEventListener('mouseenter', handleMouseEnter)
 			player?.removeEventListener('mouseleave', handleMouseLeave)
@@ -225,31 +226,71 @@ const Player = (props: PlayerProps) => {
 			currentPeerConnection?.close()
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-	}, [onChatAdapterChange, onReactionAdapterChange, onStreamStatusChange, peerConnectionConfig, resetTimer, streamKey, streamVideoPlayerId])
+	}, [peerConnectionConfig, resetTimer, streamVideoPlayerId])
 
 	useEffect(() => {
-		if (!reactionAdapter) {
+		const adapter = dataChannels?.chatAdapter;
+		if (!adapter) {
 			return;
 		}
 
-		const unsubscribe = reactionAdapter.subscribe(
-			addReactionAnimation,
-			(status) => onReactionStatusChange?.(streamKey, status),
-			(error) => console.log("ReactionDataChannel.Error", error),
-		);
-		reactionAdapter.connect(streamKey).catch((err) => console.log("ReactionDataChannel.Connect.Error", err));
+		onChatAdapterChange?.(streamKey, adapter);
 
 		return () => {
-			unsubscribe();
-			onReactionStatusChange?.(streamKey, undefined);
+			onChatAdapterChange?.(streamKey, undefined);
 		};
-	}, [addReactionAnimation, onReactionStatusChange, reactionAdapter, streamKey]);
+	}, [dataChannels, onChatAdapterChange, streamKey]);
 
 	useEffect(() => {
-		if (localReactionEventId > 0) {
-			addReactionAnimation();
+		const channel = dataChannels?.reactionDataChannel;
+		if (!channel) {
+			return;
 		}
-	}, [addReactionAnimation, localReactionEventId]);
+
+		const sendReaction = () => {
+			if (channel.readyState !== "open") {
+				return;
+			}
+
+			try {
+				channel.send(JSON.stringify({ type: "reaction" }));
+				addReactionAnimation();
+			} catch (error) {
+				console.log("ReactionDataChannel.Send.Error", error);
+			}
+		};
+		const updateSender = () => {
+			onReactionSenderChange?.(streamKey, channel.readyState === "open" ? sendReaction : undefined);
+		};
+		const handleMessage = (event: MessageEvent) => {
+			if (typeof event.data !== "string") {
+				return;
+			}
+
+			try {
+				const payload = JSON.parse(event.data) as { type?: string };
+				if (payload.type === "reaction") {
+					addReactionAnimation();
+				}
+			} catch {
+				return;
+			}
+		};
+
+		channel.addEventListener("open", updateSender);
+		channel.addEventListener("close", updateSender);
+		channel.addEventListener("error", updateSender);
+		channel.addEventListener("message", handleMessage);
+		updateSender();
+
+		return () => {
+			channel.removeEventListener("open", updateSender);
+			channel.removeEventListener("close", updateSender);
+			channel.removeEventListener("error", updateSender);
+			channel.removeEventListener("message", handleMessage);
+			onReactionSenderChange?.(streamKey, undefined);
+		};
+	}, [addReactionAnimation, dataChannels, onReactionSenderChange, streamKey]);
 
 	return (
 		<div className={`w-full flex items-end ${fillContainer ? "h-full" : ""}`}>
