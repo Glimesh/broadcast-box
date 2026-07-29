@@ -110,7 +110,7 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 					type="button"
 					onClick={onReaction}
 					disabled={!onReaction}
-					className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-rose-300 hover:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-600"
+					className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-rose-300 hover:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-600"
 					title={locale.button_reaction_title}
 				>
 					<HeartIcon className="h-5 w-5" />
@@ -122,13 +122,13 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 					maxLength={2000}
 					onChange={(event) => setText(event.target.value)}
 					placeholder={locale.placeholder_input}
-					className="h-9 flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-100 placeholder:text-gray-400 focus:outline-hidden"
+					className="h-9 min-w-0 flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-100 placeholder:text-gray-400 focus:outline-hidden"
 				/>
 
 				<button
 					type="button"
 					onClick={onNameRequested}
-					className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-gray-100 hover:bg-gray-700"
+					className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-gray-100 hover:bg-gray-700"
 					title={locale.button_change_display_name_title}
 				>
 					<PencilSquareIcon className="h-5 w-5" />
@@ -137,7 +137,7 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 				<button
 					type="submit"
 					disabled={!canSend}
-					className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-white disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+					className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
 					title={locale.button_send_title}
 				>
 					<PaperAirplaneIcon className="h-5 w-5" />
