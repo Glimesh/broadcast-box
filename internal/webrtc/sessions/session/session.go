@@ -36,7 +36,6 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 		videoTrack,
 		peerConnection,
 		pliSender,
-		s.ChatManager,
 	)
 
 	whepSession.SetOnClose(s.handleWHEPClose)
@@ -45,7 +44,8 @@ func (s *Session) AddWHEP(whepSessionID string, peerConnection *webrtc.PeerConne
 	s.WHEPSessions[whepSessionID] = whepSession
 	s.WHEPSessionsLock.Unlock()
 	s.updateHostWHEPSessionsSnapshot()
-	whepSession.RegisterWHEPHandlers(peerConnection, s)
+	whepSession.RegisterWHEPHandlers(peerConnection)
+	s.registerDataChannelHandlers(peerConnection, whepSessionID)
 	go s.handleWHEPVideoRTCPSender(whepSession, videoRTCPSender)
 
 	return nil
@@ -74,11 +74,11 @@ func (s *Session) AddHost(peerConnection *webrtc.PeerConnection) (err error) {
 		ID:          uuid.New().String(),
 		AudioTracks: make(map[string]*whip.AudioTrack),
 		VideoTracks: make(map[string]*whip.VideoTrack),
-		ChatManager: s.ChatManager,
 	}
 	host.SetOnClosed(s.handleHostClosed)
 
-	host.AddPeerConnection(peerConnection, s.StreamKey, s)
+	host.AddPeerConnection(peerConnection, s.StreamKey)
+	s.registerDataChannelHandlers(peerConnection, host.ID)
 	if !s.Host.CompareAndSwap(nil, host) {
 		host.RemovePeerConnection()
 		host.RemoveTracks()
