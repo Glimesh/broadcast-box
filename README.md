@@ -347,7 +347,7 @@ Broadcast Box also accepts a raw WebRTC data channel (`bb-data-v1`) on WHIP/WHEP
 this channel are broadcast as-is to other active peers on the same stream, excluding the sender. Text payloads stay
 text, binary payloads stay binary, and there is no persistent history.
 
-See [CONNECTING.md](internal/webrtc/datadc/CONNECTING.md) for setup details and text/binary examples.
+See [DATA_CHANNEL.md](internal/webrtc/sessions/session/DATA_CHANNEL.md) for setup details and text/binary examples.
 
 ## CLI Flags
 

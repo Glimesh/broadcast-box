@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/chat"
-	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whip"
 )
@@ -33,6 +32,6 @@ type Session struct {
 
 	ChatManager *chat.Manager
 
-	DataChannelPeersLock sync.RWMutex
-	DataChannelPeers     map[string]*datadc.Peer
+	dataChannelPeersLock sync.RWMutex
+	dataChannelPeers     map[string]*dataChannelPeer
 }

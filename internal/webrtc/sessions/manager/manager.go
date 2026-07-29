@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
-	"github.com/glimesh/broadcast-box/internal/webrtc/datadc"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/session"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 )
@@ -29,9 +28,8 @@ func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *ses
 		MOTD:        profile.MOTD,
 		StreamStart: time.Now(),
 
-		WHEPSessions:     map[string]*whep.WHEPSession{},
-		ChatManager:      m.ChatManager,
-		DataChannelPeers: map[string]*datadc.Peer{},
+		WHEPSessions: map[string]*whep.WHEPSession{},
+		ChatManager:  m.ChatManager,
 	}
 	s.SetOnClose(func() {
 		slog.Debug("SessionManager.Session.Done")
