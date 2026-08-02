@@ -2,7 +2,7 @@ package admin
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/server/helpers"
@@ -26,6 +26,6 @@ func StatusHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	err := json.NewEncoder(responseWriter).Encode(sessions)
 	if err != nil {
-		log.Println("API.AdminStatus Error", err)
+		slog.Error("API.AdminStatus Error", "err", err)
 	}
 }

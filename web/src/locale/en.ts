@@ -85,7 +85,7 @@ const locale_en: localeInterface = {
   player: {
     message_is_not_online: "is not currently streaming",
     message_loading_video: "Loading video",
-    message_error: "Error loading video",
+    message_error: "Error",
 
     stream_status_offline: "Offline"
   },
@@ -185,6 +185,7 @@ const locale_en: localeInterface = {
   chat: {
     title: "Chat",
     placeholder_input: "Write a message",
+    button_reaction_title: "Send reaction",
     button_change_display_name_title: "Change display name",
     button_send_title: "Send message",
     status_connecting: "connecting",

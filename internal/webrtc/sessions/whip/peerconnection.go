@@ -1,7 +1,7 @@
 package whip
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v4"
@@ -20,7 +20,7 @@ func (w *WHIPSession) notifyClosed() {
 }
 
 func (w *WHIPSession) AddPeerConnection(peerConnection *webrtc.PeerConnection, streamKey string) {
-	log.Println("WHIPSession.AddPeerConnection")
+	slog.Info("WHIPSession.AddPeerConnection")
 
 	w.PeerConnectionLock.Lock()
 	existingPeerConnection := w.PeerConnection
@@ -28,9 +28,9 @@ func (w *WHIPSession) AddPeerConnection(peerConnection *webrtc.PeerConnection, s
 	w.PeerConnectionLock.Unlock()
 
 	if existingPeerConnection != nil && existingPeerConnection != peerConnection {
-		log.Println("WHIPSession.AddPeerConnection: Replacing existing peerconnection")
+		slog.Info("WHIPSession.AddPeerConnection: Replacing existing peerconnection")
 		if err := existingPeerConnection.GracefulClose(); err != nil {
-			log.Println("WHIPSession.AddPeerConnection.Close.Error", err)
+			slog.Error("WHIPSession.AddPeerConnection.Close.Error", "err", err)
 		}
 	}
 
@@ -38,7 +38,7 @@ func (w *WHIPSession) AddPeerConnection(peerConnection *webrtc.PeerConnection, s
 }
 
 func (w *WHIPSession) RemovePeerConnection() {
-	log.Println("WHIPSession.RemovePeerConnection", w.ID)
+	slog.Info("WHIPSession.RemovePeerConnection", "id", w.ID)
 
 	w.PeerConnectionLock.Lock()
 	peerConnection := w.PeerConnection
@@ -50,10 +50,10 @@ func (w *WHIPSession) RemovePeerConnection() {
 	}
 
 	if err := peerConnection.Close(); err != nil {
-		log.Println("WHIPSession.RemovePeerConnection.Error", err)
+		slog.Error("WHIPSession.RemovePeerConnection.Error", "err", err)
 	}
 
-	log.Println("WHIPSession.RemovePeerConnection.Completed", w.ID)
+	slog.Info("WHIPSession.RemovePeerConnection.Completed", "id", w.ID)
 }
 
 func (w *WHIPSession) SendPLI() {
@@ -70,7 +70,7 @@ func (w *WHIPSession) SendPLI() {
 	}
 
 	if err := peerConnection.WriteRTCP(packets); err != nil {
-		log.Println("WHIPSession.SendPLI.WriteRTCP.Error", err)
+		slog.Error("WHIPSession.SendPLI.WriteRTCP.Error", "err", err)
 	}
 }
 

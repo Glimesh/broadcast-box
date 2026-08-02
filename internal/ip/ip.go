@@ -3,26 +3,30 @@ package ip
 import (
 	"encoding/json"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 )
 
 func GetPublicIP() string {
 	req, err := http.Get("http://ip-api.com/json/")
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to get Public IP", "err", err)
+		os.Exit(1)
 	}
 
 	defer func() {
 		if closeErr := req.Body.Close(); closeErr != nil {
-			log.Fatal(err)
+			slog.Error("Failed to get Public IP", "err", err)
+			os.Exit(1)
 		}
 	}()
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to get Public IP", "err", err)
+		os.Exit(1)
 	}
 
 	ip := struct {
@@ -30,11 +34,13 @@ func GetPublicIP() string {
 	}{}
 
 	if err = json.Unmarshal(body, &ip); err != nil {
-		log.Fatal(err)
+		slog.Error("Failed to get Public IP", "err", err)
+		os.Exit(1)
 	}
 
 	if ip.Query == "" {
-		log.Fatal("Query entry was not populated")
+		slog.Error("Failed to get Public IP", "err", "Query entry was not populated")
+		os.Exit(1)
 	}
 
 	return ip.Query

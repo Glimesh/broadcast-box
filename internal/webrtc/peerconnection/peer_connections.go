@@ -1,7 +1,7 @@
 package peerconnection
 
 import (
-	"log"
+	"log/slog"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/manager"
 	"github.com/pion/webrtc/v4"
@@ -12,7 +12,7 @@ func CreateWHEPPeerConnection() (*webrtc.PeerConnection, error) {
 }
 
 func CreateWHIPPeerConnection(offer string) (*webrtc.PeerConnection, error) {
-	log.Println("CreateWHIPPeerConnection.CreateWHIPPeerConnection")
+	slog.Info("CreateWHIPPeerConnection.CreateWHIPPeerConnection")
 
 	peerConnection, err := manager.APIWHIP.NewPeerConnection(getPeerConnectionConfig())
 	if err != nil {
@@ -42,7 +42,7 @@ func CreateWHIPPeerConnection(offer string) (*webrtc.PeerConnection, error) {
 
 	// Await gathering trickle
 	<-gatheringCompleteResult
-	log.Println("PeerConnection.CreateWHIPPeerConnection.GatheringCompleteResult")
+	slog.Info("PeerConnection.CreateWHIPPeerConnection.GatheringCompleteResult")
 
 	return peerConnection, nil
 }

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -50,13 +50,13 @@ func GetServeMuxHandler() http.HandlerFunc {
 	debugOutputWebRequests := os.Getenv(environment.DebugIncomingAPIRequest)
 	handler := http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		if strings.EqualFold(debugOutputWebRequests, "TRUE") {
-			log.Println("Calling path", request.URL.Path)
+			slog.Info("Calling path", "path", request.URL.Path)
 			_, pattern := serverMux.Handler(request)
 
 			if pattern == "" {
-				log.Println("Unmatched path:", request.URL.Path)
+				slog.Info("Unmatched path", "path", request.URL.Path)
 			} else {
-				log.Println("Found pattern", pattern)
+				slog.Info("Found pattern", "pattern", pattern)
 			}
 		}
 

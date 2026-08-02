@@ -1,10 +1,9 @@
 package whep
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
-	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/pion/webrtc/v4"
 )
@@ -17,9 +16,8 @@ func CreateNewWHEP(
 	videoTrack *codecs.TrackMultiCodec,
 	peerConnection *webrtc.PeerConnection,
 	pliSender func(),
-	chatManager *chat.Manager,
 ) (w *WHEPSession) {
-	log.Println("WHEPSession.CreateNewWHEP", whepSessionID)
+	slog.Debug("WHEPSession.CreateNewWHEP", "whepSessionID", whepSessionID)
 
 	w = &WHEPSession{
 		SessionID:               whepSessionID,
@@ -31,7 +29,6 @@ func CreateNewWHEP(
 		PeerConnection:          peerConnection,
 		pliSender:               pliSender,
 		videoBitrateWindowStart: time.Now(),
-		ChatManager:             chatManager,
 	}
 
 	w.AudioLayerCurrent.Store("")
@@ -45,16 +42,16 @@ func CreateNewWHEP(
 func (w *WHEPSession) Close() {
 	// Close WHEP channels
 	w.SessionClose.Do(func() {
-		log.Println("WHEPSession.Close")
+		slog.Debug("WHEPSession.Close")
 		w.IsSessionClosed.Store(true)
 
 		// Close PeerConnection
-		log.Println("WHEPSession.Close.PeerConnection.GracefulClose")
+		slog.Debug("WHEPSession.Close.PeerConnection.GracefulClose")
 		err := w.PeerConnection.Close()
 		if err != nil {
-			log.Println("WHEPSession.Close.PeerConnection.Error", err)
+			slog.Error("WHEPSession.Close.PeerConnection.Error", "err", err)
 		}
-		log.Println("WHEPSession.Close.PeerConnection.GracefulClose.Completed")
+		slog.Debug("WHEPSession.Close.PeerConnection.GracefulClose.Completed")
 
 		// Empty tracks
 		w.AudioLock.Lock()
@@ -109,7 +106,7 @@ func (w *WHEPSession) GetWHEPSessionStatus() (state SessionState) {
 
 // Sets the requested audio layer for this WHEP session.
 func (w *WHEPSession) SetAudioLayer(encodingID string) {
-	log.Println("Setting Audio Layer")
+	slog.Debug("Setting Audio Layer")
 	w.AudioLayerCurrent.Store(encodingID)
 	w.IsWaitingForKeyframe.Store(true)
 	w.SendPLI()
@@ -117,7 +114,7 @@ func (w *WHEPSession) SetAudioLayer(encodingID string) {
 
 // Sets the requested video layer for this WHEP session.
 func (w *WHEPSession) SetVideoLayer(encodingID string) {
-	log.Println("Setting Video Layer")
+	slog.Debug("Setting Video Layer")
 
 	w.VideoLock.Lock()
 	w.VideoLayerCurrent.Store(encodingID)

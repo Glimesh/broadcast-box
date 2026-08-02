@@ -3,7 +3,7 @@ package whep
 import (
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -28,10 +28,10 @@ func (w *WHEPSession) SendAudioPacket(packet codecs.TrackPacket) {
 
 	if err := audioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
-			log.Println("WHEPSession.SendAudioPacket.ConnectionDropped")
+			slog.Info("WHEPSession.SendAudioPacket.ConnectionDropped")
 			w.Close()
 		} else {
-			log.Println("WHEPSession.SendAudioPacket.Error", err)
+			slog.Error("WHEPSession.SendAudioPacket.Error", "err", err)
 		}
 	}
 }
@@ -73,10 +73,10 @@ func (w *WHEPSession) SendVideoPacket(packet codecs.TrackPacket) {
 		w.VideoPacketsDropped.Add(1)
 
 		if errors.Is(err, io.ErrClosedPipe) {
-			log.Println("WHEPSession.SendVideoPacket.ConnectionDropped")
+			slog.Info("WHEPSession.SendVideoPacket.ConnectionDropped")
 			w.Close()
 		} else {
-			log.Println("WHEPSession.SendVideoPacket.Error", err)
+			slog.Error("WHEPSession.SendVideoPacket.Error", "err", err)
 		}
 	}
 }

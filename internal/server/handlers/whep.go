@@ -3,7 +3,7 @@ package handlers
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"mime"
 	"net/http"
 	"os"
@@ -39,14 +39,14 @@ func whepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		sessionID := strings.TrimSpace(segments[len(segments)-1])
 
 		if sessionID == "" {
-			log.Println("API.WHEP.Patch Error: Missing session id")
+			slog.Info("API.WHEP.Patch Error: Missing session id")
 			helpers.LogHTTPError(responseWriter, "Missing session id", http.StatusBadRequest)
 			return
 		}
 
-		log.Println("API.WHEP.Patch: Patching session", sessionID)
+		slog.Info("API.WHEP.Patch: Patching session", "sessionID", sessionID)
 		if err := patchHandler(responseWriter, request, sessionID, string(offer)); err != nil {
-			log.Println("API.WHEP.Patch Error:", err)
+			slog.Error("API.WHEP.Patch Error", "err", err)
 			helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		}
 
@@ -69,7 +69,7 @@ func whepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	whipAnswer, sessionID, err := webrtc.WHEP(string(offer), token)
 	if err != nil {
-		log.Println("API.WHEP: Setup Error", err.Error())
+		slog.Error("API.WHEP: Setup Error", "err", err)
 		helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -82,9 +82,9 @@ func whepHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.WriteHeader(http.StatusCreated)
 
 	if _, err = fmt.Fprint(responseWriter, whipAnswer); err != nil {
-		log.Println("API.WHEP:", err)
+		slog.Error("API.WHEP Error", "err", err)
 	} else {
-		log.Println("API.WHEP: Completed")
+		slog.Info("API.WHEP Completed")
 	}
 }
 

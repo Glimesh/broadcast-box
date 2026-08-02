@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
 	ChatBubbleLeftRightIcon,
+	HeartIcon,
 	PencilSquareIcon,
 	PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
@@ -22,7 +23,7 @@ import { LocaleContext } from "../../../providers/LocaleProvider";
 
 const noop = () => {};
 
-type ChatVariant = "sidebar" | "below";
+type ChatVariant = "sidebar" | "compact-below" | "below";
 
 interface ChatPanelProps {
 	streamKey: string;
@@ -30,6 +31,7 @@ interface ChatPanelProps {
 	isOpen: boolean;
 	adapter?: ChatAdapter;
 	displayName?: string;
+	onReaction?: () => void;
 	onChangeDisplayNameRequested?: () => void;
 }
 
@@ -69,16 +71,18 @@ interface ChatComposerProps {
 	status: ChatStatus;
 	isSending: boolean;
 	onNameRequested(): void;
+	onReaction?: () => void;
 	onSend(text: string): Promise<boolean>;
 	locale: {
 		placeholder_input: string;
+		button_reaction_title: string;
 		button_change_display_name_title: string;
 		button_send_title: string;
 	};
 }
 
 const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
-	const { status, isSending, onNameRequested, onSend, locale } = props;
+	const { status, isSending, onNameRequested, onReaction, onSend, locale } = props;
 	const [text, setText] = useState("");
 	const canSend =
 		text.trim().length > 0 && !isSending && status === "connected";
@@ -102,19 +106,29 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 			className="border-t border-gray-700 bg-gray-900/70 p-3"
 		>
 			<div className="flex items-center gap-2">
+				<button
+					type="button"
+					onClick={onReaction}
+					disabled={!onReaction}
+					className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-rose-300 hover:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-600"
+					title={locale.button_reaction_title}
+				>
+					<HeartIcon className="h-5 w-5" />
+				</button>
+
 				<input
 					type="text"
 					value={text}
 					maxLength={2000}
 					onChange={(event) => setText(event.target.value)}
 					placeholder={locale.placeholder_input}
-					className="h-9 flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-100 placeholder:text-gray-400 focus:outline-hidden"
+					className="h-9 min-w-0 flex-1 rounded-md border border-gray-700 bg-gray-800 px-3 text-sm text-gray-100 placeholder:text-gray-400 focus:outline-hidden"
 				/>
 
 				<button
 					type="button"
 					onClick={onNameRequested}
-					className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-gray-100 hover:bg-gray-700"
+					className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-700 bg-gray-800 text-gray-100 hover:bg-gray-700"
 					title={locale.button_change_display_name_title}
 				>
 					<PencilSquareIcon className="h-5 w-5" />
@@ -123,7 +137,7 @@ const ChatComposer = memo(function ChatComposer(props: ChatComposerProps) {
 				<button
 					type="submit"
 					disabled={!canSend}
-					className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-blue-600 text-white disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+					className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-blue-600 text-white disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
 					title={locale.button_send_title}
 				>
 					<PaperAirplaneIcon className="h-5 w-5" />
@@ -167,7 +181,7 @@ const getLocalizedStatus = (status: ChatStatus, locale: { status_connecting: str
 };
 
 const ChatPanel = (props: ChatPanelProps) => {
-	const { streamKey, variant, isOpen, adapter, displayName, onChangeDisplayNameRequested } = props;
+	const { streamKey, variant, isOpen, adapter, displayName, onReaction, onChangeDisplayNameRequested } = props;
 	const { locale } = useContext(LocaleContext);
 	const { messages, status, error, sendMessage } = useChatSession(
 		streamKey,
@@ -243,13 +257,14 @@ const ChatPanel = (props: ChatPanelProps) => {
 
 	const base =
 		"flex flex-col overflow-hidden rounded-md border border-gray-700 bg-slate-900 text-gray-100 transition-[height,max-height,width,opacity,transform,border-color] duration-200 ease-out";
+	const belowHeightClass = variant === "compact-below" ? "h-80" : "h-96";
 	const panelClassName = variant === "sidebar"
 		? `${base} min-h-0 shrink-0 ${
 			isOpen
-				? "h-80 w-full opacity-100 lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-80"
-				: "h-0 w-full max-h-0 translate-y-1 opacity-0 pointer-events-none border-transparent lg:absolute lg:top-0 lg:right-0 lg:h-full lg:w-0 lg:max-h-none lg:translate-y-0 lg:translate-x-2"
+				? "absolute top-0 right-0 h-full w-80 opacity-100"
+				: "absolute top-0 right-0 h-full w-0 max-h-none translate-x-2 translate-y-0 opacity-0 pointer-events-none border-transparent"
 		}`
-		: `${base} ${isOpen ? "h-96 translate-y-0 opacity-100" : "h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
+		: `${base} ${isOpen ? `${belowHeightClass} translate-y-0 opacity-100` : "h-0 translate-y-1 border-transparent opacity-0 pointer-events-none"}`;
 
 	return (
 		<div
@@ -301,6 +316,7 @@ const ChatPanel = (props: ChatPanelProps) => {
 				status={status}
 				isSending={isSending}
 				onNameRequested={onChangeDisplayNameRequested ?? noop}
+				onReaction={onReaction}
 				onSend={onSend}
 				locale={locale.chat}
 			/>

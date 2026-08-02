@@ -2,7 +2,7 @@ package chatdc
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"strings"
 	"sync"
 
@@ -52,7 +52,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	}
 
 	if h.manager == nil {
-		log.Println("ChatDC.Bind: chat manager not configured")
+		slog.Info("ChatDC.Bind: chat manager not configured")
 		return
 	}
 
@@ -72,7 +72,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	send := func(payload outboundMessage) bool {
 		data, err := json.Marshal(payload)
 		if err != nil {
-			log.Println("ChatDC.Bind: marshal error", err)
+			slog.Error("ChatDC.Bind: marshal error", "err", err)
 			return false
 		}
 
@@ -80,7 +80,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 		defer writeLock.Unlock()
 
 		if err := dataChannel.SendText(string(data)); err != nil {
-			log.Println("ChatDC.Bind: send error", err)
+			slog.Error("ChatDC.Bind: send error", "err", err)
 			return false
 		}
 
@@ -88,7 +88,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	}
 
 	dataChannel.OnOpen(func() {
-		log.Println("ChatDC.Bind: open", streamKey, peerID)
+		slog.Info("ChatDC.Bind: open", "streamKey", streamKey, "peerID", peerID)
 
 		ch, unsubscribe, history, err := h.manager.SubscribeStream(streamKey, 0)
 		if err != nil {
@@ -158,12 +158,12 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	})
 
 	dataChannel.OnClose(func() {
-		log.Println("ChatDC.Bind: closed", streamKey, peerID)
+		slog.Info("ChatDC.Bind: closed", "streamKey", streamKey, "peerID", peerID)
 		runCloseSubscription()
 	})
 
 	dataChannel.OnError(func(err error) {
-		log.Println("ChatDC.Bind: error", streamKey, peerID, err)
+		slog.Error("ChatDC.Bind: error", "streamKey", streamKey, "peerID", peerID, "err", err)
 		runCloseSubscription()
 	})
 }

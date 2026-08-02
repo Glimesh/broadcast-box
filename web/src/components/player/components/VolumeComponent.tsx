@@ -1,35 +1,26 @@
 import { SpeakerWaveIcon, SpeakerXMarkIcon } from "@heroicons/react/16/solid";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState, type WheelEvent } from "react";
 
 interface VolumeComponentProps {
 	isMuted: boolean;
-	isDisabled?: boolean;
+	volume: number;
 	onStateChanged: (isMuted: boolean) => void;
 	onVolumeChanged: (value: number) => void;
 }
 
 const VolumeComponent = (props: VolumeComponentProps) => {
-	const { isDisabled, onStateChanged, onVolumeChanged } = props;
-	const [isMuted, setIsMuted] = useState<boolean>(props.isMuted);
+	const { isMuted, onStateChanged, onVolumeChanged, volume } = props;
 	const [showSlider, setShowSlider] = useState<boolean>(false);
-
-	useEffect(() => {
-		onStateChanged(isMuted);
-	}, [isMuted, onStateChanged]);
 
 	const onVolumeChange = (newValue: number) => {
 		if (isMuted && newValue !== 0) {
-			setIsMuted(false)
+			onStateChanged(false)
 		}
 		if (!isMuted && newValue === 0) {
-			setIsMuted(true)
+			onStateChanged(true)
 		}
 
 		onVolumeChanged(newValue);
-	}
-
-	if (isDisabled) {
-		return (<SpeakerXMarkIcon className="w-5 opacity-25" />)
 	}
 
 	return <div
@@ -38,14 +29,15 @@ const VolumeComponent = (props: VolumeComponentProps) => {
 		className="flex justify-start max-w-42 gap-2 items-center"
 	>
 		{isMuted && (
-			<SpeakerXMarkIcon className="w-5" onClick={() => setIsMuted((prev) => !prev)} />
+			<SpeakerXMarkIcon className="w-5" onClick={() => onStateChanged(false)} />
 		)}
 		{!isMuted && (
-			<SpeakerWaveIcon className="w-5" onClick={() => setIsMuted((prev) => !prev)} />
+			<SpeakerWaveIcon className="w-5" onClick={() => onStateChanged(true)} />
 		)}
 
 		<VolumeSlider
 			isVisible={showSlider}
+			volume={volume}
 			onVolumeChange={onVolumeChange}
 		/>
 
@@ -54,55 +46,38 @@ const VolumeComponent = (props: VolumeComponentProps) => {
 
 interface VolumeSliderProps {
 	isVisible: boolean;
+	volume: number;
 	onVolumeChange: (value: number) => void
 }
 const VolumeSlider = (props: VolumeSliderProps) => {
-	const { isVisible, onVolumeChange } = props;
-	const inputRef = useRef<HTMLInputElement>(null);
-	const volumeRef = useRef<number>(50);
-	const [currentVolume, setCurrentVolume] = useState<number>(50)
+	const { isVisible, onVolumeChange, volume } = props;
 
-	const setVolume = useCallback((value: number) => {
-		onVolumeChange(value)
-		setCurrentVolume(() => value)
-		volumeRef.current = value
-	}, [onVolumeChange])
+	const onVolumeWheel = (event: WheelEvent<HTMLDivElement>) => {
+		event.preventDefault()
 
-	useEffect(() => {
-		const inputElement = inputRef.current
-		const wheelHandler = (event: WheelEvent) => {
-			event.preventDefault()
+		let newValue = volume + (event.deltaY < 0 ? 1 : -1);
 
-			let newValue = volumeRef.current + (event.deltaY < 0 ? 1 : -1);
-
-			if (newValue > 100) {
-				newValue = 100
-			}
-			if (newValue < 0) {
-				newValue = 0
-			}
-
-			setVolume(newValue)
+		if (newValue > 100) {
+			newValue = 100
+		}
+		if (newValue < 0) {
+			newValue = 0
 		}
 
-		inputElement?.addEventListener("wheel", wheelHandler, { passive: false })
-
-		return () => {
-			inputElement?.removeEventListener("wheel", wheelHandler)
-		}
-	}, [setVolume])
+		onVolumeChange(newValue)
+	}
 
 	return <div
 		id="volumeComponentWrapper"
-		ref={inputRef}
+		onWheel={onVolumeWheel}
 			className={`bg-transparent cursor-pointer h-full ${!isVisible && `invisible`} flex flex-col justify-center`}>
 		<input
 			id="default-range"
 			type="range"
 			min={0}
 			max={100}
-			value={currentVolume}
-			onChange={(event) => setVolume(parseInt(event.target.value))}
+			value={volume}
+			onChange={(event) => onVolumeChange(parseInt(event.target.value))}
 			className={`h-2 w-18 rounded-lg appearance-none cursor-pointer dark:bg-gray-700`}
 		/>
 

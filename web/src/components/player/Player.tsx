@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MouseEvent } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 import PlayPauseComponent from "./components/PlayPauseComponent";
 import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponent";
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
-import { CurrentLayersMessage, PeerConnectionSetup, SetupPeerConnectionFailureType, SetupPeerConnectionProps, SetupPeerConnectionStateChange } from './functions/peerconnection';
+import { CurrentLayersMessage, PeerConnectionDataChannels, PeerConnectionSetup, SetupPeerConnectionFailureType, SetupPeerConnectionProps, SetupPeerConnectionStateChange } from './functions/peerconnection';
 import { ChatAdapter } from '../../hooks/useChatSession';
-import { ArrowsPointingOutIcon, Square2StackIcon, XMarkIcon } from '@heroicons/react/20/solid';
+import { ArrowsPointingOutIcon, Square2StackIcon, HeartIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import VolumeComponent from './components/VolumeComponent';
 import { StatusMessageComponent } from './components/StatusMessageComponent';
@@ -16,12 +16,16 @@ import { useReconnectController } from '../../hooks/useReconnectController';
 interface PlayerProps {
 	streamKey: string;
 	cinemaMode: boolean;
+	fillContainer?: boolean;
 	isChatOpen?: boolean;
 	onToggleChat?(): void;
 	onChatAdapterChange?(streamKey: string, adapter: ChatAdapter | undefined): void;
+	onReactionSenderChange?(streamKey: string, sender: ReactionSender | undefined): void;
 	onStreamStatusChange?(streamKey: string, status: StreamStatus): void;
 	onCloseStream?(): void;
 }
+
+export type ReactionSender = () => void;
 
 interface FullscreenElement extends HTMLElement {
 	webkitRequestFullscreen?: () => void | Promise<void>;
@@ -32,9 +36,11 @@ interface FullscreenElement extends HTMLElement {
 const Player = (props: PlayerProps) => {
 	const {
 		cinemaMode,
+		fillContainer = false,
 		isChatOpen,
 		onToggleChat,
 		onChatAdapterChange,
+		onReactionSenderChange,
 		onStreamStatusChange,
 		onCloseStream,
 	} = props
@@ -54,14 +60,17 @@ const Player = (props: PlayerProps) => {
 	const [layerEndpoint, setLayerEndpoint] = useState<string>('')
 	const [streamState, setStreamState] = useState<"Loading" | "Playing" | "Offline" | "Error">("Loading");
 	const [videoOverlayVisible, setVideoOverlayVisible] = useState<boolean>(false)
+	const [isVideoMuted, setIsVideoMuted] = useState<boolean>(true)
+	const [videoVolume, setVideoVolume] = useState<number>(50)
+	const [reactionAnimations, setReactionAnimations] = useState<{ id: number; x: number }[]>([])
+	const [dataChannels, setDataChannels] = useState<PeerConnectionDataChannels | undefined>()
 
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
-	const currentPeerConnectionRef = useRef<RTCPeerConnection | null>(null)
-	const setupInProgressRef = useRef<boolean>(false)
-	const fatalSetupErrorRef = useRef<boolean>(false)
+	const fatalSetupErrorRef = useRef(false)
 	const layerEndpointRef = useRef<string>('');
 	const videoOverlayVisibleTimeoutRef = useRef<number | undefined>(undefined);
+	const reactionAnimationIdRef = useRef(0);
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
 	const streamVideoPlayerId = streamKey + "_videoPlayer";
@@ -78,6 +87,9 @@ const Player = (props: PlayerProps) => {
 		videoRef.current = element
 		setVideoElement(element)
 	}, [])
+	const isPictureInPictureSupported = videoElement !== null
+		&& document.pictureInPictureEnabled
+		&& typeof videoElement.requestPictureInPicture === 'function'
 
 	const peerConnectionConfig = useMemo<SetupPeerConnectionProps>(() => ({
 		streamKey: streamKey,
@@ -112,8 +124,18 @@ const Player = (props: PlayerProps) => {
 				setStreamState("Error")
 			}
 		},
-		onChatAdapterChange: (adapter) => onChatAdapterChange?.(streamKey, adapter),
-	}), [onChatAdapterChange, onStreamStatusChange, streamKey])
+		onDataChannelsChange: (channels, active) => {
+			setDataChannels((current) => active ? channels : current === channels ? undefined : current)
+		},
+	}), [onStreamStatusChange, streamKey])
+
+	const addReactionAnimation = useCallback(() => {
+		const id = reactionAnimationIdRef.current + 1;
+		reactionAnimationIdRef.current = id;
+		const x = Math.round((Math.random() - 0.5) * 32);
+
+		setReactionAnimations((current) => [...current.slice(-7), { id, x }]);
+	}, []);
 
 	const handleEnterFullscreen = () => {
 		const videoElement = videoRef.current as FullscreenElement | null;
@@ -188,86 +210,151 @@ const Player = (props: PlayerProps) => {
 		player?.addEventListener('mouseenter', handleMouseEnter)
 		player?.addEventListener('mouseleave', handleMouseLeave)
 
-		const closeCurrentPeerConnection = () => {
-			currentPeerConnectionRef.current?.close()
-			currentPeerConnectionRef.current = null
-		}
-
-		const beforeUnloadHandler = () => closeCurrentPeerConnection()
+		let currentPeerConnection: RTCPeerConnection | null = null
+		let disposed = false
+		let setupInProgress = false
+		const beforeUnloadHandler = () => currentPeerConnection?.close()
 		window.addEventListener("beforeunload", beforeUnloadHandler)
+		resetReconnect()
 
 		const setupPeerConnection = () => {
-			if (setupInProgressRef.current) {
+			if (setupInProgress || disposed) {
 				return
 			}
 
-			setupInProgressRef.current = true
+			setupInProgress = true
 			fatalSetupErrorRef.current = false
-			setStreamState(() => "Loading")
+			setStreamState("Loading")
 
 			const setupProps: SetupPeerConnectionProps = {
 				...peerConnectionConfig,
 				onStateChange: (state) => {
-					if (state === SetupPeerConnectionStateChange.OFFLINE) {
-						scheduleReconnect(() => {
-							setupPeerConnection()
-						})
-					}
-				},
-				onStreamRestart: () => {
-					resetReconnect()
-					scheduleReconnect(() => {
-						setupPeerConnection()
-					}, { immediate: true })
-				},
-			}
-
-			closeCurrentPeerConnection()
-
-			PeerConnectionSetup(setupProps)
-				.then((peerConnection) => {
-					currentPeerConnectionRef.current = peerConnection
-					setupInProgressRef.current = false
-					resetReconnect()
-				})
-				.catch((err) => {
-					setupInProgressRef.current = false
-					console.log("PeerConnectionConfig.Error", err)
-
-					if (fatalSetupErrorRef.current) {
-						cancelReconnect()
+					if (state === SetupPeerConnectionStateChange.ONLINE) {
+						resetReconnect()
 						return
 					}
 
-					scheduleReconnect(() => {
-						setupPeerConnection()
-					})
+					scheduleReconnect(setupPeerConnection)
+				},
+				onStreamRestart: () => {
+					resetReconnect()
+					scheduleReconnect(setupPeerConnection, { immediate: true })
+				},
+			}
+
+			currentPeerConnection?.close()
+			currentPeerConnection = null
+
+			PeerConnectionSetup(setupProps)
+				.then((peerConnection) => {
+					setupInProgress = false
+					if (disposed) {
+						peerConnection.close()
+						return
+					}
+					currentPeerConnection = peerConnection
+				})
+				.catch((err) => {
+					setupInProgress = false
+					console.log("PeerConnectionConfig.Error", err)
+
+					if (disposed || fatalSetupErrorRef.current) {
+						if (fatalSetupErrorRef.current) {
+							cancelReconnect()
+						}
+						return
+					}
+
+					scheduleReconnect(setupPeerConnection)
 				})
 		}
 
 		setupPeerConnection()
 
 		return () => {
-			onChatAdapterChange?.(streamKey, undefined)
+			disposed = true
 			cancelReconnect()
-			setupInProgressRef.current = false
 			player?.removeEventListener('mouseup', handleMouseUp)
 			player?.removeEventListener('mouseenter', handleMouseEnter)
 			player?.removeEventListener('mouseleave', handleMouseLeave)
 			player?.removeEventListener('mousemove', handleMouseMove)
 
 			window.removeEventListener("beforeunload", beforeUnloadHandler)
-			closeCurrentPeerConnection()
+			currentPeerConnection?.close()
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-	}, [cancelReconnect, onChatAdapterChange, onStreamStatusChange, peerConnectionConfig, resetReconnect, resetTimer, scheduleReconnect, streamKey, streamVideoPlayerId])
+	}, [cancelReconnect, peerConnectionConfig, resetReconnect, resetTimer, scheduleReconnect, streamVideoPlayerId])
+
+	useEffect(() => {
+		const adapter = dataChannels?.chatAdapter;
+		if (!adapter) {
+			return;
+		}
+
+		onChatAdapterChange?.(streamKey, adapter);
+
+		return () => {
+			onChatAdapterChange?.(streamKey, undefined);
+		};
+	}, [dataChannels, onChatAdapterChange, streamKey]);
+
+	useEffect(() => {
+		const channel = dataChannels?.reactionDataChannel;
+		if (!channel) {
+			return;
+		}
+
+		const sendReaction = () => {
+			if (channel.readyState !== "open") {
+				return;
+			}
+
+			try {
+				channel.send(JSON.stringify({ type: "reaction" }));
+				addReactionAnimation();
+			} catch (error) {
+				console.log("ReactionDataChannel.Send.Error", error);
+			}
+		};
+		const updateSender = () => {
+			onReactionSenderChange?.(streamKey, channel.readyState === "open" ? sendReaction : undefined);
+		};
+		const handleMessage = (event: MessageEvent) => {
+			if (typeof event.data !== "string") {
+				return;
+			}
+
+			try {
+				const payload = JSON.parse(event.data) as { type?: string };
+				if (payload.type === "reaction") {
+					addReactionAnimation();
+				}
+			} catch {
+				return;
+			}
+		};
+
+		channel.addEventListener("open", updateSender);
+		channel.addEventListener("close", updateSender);
+		channel.addEventListener("error", updateSender);
+		channel.addEventListener("message", handleMessage);
+		updateSender();
+
+		return () => {
+			channel.removeEventListener("open", updateSender);
+			channel.removeEventListener("close", updateSender);
+			channel.removeEventListener("error", updateSender);
+			channel.removeEventListener("message", handleMessage);
+			onReactionSenderChange?.(streamKey, undefined);
+		};
+	}, [addReactionAnimation, dataChannels, onReactionSenderChange, streamKey]);
 
 	return (
-		<div className="w-full flex items-end">
+		<div className={`w-full flex items-end ${fillContainer ? "h-full" : ""}`}>
 			<div
 				key={`${streamVideoPlayerId}`}
 				id={streamVideoPlayerId}
-				className="inline-block w-full relative z-0 aspect-video rounded-md"
+				className={`inline-block w-full relative z-0 rounded-md ${fillContainer ? "h-full" : "aspect-video"}`}
 				style={cinemaMode ? {
 					maxHeight: '100vh',
 					maxWidth: '100vw',
@@ -300,13 +387,16 @@ const Player = (props: PlayerProps) => {
 							<div
 								onClick={stopOverlayClickPropagation}
 								onDoubleClick={stopOverlayClickPropagation}
-								className="bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8 rounded-md">
+								className="player-drag-handle bg-blue-950 w-full flex flex-row gap-2 h-1/14 p-1 max-h-8 min-h-8 rounded-md cursor-move">
 
-								<PlayPauseComponent videoRef={videoRef} />
+								<span className="player-drag-cancel flex h-full items-center cursor-pointer">
+									<PlayPauseComponent videoRef={videoRef} />
+								</span>
 
+								<span className="player-drag-cancel flex h-full items-center cursor-pointer">
 									<VolumeComponent
-										isMuted={videoElement.muted}
-										isDisabled={audioLayers.length === 0}
+										isMuted={isVideoMuted}
+										volume={videoVolume}
 										onVolumeChanged={(newValue) => {
 											if (videoRef.current) {
 												videoRef.current.volume = newValue / 100
@@ -318,16 +408,27 @@ const Player = (props: PlayerProps) => {
 											}
 										}}
 									/>
+								</span>
 
 								<div className="w-full pointer-events-none"></div>
 
-								<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
+								<span className="player-drag-cancel flex h-full items-center cursor-default">
+									<CurrentViewersComponent currentViewersCount={currentStreamStatus?.viewers ?? 0} />
+								</span>
+								<span className="player-drag-cancel flex h-full items-center cursor-pointer">
 									<VideoLayerSelectorComponent layers={videoLayers} layerEndpoint={layerEndpoint} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
-									{audioLayers.length > 1 && (
+								</span>
+
+								{audioLayers.length > 1 && (
+									<span className="player-drag-cancel flex h-full items-center cursor-pointer">
 										<AudioLayerSelectorComponent layers={audioLayers} layerEndpoint={layerEndpoint} hasPacketLoss={false} currentLayer={currentLayersStatus?.videoLayerCurrent ?? ""} />
-									)}
-									<Square2StackIcon onClick={() => videoElement?.requestPictureInPicture()} />
-								<ArrowsPointingOutIcon onClick={handleEnterFullscreen} />
+									</span>
+								)}
+
+								{isPictureInPictureSupported && (
+									<Square2StackIcon className="player-drag-cancel cursor-pointer" onClick={() => videoElement.requestPictureInPicture()} />
+								)}
+								<ArrowsPointingOutIcon className="player-drag-cancel cursor-pointer" onClick={handleEnterFullscreen} />
 							</div>
 						</div>)
 					}
@@ -373,22 +474,38 @@ const Player = (props: PlayerProps) => {
 						key={`${streamVideoPlayerId}_video`}
 						ref={setVideoRef}
 					autoPlay
-					muted
+					muted={isVideoMuted}
 					playsInline
 					className="rounded-md w-full h-full relative bg-gray-950"
 					onPlaying={() => {
-						setStreamState(() => "Playing")
+						setStreamState("Playing")
 						resetReconnect()
 					}}
-					onLoadStart={() => setStreamState(() => "Loading")}
+					onLoadStart={() => setStreamState("Loading")}
+					onVolumeChange={(event) => {
+						setIsVideoMuted(event.currentTarget.muted)
+						setVideoVolume(Math.round(event.currentTarget.volume * 100))
+					}}
 						onLoadedData={(event) => {
 							console.log("VideoPlayer.onLoadedMetadata", event)
+							event.currentTarget.volume = videoVolume / 100
 							event.currentTarget.play()
 						}}
 					onError={(error) => console.log("VideoPlayer.Error", error)}
 					onErrorCapture={(error) => console.log("VideoPlayer.ErrorCapture", error)}
 					onEnded={() => setStreamState("Offline")}
 				/>
+
+					<div className="pointer-events-none absolute right-5 bottom-10 z-70 h-20 w-14 overflow-visible">
+						{reactionAnimations.map((reaction) => (
+							<HeartIcon
+								key={reaction.id}
+								className="animate-reaction-float absolute right-0 bottom-0 h-7 w-7 text-rose-500 drop-shadow"
+								style={{ "--reaction-x": `${reaction.x}px` } as CSSProperties}
+								onAnimationEnd={() => setReactionAnimations((current) => current.filter((item) => item.id !== reaction.id))}
+							/>
+						))}
+					</div>
 
 				</div>
 			</div>

@@ -3,7 +3,7 @@ package whip
 import (
 	"encoding/json"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -37,7 +37,7 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				responseWriter,
 				"Internal Server Error",
 				http.StatusInternalServerError)
-			log.Println(err.Error())
+			slog.Error("Profile Encode Error", "err", err)
 		}
 
 		responseWriter.Header().Add("Content-Type", "application/json")
@@ -45,7 +45,7 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	// Update Profile
 	if request.Method == "POST" {
-		log.Println("Updating Profile")
+		slog.Info("Updating Profile")
 
 		body, _ := io.ReadAll(request.Body)
 		var payload updateProfilePayload
@@ -54,7 +54,7 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				responseWriter,
 				"Internal Server Error",
 				http.StatusInternalServerError)
-			log.Println("Profile Update Error:", err)
+			slog.Error("Profile Update Error", "err", err)
 			return
 		}
 
@@ -65,7 +65,7 @@ func ProfileHandler(responseWriter http.ResponseWriter, request *http.Request) {
 				responseWriter,
 				"Internal Server Error",
 				http.StatusInternalServerError)
-			log.Println(err.Error())
+			slog.Error("Profile Update Error", "err", err)
 			return
 		}
 

@@ -2,7 +2,7 @@ package environment
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -20,22 +20,26 @@ var errNoBuildDirectory = errors.New("build directory does not exist, run `npm i
 func LoadEnvironmentVariables() {
 	if err := loadConfigs(); err != nil {
 		if errors.Is(err, errNoBuildDirectory) {
-			log.Fatal("Environment:", err)
+			slog.Error("Environment", "err", err)
+			os.Exit(1)
 		}
 
-		log.Println("Environment: Failed to find config in CWD, changing CWD to executable path")
+		slog.Info("Environment: Failed to find config in CWD, changing CWD to executable path")
 
 		executablePath, executableErr := os.Executable()
 		if executableErr != nil {
-			log.Fatal("Environment:", executableErr)
+			slog.Error("Environment:", "err", executableErr)
+			os.Exit(1)
 		}
 
 		if chdirErr := os.Chdir(filepath.Dir(executablePath)); chdirErr != nil {
-			log.Fatal("Environment:", chdirErr)
+			slog.Error("Environment:", "err", chdirErr)
+			os.Exit(1)
 		}
 
 		if retryErr := loadConfigs(); retryErr != nil {
-			log.Fatal("Environment:", retryErr)
+			slog.Error("Environment:", "err", retryErr)
+			os.Exit(1)
 		}
 	}
 
@@ -44,16 +48,11 @@ func LoadEnvironmentVariables() {
 
 func loadConfigs() error {
 	if os.Getenv(appEnv) == "development" {
-		log.Println("Environment: Loading `" + envFileDevelopment + "`")
-		if err := godotenv.Load(envFileDevelopment); err != nil {
-			log.Printf("Environment: Could not load `%s`: %v", envFileDevelopment, err)
-		}
-		return nil
+		return loadOptionalEnvironmentFile(envFileDevelopment)
 	}
 
-	log.Println("Environment: Loading `" + envFileProduction + "`")
-	if err := godotenv.Load(envFileProduction); err != nil {
-		log.Printf("Environment: Could not load `%s`: %v", envFileProduction, err)
+	if err := loadOptionalEnvironmentFile(envFileProduction); err != nil {
+		return err
 	}
 
 	if os.Getenv(FrontendDisabled) == "" {
@@ -62,6 +61,22 @@ func loadConfigs() error {
 		} else if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func loadOptionalEnvironmentFile(fileName string) error {
+	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+		slog.Info("Environment file not found, continuing with system environment", "fileName", fileName)
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	slog.Info("Environment: Loading `" + fileName + "`")
+	if err := godotenv.Load(fileName); err != nil {
+		return err
 	}
 
 	return nil
@@ -78,10 +93,11 @@ func GetFrontendPath() string {
 
 func setDefaultEnvironmentVariables() {
 	if os.Getenv(StreamProfilePath) == "" {
-		log.Println("Environment: Setting STREAM_PROFILE_PATH: profiles")
+		slog.Info("Environment: Setting STREAM_PROFILE_PATH: profiles")
 		err := os.Setenv(StreamProfilePath, "profiles")
 		if err != nil {
-			log.Panic("Error setting default value for STREAM_PROFILE_PATH")
+			slog.Error("Error setting default value for STREAM_PROFILE_PATH")
+			os.Exit(1)
 		}
 	}
 }

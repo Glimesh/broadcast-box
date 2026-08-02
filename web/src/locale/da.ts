@@ -86,7 +86,7 @@ const locale_da: localeInterface = {
   player: {
     message_is_not_online: "streamer ikke i øjeblikket",
     message_loading_video: "Indlæser video",
-    message_error: "Fejl ved indlæsning af video",
+    message_error: "Fejl",
 
     stream_status_offline: "Offline"
   },
@@ -185,6 +185,7 @@ const locale_da: localeInterface = {
   chat: {
     title: "Chat",
     placeholder_input: "Skriv en besked",
+    button_reaction_title: "Send reaktion",
     button_change_display_name_title: "Skift visningsnavn",
     button_send_title: "Send besked",
     status_connecting: "forbinder",

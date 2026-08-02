@@ -73,7 +73,23 @@ If the supplied bearer token belongs to a reserved profile, the page also expose
 the stream MOTD and toggle public/private visibility without leaving the publish flow.
 
 ### FFmpeg Broadcasting
-The following broadcasts a test feed to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
+
+The following simple example broadcasts `video-test.mp4` to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
+
+```shell
+ffmpeg -re -i video-test.mp4 -bf 0 -f whip -authorization ffmpeg-test https://b.siobud.com/api/whip
+```
+
+For now, FFmpeg WHIP only supports H.264 (`libx264`) and Opus and will use them by default if the `-vcodec` and `-acodec`
+options are omitted. However, you can use any H.264 encoder, such as:
+
+```shell
+ffmpeg -hwaccel vulkan -re -i video-test.mp4 -bf 0 -vcodec h264_vaapi \
+  -vf 'format=nv12|vulkan,hwupload' -init_hw_device vulkan \
+  -f whip -authorization ffmpeg-test https://b.siobud.com/api/whip
+```
+
+The following complex example broadcasts a test feed to https://b.siobud.com with a Bearer Token of `ffmpeg-test`
 
 ```shell
 ffmpeg \
@@ -305,6 +321,7 @@ These values are parsed by the Go backend and applied to WHIP/WHEP `PeerConnecti
 | Variable                      | Description                                                                                               |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `LOGGING_ENABLED`             | Enables logging system.                                                                                   |
+| `LOGGING_LEVEL`               | Minimum slog level: `DEBUG`, `INFO`, `WARN`, or `ERROR`. Defaults to `INFO`.                              |
 | `LOGGING_DIRECTORY`           | Directory to store log files.                                                                             |
 | `LOGGING_SINGLEFILE`          | Logs everything into a single file called 'log'. Default is log files are stamped with current date.     |
 | `LOGGING_NEW_FILE_ON_STARTUP` | Creates a new log file on each startup. Either a new 'log' file, or replaces the current dates log file. |
@@ -323,6 +340,14 @@ Broadcast Box attaches a WebRTC data channel (`bb-chat-v1`) to WHIP/WHEP peer co
 chat state. The bundled frontend does not currently expose a chat UI, but you can connect from your own client.
 
 See [CONNECTING.md](internal/chat/CONNECTING.md) for the message contract and a minimal standalone client example.
+
+### Raw Data Channel
+
+Broadcast Box also accepts a raw WebRTC data channel (`bb-data-v1`) on WHIP/WHEP peer connections. Messages sent on
+this channel are broadcast as-is to other active peers on the same stream, excluding the sender. Text payloads stay
+text, binary payloads stay binary, and there is no persistent history.
+
+See [DATA_CHANNEL.md](internal/webrtc/sessions/session/DATA_CHANNEL.md) for setup details and text/binary examples.
 
 ## CLI Flags
 

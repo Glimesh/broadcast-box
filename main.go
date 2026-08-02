@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/glimesh/broadcast-box/internal/chat"
 	"github.com/glimesh/broadcast-box/internal/console"
@@ -27,11 +26,11 @@ func main() {
 		go func() {
 			runtime.SetBlockProfileRate(1)
 			runtime.SetMutexProfileFraction(1)
-			log.Println(http.ListenAndServe("localhost:6060", nil))
+			slog.Error("pprof server exited", "err", http.ListenAndServe("localhost:6060", nil))
 		}()
 	}
 
-	log.Println("Booting up Broadcast", time.Now().Format("2006-01-02 15:04:05"))
+	slog.Info("Booting up Broadcast Box")
 
 	chatManager := chat.NewManager()
 	webrtc.Setup(chatManager)

@@ -3,7 +3,7 @@ package authorization
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,7 +26,7 @@ func isValidStreamKey(streamKey string) bool {
 func CreateProfile(streamKey string) (string, error) {
 
 	if !isValidStreamKey(streamKey) {
-		log.Println("Authorization: Create profile failed due to invalid streamkey", streamKey)
+		slog.Info("Authorization: Create profile failed due to invalid streamkey", "streamKey", streamKey)
 		return "", fmt.Errorf("streamkey has invalid characters, only numbers, letters, dash and underscore allowed")
 	}
 
@@ -49,15 +49,13 @@ func CreateProfile(streamKey string) (string, error) {
 
 	jsonData, err := json.MarshalIndent(profile, "", " ")
 	if err != nil {
-		log.Println("Authorization: Error ocurred while trying to create profile")
-		log.Println(err)
+		slog.Error("Authorization: Error ocurred while trying to create profile", "err", err)
 		return "", err
 	}
 
 	err = os.WriteFile(profileFilePath, jsonData, 0644)
 	if err != nil {
-		log.Println("Authorization: Error ocurred while trying to create profile")
-		log.Println(err)
+		slog.Error("Authorization: Error ocurred while trying to create profile", "err", err)
 		return "", err
 	}
 
@@ -72,8 +70,7 @@ func UpdateProfile(token string, motd string, isPublic bool) error {
 
 	profile, err := GetPersonalProfile(token)
 	if err != nil {
-		log.Println("Authorization: Could not find personal profile")
-		log.Println(err)
+		slog.Error("Authorization: Could not find personal profile", "err", err)
 		return err
 	}
 
@@ -83,24 +80,21 @@ func UpdateProfile(token string, motd string, isPublic bool) error {
 
 	jsonData, err := json.MarshalIndent(profile, "", " ")
 	if err != nil {
-		log.Println("Authorization: Error ocurred while trying to update profile")
-		log.Println(err)
+		slog.Error("Authorization: Error ocurred while trying to update profile", "err", err)
 		return err
 	}
 
 	profilePath := os.Getenv(environment.StreamProfilePath)
 	profileFilePath, err := getProfileFileNameByBearerToken(token)
 	if err != nil {
-		log.Println("Authorization: Error ocurred while trying to update profile")
-		log.Println(err)
+		slog.Error("Authorization: Error ocurred while trying to update profile", "err", err)
 		return err
 	}
 
-	log.Println("Authorization: Updated Profile", profile.StreamKey)
+	slog.Info("Authorization: Updated Profile", "streamKey", profile.StreamKey)
 	err = os.WriteFile(filepath.Join(profilePath, profileFilePath), jsonData, 0644)
 	if err != nil {
-		log.Println("Authorization: Error ocurred while trying to update profile")
-		log.Println(err)
+		slog.Error("Authorization: Error ocurred while trying to update profile", "err", err)
 		return err
 	}
 
@@ -109,13 +103,13 @@ func UpdateProfile(token string, motd string, isPublic bool) error {
 
 func RemoveProfile(streamKey string) (bool, error) {
 	if !isValidStreamKey(streamKey) {
-		log.Println("Authorization: Remove profile failed due to invalid streamkey", streamKey)
+		slog.Error("Authorization: Remove profile failed due to invalid streamkey", "streamKey", streamKey)
 		return false, fmt.Errorf("streamkey has invalid characters, only numbers, letters, dash and underscore allowed")
 	}
 
 	fileName, _ := getProfileFileNameByStreamKey(streamKey)
 	if fileName == "" {
-		log.Println("Authorization: RemoveProfile could not find", streamKey)
+		slog.Info("Authorization: RemoveProfile could not find", "sreamKey", streamKey)
 		return false, fmt.Errorf("profile could not be found")
 	}
 
@@ -145,7 +139,7 @@ func GetPublicProfile(bearerToken string) (*PublicProfile, error) {
 
 	var profile profile
 	if err := json.Unmarshal(data, &profile); err != nil {
-		log.Println("Authorization: File", bearerToken, "could not read. File may be corrupt.")
+		slog.Error("Authorization: could not read. File may be corrupt", "err", err, "bearerToken", bearerToken)
 		return nil, err
 	}
 	profile.FileName = fileName
@@ -170,7 +164,7 @@ func GetPersonalProfile(bearerToken string) (*PersonalProfile, error) {
 
 	var profile profile
 	if err := json.Unmarshal(data, &profile); err != nil {
-		log.Println("Authorization: File", bearerToken, "could not read. File may be corrupt.")
+		slog.Error("Authorization: could not read. File may be corrupt", "err", err, "bearerToken", bearerToken)
 		return nil, err
 	}
 	profile.FileName = fileName
@@ -184,7 +178,7 @@ func GetAdminProfilesAll() (profiles []adminProfile, err error) {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		log.Println("Authorization: Error reading profile directory", err)
+		slog.Error("Authorization: Error reading profile directory", "err", err)
 		return nil, err
 	}
 

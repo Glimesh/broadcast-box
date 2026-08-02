@@ -2,7 +2,7 @@ package admin
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
@@ -22,18 +22,18 @@ func LoggingHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	file, err := environment.GetLogFileReader()
 	if err != nil {
-		log.Println("API.Admin.Logging Error:", err)
+		slog.Error("API.Admin.Logging Error", "err", err)
 	}
 
 	responseWriter.Header().Set("Content-Type", "application/json")
 
 	if _, err := io.Copy(responseWriter, file); err != nil {
-		log.Println("API.Admin.Logging: Error writing file to response", err)
+		slog.Error("API.Admin.Logging: Error writing file to response", "err", err)
 		helpers.LogHTTPError(responseWriter, "Invalid request", http.StatusBadRequest)
 	}
 
 	err = file.Close()
 	if err != nil {
-		log.Println("API.Admin.Logging Error:", err)
+		slog.Error("API.Admin.Logging Error", "err", err)
 	}
 }
