@@ -4,13 +4,12 @@ import { useState, type WheelEvent } from "react";
 interface VolumeComponentProps {
 	isMuted: boolean;
 	volume: number;
-	isDisabled?: boolean;
 	onStateChanged: (isMuted: boolean) => void;
 	onVolumeChanged: (value: number) => void;
 }
 
 const VolumeComponent = (props: VolumeComponentProps) => {
-	const { isDisabled, isMuted, onStateChanged, onVolumeChanged, volume } = props;
+	const { isMuted, onStateChanged, onVolumeChanged, volume } = props;
 	const [showSlider, setShowSlider] = useState<boolean>(false);
 
 	const onVolumeChange = (newValue: number) => {
@@ -22,10 +21,6 @@ const VolumeComponent = (props: VolumeComponentProps) => {
 		}
 
 		onVolumeChanged(newValue);
-	}
-
-	if (isDisabled) {
-		return (<SpeakerXMarkIcon className="w-5 opacity-25" />)
 	}
 
 	return <div

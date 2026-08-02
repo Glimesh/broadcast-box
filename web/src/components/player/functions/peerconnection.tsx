@@ -68,7 +68,6 @@ const stopVideoTrack = (videoElement: HTMLVideoElement | null) => {
 }
 const clearVideoElement = (videoElement: HTMLVideoElement | null) => {
 	if(videoElement){
-		videoElement.muted = true
 		videoElement.srcObject = null
 	}
 }

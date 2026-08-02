@@ -340,7 +340,6 @@ const Player = (props: PlayerProps) => {
 									<VolumeComponent
 										isMuted={isVideoMuted}
 										volume={videoVolume}
-										isDisabled={audioLayers.length === 0}
 										onVolumeChanged={(newValue) => {
 											if (videoRef.current) {
 												videoRef.current.volume = newValue / 100
