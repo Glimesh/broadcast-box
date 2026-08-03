@@ -1,5 +1,5 @@
 ﻿import React, {Dispatch, SetStateAction, useEffect, useMemo, useState} from "react";
-import {useSearchParams} from "react-router-dom";
+import {useSearchParams} from "react-router";
 
 interface CinemaModeProviderContextProps{
 	cinemaMode: boolean;

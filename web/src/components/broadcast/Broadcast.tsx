@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router'
+import { useNavigate } from 'react-router'
 import PlayerHeader from '../playerHeader/PlayerHeader';
 import { parseLinkHeader } from '@web3-storage/parse-link-header';
 import Button from '../shared/Button';

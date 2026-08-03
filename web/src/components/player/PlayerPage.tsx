@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import ReactGridLayout, { useContainerWidth } from "react-grid-layout";
 import Player, { type ReactionSender } from "./Player";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
 import Button from "../shared/Button";
