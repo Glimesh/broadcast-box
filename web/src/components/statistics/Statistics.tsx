@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { StatusContext, StatusResult, WhepSession } from "../../providers/StatusProvider";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import Button from "../shared/Button";
 import { LocaleContext } from "../../providers/LocaleProvider";
 

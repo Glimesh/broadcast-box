@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { StatusContext, StatusResult } from "../../providers/StatusProvider";
 import Button from "../shared/Button";
 import { LocaleContext } from '../../providers/LocaleProvider';

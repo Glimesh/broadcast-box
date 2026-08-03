@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import Card from "../shared/Card";
 import Button from "../shared/Button";
 import StatusPage from "./menus/StatusPage";
