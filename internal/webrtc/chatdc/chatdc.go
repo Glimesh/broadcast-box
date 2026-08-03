@@ -42,7 +42,7 @@ type outboundMessage struct {
 	ClientMessage string       `json:"clientMsgId,omitempty"`
 	Error         string       `json:"error,omitempty"`
 	EventID       uint64       `json:"eventId,omitempty"`
-	Message       chat.Message `json:"message,omitempty"`
+	Message       chat.Message `json:"message,omitzero"`
 	Events        []chat.Event `json:"events,omitempty"`
 }
 

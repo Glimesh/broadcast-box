@@ -157,10 +157,7 @@ func (w *WHEPSession) updateVideoBitrateLocked(now time.Time) {
 		return
 	}
 
-	bytesDiff := w.VideoBytesWritten - w.videoBitrateWindowBytes
-	if bytesDiff < 0 {
-		bytesDiff = 0
-	}
+	bytesDiff := max(w.VideoBytesWritten-w.videoBitrateWindowBytes, 0)
 
 	w.VideoBitrate.Store(uint64(float64(bytesDiff) / elapsed.Seconds()))
 	w.videoBitrateWindowStart = now
