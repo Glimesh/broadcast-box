@@ -8,7 +8,7 @@ import fs from "fs";
 const environmentFiles = ["../.env.development", "../.env.production"];
 
 for (const fileName in environmentFiles) {
-	const filePath = path.resolve(__dirname, environmentFiles[fileName]);
+	const filePath = path.resolve(import.meta.dirname, environmentFiles[fileName]);
 	if (fs.existsSync(filePath)) {
 		dotenv.config({
 			path: [filePath, "../.env"],
