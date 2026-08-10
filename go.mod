@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/pion/dtls/v3 v3.1.5
-	github.com/pion/ice/v4 v4.4.0
+	github.com/pion/ice/v4 v4.4.1
 	github.com/pion/interceptor v0.1.47
 	github.com/pion/rtcp v1.2.17
 	github.com/pion/rtp v1.10.5
@@ -16,7 +16,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pion/transport/v4 v4.0.2 // indirect
+	github.com/pion/transport/v4 v4.1.0 // indirect
 	github.com/pion/turn/v5 v5.0.12 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
