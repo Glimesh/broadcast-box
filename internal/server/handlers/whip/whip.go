@@ -7,6 +7,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
@@ -152,6 +153,7 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.Header().Add("Link", `<`+"/api/sse/"+sessionID+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="status"`)
 	responseWriter.Header().Add("Location", "/api/whip/"+sessionID)
 	responseWriter.Header().Add("Content-Type", "application/sdp")
+	responseWriter.Header().Set("Content-Length", strconv.Itoa(len(whipAnswer)))
 	responseWriter.WriteHeader(http.StatusCreated)
 
 	if _, err = fmt.Fprint(responseWriter, whipAnswer); err != nil {
