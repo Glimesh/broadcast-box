@@ -34,7 +34,7 @@ interface LayersMessagePayload {
 enum SetupPeerConnectionError {
 	INVALID_WHEP_RESPONSE
 }
-enum SetupPeerConnectionStateChange {
+export enum SetupPeerConnectionStateChange {
 	ONLINE,
 	OFFLINE
 }
@@ -44,7 +44,10 @@ export interface SetupPeerConnectionProps {
 	videoRef: RefObject<HTMLVideoElement | null>,
 	layerEndpointRef: RefObject<string>,
 
-	onError: (error: SetupPeerConnectionError) => void,
+	onError: (
+		error: SetupPeerConnectionError,
+		failureType: SetupPeerConnectionFailureType,
+	) => void,
 	onStreamStatus: (status: StreamStatus) => void,
 	onLayerStatus: (layers: CurrentLayersMessage) => void,
 	onAudioLayerChange: (layers: string[]) => void,
@@ -53,6 +56,11 @@ export interface SetupPeerConnectionProps {
 	onStateChange: (state: SetupPeerConnectionStateChange) => void,
 	onStreamRestart: () => void,
 	onDataChannelsChange?: (channels: PeerConnectionDataChannels, active: boolean) => void,
+}
+
+export enum SetupPeerConnectionFailureType {
+	RETRYABLE,
+	FATAL,
 }
 
 export interface PeerConnectionDataChannels {
@@ -162,7 +170,12 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		})
 
 		if (!whepResponse.ok) {
-			onError(SetupPeerConnectionError.INVALID_WHEP_RESPONSE)
+			onError(
+				SetupPeerConnectionError.INVALID_WHEP_RESPONSE,
+				isFatalWhepStatus(whepResponse.status)
+					? SetupPeerConnectionFailureType.FATAL
+					: SetupPeerConnectionFailureType.RETRYABLE,
+			)
 			throw new Error(`Invalid WHEP response: ${whepResponse.status}`)
 		}
 
@@ -207,12 +220,18 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		await peerConnection.setRemoteDescription({ sdp: answer, type: 'answer' })
 
 		peerConnection.addEventListener('connectionstatechange', () => {
+			if (peerConnection.connectionState === 'connected') {
+				onStateChange(SetupPeerConnectionStateChange.ONLINE)
+				return
+			}
+
 			if (
 				peerConnection.connectionState === 'closed' ||
 				peerConnection.connectionState === 'failed' ||
 				peerConnection.connectionState === 'disconnected'
 			) {
 				closeConnection()
+				onStateChange(SetupPeerConnectionStateChange.OFFLINE)
 			}
 		})
 
@@ -225,4 +244,8 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 
 async function createPeerConnection(): Promise<RTCPeerConnection> {
 	return new RTCPeerConnection();
+}
+
+function isFatalWhepStatus(statusCode: number): boolean {
+	return statusCode === 400 || statusCode === 401 || statusCode === 403 || statusCode === 404;
 }
