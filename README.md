@@ -20,6 +20,7 @@
   - [Backend](#backend)
   - [Docker](#docker)
   - [Docker Compose](#docker-compose)
+  - [Reverse proxies](#reverse-proxies)
 - [URL Parameters](#url-parameters)
 - [Environment Variables](#environment-variables)
 - [CLI Flags](#cli-flags)
@@ -237,6 +238,20 @@ will be automatically updated every night. If you are running on a VPS/Cloud ser
 ```console
 export URL=my-server.com
 docker-compose up -d
+```
+
+### Reverse proxies
+
+When serving the page over a reverse proxy, you must ensure that `http://<YOUR_IP>/api/sse` is unbuffered as it can otherwise cause a delay in receiving events until the buffer is flushed and cause issues with the video controls.
+
+For example in nginx you would use the following configuration
+
+```
+    location /api/sse {
+        proxy_pass http://<YOUR_IP>:<PORT>;
+        # ... other configurations
+        proxy_buffering off;
+    }
 ```
 
 ## URL Parameters
