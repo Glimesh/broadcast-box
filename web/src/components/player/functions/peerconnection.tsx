@@ -83,7 +83,6 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		onAudioLayerChange,
 		onVideoLayerChange,
 		onLayerEndpointChange,
-		onStateChange,
 		onError,
 		onDataChannelsChange } = props
 
@@ -177,8 +176,6 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 
 		evtSource.onerror = (ev: Event) => {
 			console.error("PeerConnection.EventSource", ev)
-			closeConnection()
-			onStateChange(SetupPeerConnectionStateChange.OFFLINE)
 		}
 
 		evtSource.addEventListener("streamStart", () => {
