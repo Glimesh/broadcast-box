@@ -83,7 +83,11 @@ func setupTCPMux(settingEngine *webrtc.SettingEngine, tcpMuxCache map[string]ice
 				os.Exit(1)
 			}
 
-			tcpMux = webrtc.NewICETCPMux(nil, tcpListener, 8)
+			tcpMux = ice.NewTCPMuxDefault(ice.TCPMuxParams{
+				Listener:        tcpListener,
+				ReadBufferSize:  8,
+				WriteBufferSize: 4 * 1024 * 1024,
+			})
 			tcpMuxCache[address] = tcpMux
 		}
 
