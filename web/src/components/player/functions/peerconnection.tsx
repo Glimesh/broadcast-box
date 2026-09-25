@@ -206,8 +206,7 @@ export async function PeerConnectionSetup(props: SetupPeerConnectionProps): Prom
 		peerConnection.addEventListener('connectionstatechange', () => {
 			if (
 				peerConnection.connectionState === 'closed' ||
-				peerConnection.connectionState === 'failed' ||
-				peerConnection.connectionState === 'disconnected'
+				peerConnection.connectionState === 'failed'
 			) {
 				closeConnection()
 			}
