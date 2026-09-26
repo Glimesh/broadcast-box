@@ -11,8 +11,10 @@ import (
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
 	"github.com/pion/rtp"
+	"github.com/pion/rtp/codecs/av1/obu"
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
+	"github.com/pion/webrtc/v4/pkg/media/samplebuilder"
 
 	pionCodecs "github.com/pion/rtp/codecs"
 )
@@ -103,6 +105,11 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 		slog.Error("WHIPSession.VideoWriter.Depacketizer: No depacketizer was found for codec", "codec", codec)
 	}
 
+	var av1Filter *av1PaddingFilter
+	if codec == codecs.VideoTrackCodecAV1 {
+		av1Filter = newAV1PaddingFilter(w.SendPLI)
+	}
+
 	lastTimestamp := uint32(0)
 	lastTimestampSet := false
 
@@ -142,11 +149,6 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 		track.PacketsReceived.Add(1)
 		bitrateWindowBytes += uint64(rtpRead)
 
-		isKeyframe := isPacketKeyframe(rtpPkt, codec, depacketizer)
-		if isKeyframe {
-			track.LastKeyFrame.Store(time.Now())
-		}
-
 		now := time.Now()
 		if elapsed := now.Sub(bitrateWindowStart); elapsed >= time.Second {
 			track.Bitrate.Store(uint64(float64(bitrateWindowBytes) / elapsed.Seconds()))
@@ -154,45 +156,56 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 			bitrateWindowBytes = 0
 		}
 
-		timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
-		switch {
-		case !lastTimestampSet:
-			timeDiff = 0
-			lastTimestampSet = true
-		case timeDiff < -(math.MaxUint32 / 10):
-			timeDiff += (math.MaxUint32 + 1)
+		packets := []*rtp.Packet{rtpPkt}
+		if av1Filter != nil {
+			packets = av1Filter.push(rtpPkt)
 		}
-
-		sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
-		switch {
-		case !lastSequenceNumberSet:
-			lastSequenceNumberSet = true
-			sequenceDiff = 0
-		case sequenceDiff < -(math.MaxUint16 / 10):
-			sequenceDiff += (math.MaxUint16 + 1)
-		}
-
-		lastTimestamp = rtpPkt.Timestamp
-		lastSequenceNumber = rtpPkt.SequenceNumber
-
-		var sessions map[string]*whep.WHEPSession
-		if sessionsAny := w.WHEPSessionsSnapshot.Load(); sessionsAny != nil {
-			sessions = sessionsAny.(map[string]*whep.WHEPSession)
-		}
-
-		for _, whepSession := range sessions {
-			if whepSession.GetVideoLayerOrDefault(id, track.Priority) != id {
-				continue
+		for _, rtpPkt := range packets {
+			isKeyframe := isPacketKeyframe(rtpPkt, codec, depacketizer)
+			if isKeyframe {
+				track.LastKeyFrame.Store(time.Now())
 			}
 
-			whepSession.SendVideoPacket(codecs.TrackPacket{
-				Layer:        id,
-				Packet:       rtpPkt,
-				Codec:        codec,
-				IsKeyframe:   isKeyframe,
-				TimeDiff:     timeDiff,
-				SequenceDiff: sequenceDiff,
-			})
+			timeDiff := int64(rtpPkt.Timestamp) - int64(lastTimestamp)
+			switch {
+			case !lastTimestampSet:
+				timeDiff = 0
+				lastTimestampSet = true
+			case timeDiff < -(math.MaxUint32 / 10):
+				timeDiff += (math.MaxUint32 + 1)
+			}
+
+			sequenceDiff := int(rtpPkt.SequenceNumber) - int(lastSequenceNumber)
+			switch {
+			case !lastSequenceNumberSet:
+				lastSequenceNumberSet = true
+				sequenceDiff = 0
+			case sequenceDiff < -(math.MaxUint16 / 10):
+				sequenceDiff += (math.MaxUint16 + 1)
+			}
+
+			lastTimestamp = rtpPkt.Timestamp
+			lastSequenceNumber = rtpPkt.SequenceNumber
+
+			var sessions map[string]*whep.WHEPSession
+			if sessionsAny := w.WHEPSessionsSnapshot.Load(); sessionsAny != nil {
+				sessions = sessionsAny.(map[string]*whep.WHEPSession)
+			}
+
+			for _, whepSession := range sessions {
+				if whepSession.GetVideoLayerOrDefault(id, track.Priority) != id {
+					continue
+				}
+
+				whepSession.SendVideoPacket(codecs.TrackPacket{
+					Layer:        id,
+					Packet:       rtpPkt,
+					Codec:        codec,
+					IsKeyframe:   isKeyframe,
+					TimeDiff:     timeDiff,
+					SequenceDiff: sequenceDiff,
+				})
+			}
 		}
 	}
 }
@@ -250,4 +263,69 @@ func (w *WHIPSession) getPrioritizedStreamingLayer(layer string, sdpDescription 
 	}
 
 	return 100
+}
+
+type av1PaddingFilter struct {
+	builder  *samplebuilder.SampleBuilder
+	sequence uint16
+	onLoss   func()
+}
+
+func newAV1PaddingFilter(onLoss func()) *av1PaddingFilter {
+	return &av1PaddingFilter{
+		builder: samplebuilder.New(2048, &pionCodecs.AV1Depacketizer{}, 90000,
+			samplebuilder.WithMaxTimeDelay(200*time.Millisecond)),
+		onLoss: onLoss,
+	}
+}
+
+func (f *av1PaddingFilter) push(packet *rtp.Packet) []*rtp.Packet {
+	f.builder.Push(packet.Clone())
+	var packets []*rtp.Packet
+	for sample := f.builder.Pop(); sample != nil; sample = f.builder.Pop() {
+		if sample.PrevDroppedPackets != 0 {
+			f.onLoss()
+		}
+		data, ok := removeAV1Padding(sample.Data)
+		if !ok {
+			f.onLoss()
+			continue
+		}
+		payloader := pionCodecs.AV1Payloader{}
+		payloads := payloader.Payload(1200, data)
+		for i, payload := range payloads {
+			header := packet.Header.Clone()
+			header.Padding = false
+			header.Timestamp = sample.PacketTimestamp
+			header.SequenceNumber = f.sequence
+			header.Marker = i == len(payloads)-1
+			packets = append(packets, &rtp.Packet{Header: header, Payload: payload})
+			f.sequence++
+		}
+	}
+	return packets
+}
+
+func removeAV1Padding(data []byte) ([]byte, bool) {
+	filtered := data[:0]
+	for len(data) > 0 {
+		header, err := obu.ParseOBUHeader(data)
+		if err != nil || !header.HasSizeField {
+			return nil, false
+		}
+		size, n, err := obu.ReadLeb128(data[header.Size():])
+		if err != nil {
+			return nil, false
+		}
+		offset := header.Size() + int(n)
+		if uint64(size) > uint64(len(data)-offset) {
+			return nil, false
+		}
+		end := offset + int(size)
+		if header.Type != obu.OBUPadding {
+			filtered = append(filtered, data[:end]...)
+		}
+		data = data[end:]
+	}
+	return filtered, true
 }
