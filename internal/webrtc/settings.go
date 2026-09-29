@@ -26,14 +26,14 @@ func getSettingEngine(isWHIP bool, tcpMuxCache map[string]ice.TCPMux, udpMuxCach
 		udpMuxOpts []ice.UDPMuxFromPortOption
 	)
 
-	setupNetworkTypes()
+	networkTypes := setupNetworkTypes()
 	setupNAT(&settingEngine)
 	setupInterfaceFilter(&settingEngine, &udpMuxOpts)
-	setupUDPMux(&settingEngine, isWHIP, udpMuxCache, udpMuxOpts)
+	setupUDPMux(&settingEngine, isWHIP, udpMuxCache, udpMuxOpts, networkTypes)
 	setupTCPMux(&settingEngine, tcpMuxCache)
 
 	settingEngine.SetDTLSEllipticCurves(elliptic.X25519, elliptic.P384, elliptic.P256)
-	settingEngine.SetNetworkTypes(setupNetworkTypes())
+	settingEngine.SetNetworkTypes(networkTypes)
 	settingEngine.DisableSRTCPReplayProtection(true)
 	settingEngine.DisableSRTPReplayProtection(true)
 	settingEngine.SetIncludeLoopbackCandidate(os.Getenv(environment.IncludeLoopbackCandidate) != "")
@@ -58,7 +58,7 @@ func setupNetworkTypes() []webrtc.NetworkType {
 	if networkTypesEnv != "" {
 		for networkTypeStr := range strings.SplitSeq(networkTypesEnv, "|") {
 			networkType, err := webrtc.NewNetworkType(networkTypeStr)
-			if err != nil {
+			if err == nil {
 				networkTypes = append(networkTypes, networkType)
 			}
 		}
@@ -91,9 +91,15 @@ func setupTCPMux(settingEngine *webrtc.SettingEngine, tcpMuxCache map[string]ice
 	}
 }
 
-func setupUDPMux(settingEngine *webrtc.SettingEngine, isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption) {
+func setupUDPMux(settingEngine *webrtc.SettingEngine, isWHIP bool, udpMuxCache map[int]*ice.MultiUDPMuxDefault, udpMuxOpts []ice.UDPMuxFromPortOption, networkTypes []webrtc.NetworkType) {
 	// Use UDP Mux port if set
 	if udpMuxPort := getUDPMuxPort(isWHIP); udpMuxPort != 0 {
+		iceNetworkTypes := make([]ice.NetworkType, len(networkTypes))
+		for i, networkType := range networkTypes {
+			iceNetworkTypes[i] = ice.NetworkType(networkType)
+		}
+		udpMuxOpts = append(udpMuxOpts, ice.UDPMuxFromPortWithNetworks(iceNetworkTypes...))
+
 		setUDPMuxPort(isWHIP, udpMuxPort, udpMuxCache, udpMuxOpts, settingEngine)
 	}
 }
