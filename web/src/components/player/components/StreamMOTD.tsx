@@ -1,17 +1,18 @@
-import { useContext } from "react";
+import { useContext, type CSSProperties } from "react";
 import { LocaleContext } from "../../../providers/LocaleProvider";
 
 interface StreamMOTDProps {
   isOnline: boolean;
   motd: string;
   className?: string;
+  style?: CSSProperties;
 }
 export const StreamMOTD = (props: StreamMOTDProps) =>{
-	const { isOnline, motd, className = '' } = props;
+	const { isOnline, motd, className = '', style } = props;
 	const { locale } = useContext(LocaleContext)
 
   return (
-		<div className={`w-full ${className}`}>
+		<div className={`w-full ${className}`} style={style}>
 			<div className="relative h-5">
 					<div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${isOnline ? "opacity-100" : "opacity-0"}`} >
 						{motd}
