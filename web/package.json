@@ -9,7 +9,7 @@
     "dotenv": "^17.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-grid-layout": "^2.2.4",
+    "react-grid-layout": "^2.3.0",
     "react-router": "^8.3.0"
   },
   "scripts": {
