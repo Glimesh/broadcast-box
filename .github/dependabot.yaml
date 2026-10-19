@@ -9,6 +9,12 @@ updates:
     directory: "/web"
     schedule:
       interval: "weekly"
+    # Revisit these exclusions when the lint plugins support the new major versions.
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
