@@ -55,3 +55,20 @@ func TestWHIPHandlerWebhookUsesResolvedStreamKey(t *testing.T) {
 		require.Fail(t, "expected webhook to be called")
 	}
 }
+
+func TestWHIPHandlerRejectsReservedStreamKeyWithUnderscore(t *testing.T) {
+	t.Setenv(environment.StreamProfilePath, t.TempDir())
+	t.Setenv(environment.StreamProfilePolicy, authorization.StreamPolicyWithReserved)
+
+	const streamKey = "test_stream"
+	_, err := authorization.CreateProfile(streamKey)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/whip", strings.NewReader("v=0"))
+	req.Header.Set("Authorization", "Bearer "+streamKey)
+
+	resp := httptest.NewRecorder()
+	WHIPHandler(resp, req)
+
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
+}

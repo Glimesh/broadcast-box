@@ -29,9 +29,8 @@ func hasExistingStreamKey(streamKey string) bool {
 		return false
 	}
 
-	filePrefix := streamKey + "_"
 	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), filePrefix) {
+		if !file.IsDir() && streamKeyFromFileName(file.Name()) == streamKey {
 			return true
 		}
 	}
@@ -67,9 +66,7 @@ func getProfileFileNameByStreamKey(streamKey string) (string, error) {
 	}
 
 	for _, file := range files {
-		fileToken := strings.Split(file.Name(), "_")
-
-		if !file.IsDir() && strings.EqualFold(streamKey, fileToken[0]) {
+		if !file.IsDir() && strings.EqualFold(streamKey, streamKeyFromFileName(file.Name())) {
 			return file.Name(), nil
 		}
 	}
@@ -97,6 +94,17 @@ func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
 	}
 
 	return "", fmt.Errorf("could not find profile file")
+}
+
+// Profile files are named <streamKey>_<token>. The token never contains an
+// underscore, but the stream key may, so split on the last one.
+func streamKeyFromFileName(fileName string) string {
+	splitIndex := strings.LastIndex(fileName, "_")
+	if splitIndex == -1 {
+		return fileName
+	}
+
+	return fileName[:splitIndex]
 }
 
 func generateToken() string {
