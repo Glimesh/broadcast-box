@@ -39,7 +39,7 @@ export default function Toggle(props: Props) {
         <button
           type="button"
           onClick={() => props.onClickRight?.()}
-          className={`${props.selected === "Right" ? "bg-blue-700 hover:bg-blue-800" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-e-lg  dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white gap-1`}>
+          className={`${props.selected === "Right" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-e-lg hover:bg-blue-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white gap-1`}>
 
           {props.iconRight && getIcon(props.iconRight)}
           {props.titleRight}
