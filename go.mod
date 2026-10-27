@@ -6,11 +6,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/pion/dtls/v3 v3.1.15
-	github.com/pion/ice/v4 v4.4.7
+	github.com/pion/ice/v4 v4.4.8
 	github.com/pion/interceptor v0.1.51
 	github.com/pion/rtcp v1.2.20
 	github.com/pion/rtp v1.10.6
-	github.com/pion/webrtc/v4 v4.2.24
+	github.com/pion/webrtc/v4 v4.2.25
 	github.com/stretchr/testify v1.12.1
 )
 
