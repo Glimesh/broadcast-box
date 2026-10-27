@@ -38,5 +38,9 @@ BroadcastBox.exe
 # profile files
 /profiles
 
+# user accounts, avatars, and custom emotes
+/accounts
+/emotes
+
 # Go vendors
 /vendor

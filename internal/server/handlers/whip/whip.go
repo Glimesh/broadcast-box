@@ -3,11 +3,10 @@ package whip
 import (
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"mime"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
@@ -26,14 +25,14 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	authHeader := request.Header.Get("Authorization")
 
 	if authHeader == "" {
-		slog.Info("Authorization was not set")
+		log.Println("Authorization was not set")
 		helpers.LogHTTPError(responseWriter, "Authorization was not set", http.StatusBadRequest)
 		return
 	}
 
 	token := helpers.ResolveBearerToken(authHeader)
 	if token == "" {
-		slog.Info("Authorization was invalid")
+		log.Println("Authorization was invalid")
 		helpers.LogHTTPError(responseWriter, "Authorization was invalid", http.StatusUnauthorized)
 		return
 	}
@@ -42,14 +41,14 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		sessionID := getSessionIDFromWHIPPath(request.URL.Path)
 
 		if sessionID == "" {
-			slog.Info("API.WHIP.Delete Error: Missing session id")
+			log.Println("API.WHIP.Delete Error: Missing session id")
 			helpers.LogHTTPError(responseWriter, "Missing session id", http.StatusBadRequest)
 			return
 		}
 
-		slog.Info("API.WHIP.Delete: Removing session", "sessionID", sessionID)
+		log.Println("API.WHIP.Delete: Removing session", sessionID)
 		if err := deleteHandler(responseWriter, sessionID); err != nil {
-			slog.Error("API.WHIP.Delete Error", "err", err)
+			log.Println("API.WHIP.Delete Error:", err)
 			helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		}
 
@@ -58,7 +57,7 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 	offer, err := io.ReadAll(request.Body)
 	if err != nil || string(offer) == "" {
-		slog.Info("Error reading offer")
+		log.Println("Error reading offer")
 		helpers.LogHTTPError(responseWriter, "error reading offer", http.StatusBadRequest)
 		return
 	}
@@ -69,21 +68,21 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	switch os.Getenv(environment.StreamProfilePolicy) {
 	// Only approved profiles are allowed to stream
 	case authorization.StreamPolicyReservedOnly:
-		slog.Info("Stream Policy Selected", "policy", authorization.StreamPolicyReservedOnly)
+		log.Println("Policy:", authorization.StreamPolicyReservedOnly)
 		profile, err := authorization.GetPublicProfile(token)
-		if err != nil {
-			slog.Info("Unauthorized login attempt", "token", token)
+		if err != nil || !authorization.IsProfileReserved(profile.StreamKey) {
+			log.Println("Unauthorized login attempt with bearer", token)
 			responseWriter.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		userProfile = *profile
 
 	default:
-		slog.Info("Stream Policy Selected", "policy", authorization.StreamPolicyWithReserved)
+		log.Println("Policy:", authorization.StreamPolicyWithReserved)
 
 		// If using a streamKey check if it has been reserved
 		if authorization.IsProfileReserved(token) {
-			slog.Info("Unauthorized login attempt with reserved Streamkey", "token", token)
+			log.Println("Unauthorized login attempt with bearer", token, " - Streamkey has been reserved")
 			responseWriter.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -95,11 +94,12 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	// Streams default to private: hidden from the home page, reachable only by stream key.
 	// Set default profile in case none is set
 	if userProfile == (authorization.PublicProfile{}) {
 		userProfile = authorization.PublicProfile{
 			StreamKey: token,
-			IsPublic:  true,
+			IsPublic:  false,
 			MOTD:      "Welcome to " + token + "'s stream!",
 		}
 	}
@@ -114,15 +114,25 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 
 		userProfile = authorization.PublicProfile{
 			StreamKey: streamKey,
-			IsPublic:  true,
+			IsPublic:  false,
 			MOTD:      "Welcome to " + streamKey + "'s stream!",
+		}
+	}
+
+	// Anonymous/ad-hoc stream keys can no longer publish. Only reserved
+	// profiles (accounts or admin-created profiles) are allowed to stream.
+	if os.Getenv(environment.WebhookURL) == "" {
+		if userProfile == (authorization.PublicProfile{}) || !authorization.IsProfileReserved(userProfile.StreamKey) {
+			log.Println("Unauthorized login attempt with bearer", token, " - stream key is not reserved")
+			responseWriter.WriteHeader(http.StatusUnauthorized)
+			return
 		}
 	}
 
 	if request.Method == http.MethodPatch {
 
 		if contentType := request.Header.Get("Content-Type"); contentType != "application/trickle-ice-sdpfrag" {
-			slog.Info("API.WHIP.Patch Error: Invalid patch request")
+			log.Println("API.WHIP.Patch Error: Invalid patch request")
 			helpers.LogHTTPError(responseWriter, "Invalid patch request", http.StatusBadRequest)
 			return
 		}
@@ -130,14 +140,14 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		sessionID := getSessionIDFromWHIPPath(request.URL.Path)
 
 		if sessionID == "" {
-			slog.Info("API.WHIP.Patch Error: Missing session id")
+			log.Println("API.WHIP.Patch Error: Missing session id")
 			helpers.LogHTTPError(responseWriter, "Missing session id", http.StatusBadRequest)
 			return
 		}
 
-		slog.Info("API.WHIP.Patch: Patching session", "sessionID", sessionID)
+		log.Println("API.WHIP.Patch: Patching session", sessionID)
 		if err := patchHandler(responseWriter, request, sessionID, string(offer)); err != nil {
-			slog.Error("API.WHIP.Patch Error:", "err", err)
+			log.Println("API.WHIP.Patch Error:", err)
 			helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		}
 
@@ -153,13 +163,12 @@ func WHIPHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.Header().Add("Link", `<`+"/api/sse/"+sessionID+`>; rel="urn:ietf:params:whep:ext:core:server-sent-events"; events="status"`)
 	responseWriter.Header().Add("Location", "/api/whip/"+sessionID)
 	responseWriter.Header().Add("Content-Type", "application/sdp")
-	responseWriter.Header().Set("Content-Length", strconv.Itoa(len(whipAnswer)))
 	responseWriter.WriteHeader(http.StatusCreated)
 
 	if _, err = fmt.Fprint(responseWriter, whipAnswer); err != nil {
-		slog.Error("API.WHIP Error", "err", err)
+		log.Println("API.WHIP Error", err)
 	} else {
-		slog.Info("API.WHIP Completed")
+		log.Println("API.WHIP Completed")
 	}
 
 }

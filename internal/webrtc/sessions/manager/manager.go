@@ -1,10 +1,11 @@
 package manager
 
 import (
-	"log/slog"
+	"log"
 	"maps"
 	"time"
 
+	accountStore "github.com/glimesh/broadcast-box/internal/accounts"
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/session"
 	"github.com/glimesh/broadcast-box/internal/webrtc/sessions/whep"
@@ -12,14 +13,14 @@ import (
 
 // Prepare the WHIP Session Manager
 func (m *SessionManager) Setup() {
-	slog.Debug("WHIPSessionManager.Setup")
+	log.Println("WHIPSessionManager.Setup")
 
 	m.sessions = make(map[string]*session.Session)
 }
 
 // Add new session
 func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *session.Session, err error) {
-	slog.Debug("SessionManager.AddWHIPSession")
+	log.Println("SessionManager.AddWHIPSession")
 
 	s = &session.Session{
 
@@ -32,7 +33,7 @@ func (m *SessionManager) addSession(profile authorization.PublicProfile) (s *ses
 		ChatManager:  m.ChatManager,
 	}
 	s.SetOnClose(func() {
-		slog.Debug("SessionManager.Session.Done")
+		log.Println("SessionManager.Session.Done")
 		m.sessionsLock.Lock()
 		delete(m.sessions, profile.StreamKey)
 		m.sessionsLock.Unlock()
@@ -50,10 +51,10 @@ func (m *SessionManager) GetOrAddSession(profile authorization.PublicProfile, is
 	session, ok := m.GetSessionByID(profile.StreamKey)
 
 	if !ok {
-		slog.Debug("SessionManager.GetOrAddStream: Adding", "streamKey", profile.StreamKey)
+		log.Println("SessionManager.GetOrAddStream: Adding", profile.StreamKey)
 		session, err = m.addSession(profile)
 	} else if isWHIP {
-		slog.Debug("SessionManager.GetOrAddStream: Updating", "streamKey", profile.StreamKey)
+		log.Println("SessionManager.GetOrAddStream: Updating", profile.StreamKey)
 		session.UpdateStreamStatus(profile)
 	}
 
@@ -62,7 +63,7 @@ func (m *SessionManager) GetOrAddSession(profile authorization.PublicProfile, is
 
 // Get Session by id
 func (m *SessionManager) GetSessionByID(streamKey string) (session *session.Session, foundSession bool) {
-	slog.Debug("SessionManager.GetSessionByID", "streamKey", streamKey)
+	log.Println("SessionManager.GetSessionByID", streamKey)
 
 	m.sessionsLock.RLock()
 	defer m.sessionsLock.RUnlock()
@@ -73,7 +74,8 @@ func (m *SessionManager) GetSessionByID(streamKey string) (session *session.Sess
 
 // Gets the current state of all sessions
 func (m *SessionManager) GetSessionStates(includePrivateStreams bool) (result []session.StreamSessionState) {
-	slog.Debug("SessionManager.GetSessionStates", "isAdmin", includePrivateStreams)
+	log.Println("SessionManager.GetSessionStates: IsAdmin", includePrivateStreams)
+	result = []session.StreamSessionState{}
 	m.sessionsLock.RLock()
 	copiedSessions := make(map[string]*session.Session)
 	maps.Copy(copiedSessions, m.sessions)
@@ -98,6 +100,12 @@ func (m *SessionManager) GetSessionStates(includePrivateStreams bool) (result []
 		}
 
 		s.StatusLock.RUnlock()
+
+		if account, err := accountStore.Get(streamSession.StreamKey); err == nil {
+			streamSession.Username = account.Username
+			streamSession.DisplayName = account.DisplayName
+			streamSession.AvatarURL = accountStore.AvatarURL(account.Avatar)
+		}
 
 		host := s.Host.Load()
 		if host != nil {
@@ -149,7 +157,7 @@ func (m *SessionManager) GetSessionStates(includePrivateStreams bool) (result []
 
 // Update the provided session information
 func (m *SessionManager) UpdateProfile(profile *authorization.PersonalProfile) {
-	slog.Debug("WHIPSessionManager.UpdateProfile")
+	log.Println("WHIPSessionManager.UpdateProfile")
 	m.sessionsLock.RLock()
 	whipSession, ok := m.sessions[profile.StreamKey]
 	m.sessionsLock.RUnlock()
@@ -171,13 +179,13 @@ func (m *SessionManager) GetWHEPSessionByID(sessionID string) (whep *whep.WHEPSe
 func (m *SessionManager) SendPLIByWHEPSessionID(sessionID string) {
 	streamSession, _, foundSession := m.GetSessionAndWHEPByID(sessionID)
 	if !foundSession {
-		slog.Error("SessionManager.SendPLIByWHEPSessionID: WHEP session not found", "sessionID", sessionID)
+		log.Println("SessionManager.SendPLIByWHEPSessionID: WHEP session not found", sessionID)
 		return
 	}
 
 	host := streamSession.Host.Load()
 	if host == nil {
-		slog.Error(
+		log.Println(
 			"SessionManager.SendPLIByWHEPSessionID: WHIP session not found",
 			"whepSessionID", sessionID,
 			"streamKey", streamSession.StreamKey,

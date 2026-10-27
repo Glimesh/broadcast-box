@@ -1,7 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from "react";
-import ReactGridLayout, { useContainerWidth } from "react-grid-layout";
-import Player, { type ReactionSender } from "./Player";
-import { useNavigate } from "react-router";
+import Player from "./Player";
+import { Link, useNavigate } from "react-router-dom";
 import { CinemaModeContext } from "../../providers/CinemaModeProvider";
 import ModalTextInput from "../shared/ModalTextInput";
 import Button from "../shared/Button";
@@ -11,23 +10,30 @@ import ChatPanel from "./components/ChatPanel";
 import { ChatAdapter } from "../../hooks/useChatSession";
 import { StreamMOTD } from "./components/StreamMOTD";
 import { StreamStatus } from "../../providers/StatusProvider";
-
-import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
+import { Account, AccountContext } from "../../providers/AccountProvider";
+import toBase64Utf8 from "../../utilities/base64";
 
 const PlayerPage = () => {
   const navigate = useNavigate();
-  const { width: playerGridWidth, containerRef: playerGridRef } = useContainerWidth();
   const { locale } = useContext(LocaleContext);
+  const { account } = useContext(AccountContext);
   const { cinemaMode, toggleCinemaMode } = useContext(CinemaModeContext);
   const [streamKeys, setStreamKeys] = useState<string[]>([window.location.pathname.substring(1)]);
   const [isModalOpen, setIsModelOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(() => localStorage.getItem("chat-open") !== "false");
   const [chatAdapters, setChatAdapters] = useState<Record<string, ChatAdapter | undefined>>({});
-  const [reactionSenders, setReactionSenders] = useState<Record<string, ReactionSender | undefined>>({});
   const [streamStatuses, setStreamStatuses] = useState<Record<string, StreamStatus | undefined>>({});
   const [isDisplayNameModalOpen, setIsDisplayNameModalOpen] = useState<boolean>(false);
   const [chatDisplayName, setChatDisplayName] = useState<string>(() => localStorage.getItem("chatDisplayName") ?? "");
+  const [isPublic, setIsPublic] = useState<boolean>(true);
+  const [streamTitle, setStreamTitle] = useState<string>("");
+  const [isTitleModalOpen, setIsTitleModalOpen] = useState<boolean>(false);
+  const [titleError, setTitleError] = useState<string>("");
+  const [channelAccount, setChannelAccount] = useState<Account | null>(null);
+  const primaryStreamKey = streamKeys[0] ?? "";
+  const isAccountOwner = !!channelAccount && account?.username === channelAccount.username;
+  const profileAuthToken = isAccountOwner && account?.streamToken ? account.streamToken : primaryStreamKey;
+  const effectiveChatDisplayName = chatDisplayName || account?.displayName || "";
 
   useEffect(() => {
     localStorage.setItem("chat-open", String(isChatOpen));
@@ -54,19 +60,6 @@ const PlayerPage = () => {
     });
   }, []);
 
-  const setStreamReactionSender = useCallback((streamKey: string, sender: ReactionSender | undefined) => {
-    setReactionSenders((current) => {
-      if (current[streamKey] === sender) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [streamKey]: sender,
-      };
-    });
-  }, []);
-
   const setStreamStatus = useCallback((streamKey: string, status: StreamStatus | undefined) => {
     setStreamStatuses((current) => {
       if (current[streamKey] === status) {
@@ -78,16 +71,15 @@ const PlayerPage = () => {
         [streamKey]: status,
       };
     });
-  }, []);
+
+    if (streamKey === primaryStreamKey && status?.motd) {
+      setStreamTitle(status.motd);
+    }
+  }, [primaryStreamKey]);
 
   const removeStream = (streamKey: string) => {
     setStreamKeys((prev) => prev.filter((key) => key !== streamKey));
     setChatAdapters((current) => {
-      const next = { ...current };
-      delete next[streamKey];
-      return next;
-    });
-    setReactionSenders((current) => {
       const next = { ...current };
       delete next[streamKey];
       return next;
@@ -109,23 +101,174 @@ const PlayerPage = () => {
     setIsDisplayNameModalOpen(false);
   }, []);
 
+  useEffect(() => {
+    if (!primaryStreamKey) return;
+    fetch(`/api/whip/profile`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${toBase64Utf8(profileAuthToken)}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((profile) => {
+        if (!profile) return;
+        if (typeof profile.isPublic === "boolean") {
+          setIsPublic(profile.isPublic);
+        }
+        if (typeof profile.motd === "string") {
+          setStreamTitle(profile.motd);
+        }
+      })
+      .catch(() => {});
+  }, [primaryStreamKey, profileAuthToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!primaryStreamKey) {
+      return;
+    }
+
+    fetch(`/api/accounts/${encodeURIComponent(primaryStreamKey)}`)
+      .then((result) => (result.ok ? result.json() : null))
+      .then((result: Account | null) => {
+        if (!cancelled) {
+          setChannelAccount(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setChannelAccount(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [primaryStreamKey]);
+
+  const toggleVisibility = useCallback(() => {
+    if (!primaryStreamKey) return;
+    const newIsPublic = !isPublic;
+    fetch(`/api/whip/profile`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${toBase64Utf8(profileAuthToken)}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ motd: "", isPublic: newIsPublic }),
+    })
+      .then((r) => {
+        if (r.ok) {
+          setIsPublic(newIsPublic);
+        }
+      })
+      .catch(() => {});
+  }, [primaryStreamKey, profileAuthToken, isPublic]);
+
+  const saveStreamTitle = useCallback((value: string) => {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      setTitleError(locale.player_page.error_edit_stream_empty);
+      return;
+    }
+
+    fetch(`/api/whip/profile`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${toBase64Utf8(profileAuthToken)}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ motd: trimmedValue, isPublic }),
+    })
+      .then((result) => {
+        if (!result.ok) {
+          setTitleError(locale.player_page.error_edit_stream_title);
+          return;
+        }
+
+        setStreamTitle(trimmedValue);
+        setTitleError("");
+        setIsTitleModalOpen(false);
+      })
+      .catch(() => {
+        setTitleError(locale.player_page.error_edit_stream_title);
+      });
+  }, [
+    isPublic,
+    locale.player_page.error_edit_stream_empty,
+    locale.player_page.error_edit_stream_title,
+    profileAuthToken,
+  ]);
+
   const isSingleStream = streamKeys.length === 1;
-  const playerGridColumns = isSingleStream ? 1 : 2;
-  const playerGridGap = 8;
-  const playerGridRowHeight = 16;
-  const playerGridItemPixelWidth = (playerGridWidth - playerGridGap * (playerGridColumns - 1)) / playerGridColumns;
-  const isMobilePlayer = window.innerWidth < 768;
-  const playerGridItemWidth = 12 / playerGridColumns;
-  const isSingleStreamChatSidebar = isSingleStream && isChatOpen && playerGridItemPixelWidth >= 1024;
-  const chatSidebarWidth = cinemaMode ? 320 : 336;
-  const chatBelowHeight = isChatOpen && !isSingleStreamChatSidebar ? (isSingleStream ? 336 : 388) : 0;
-  const playerWidth = Math.max(0, playerGridItemPixelWidth - (isSingleStreamChatSidebar ? chatSidebarWidth : 0));
-  const playerGridCardHeight = Math.ceil(playerWidth * 9 / 16 + 24 + chatBelowHeight);
-  const playerGridCardRows = Math.max(1, Math.ceil((playerGridCardHeight + playerGridGap) / (playerGridRowHeight + playerGridGap)));
-  const chatPanelVariant = isSingleStreamChatSidebar ? "sidebar" : (isSingleStream ? "compact-below" : "below");
+  const primaryStatus = streamStatuses[primaryStreamKey];
+
+  const copyLink = () => {
+    const url = window.location.href;
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+    }
+  };
+
+  const streamInfoBar = (
+    <div className="channel-bar">
+      <div className="channel-identity">
+        {channelAccount?.avatarUrl ? (
+          <span className="avatar-pixel channel-avatar">
+            <img src={channelAccount.avatarUrl} alt={channelAccount.displayName} />
+          </span>
+        ) : (
+          <span className="avatar-pixel channel-avatar">
+            {(channelAccount?.displayName ?? primaryStreamKey).charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="channel-copy">
+          <div className="channel-title">
+            <h2>
+              {channelAccount?.displayName ?? ((primaryStatus?.motd && primaryStatus.motd.trim()) ? primaryStatus.motd : primaryStreamKey)}
+            </h2>
+            <span className={`status-pill ${primaryStatus?.isOnline ? "status-pill--live" : ""}`}>
+              {primaryStatus?.isOnline ? "live ♡" : "offline"}
+            </span>
+          </div>
+          <div className="channel-meta">
+            {channelAccount ? (
+              <Link to={`/u/${channelAccount.username}`} className="pixel-link">@{channelAccount.username}</Link>
+            ) : (
+              <span>{primaryStreamKey}</span>
+            )}
+            <span>·</span>
+            <span>♡ {primaryStatus?.viewers ?? 0} watching</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="channel-actions">
+        <Button title={isChatOpen ? 'close chat ♡' : 'open chat ♡'} onClick={() => setIsChatOpen((prev) => !prev)} />
+        <Button title='copy link ♡' iconRight='Copy' onClick={copyLink} />
+        <Button
+          title={cinemaMode ? locale.player_page.cinema_mode_disable : locale.player_page.cinema_mode_enable}
+          onClick={toggleCinemaMode}
+          iconRight="CodeBracketSquare"
+        />
+        {isAccountOwner && (
+          <Button
+            title={isPublic ? locale.player_page.visibility_private : locale.player_page.visibility_public}
+            onClick={toggleVisibility}
+            iconRight="Eye"
+          />
+        )}
+        <Button
+          title={locale.player_page.modal_add_stream_title}
+          color="Accept"
+          onClick={() => setIsModelOpen((prev) => !prev)}
+          iconRight="SquaresPlus"
+        />
+      </div>
+    </div>
+  );
 
   return (
-    <div>
+    <div className="page-container animate-slide-up">
       {isModalOpen && (
         <ModalTextInput<string>
           title={locale.player_page.modal_add_stream_title}
@@ -155,83 +298,139 @@ const PlayerPage = () => {
         />
       )}
 
-      <div className={`flex flex-col w-full items-center ${!cinemaMode && "mx-auto px-2 py-2 container"}`} >
-        <div ref={playerGridRef} className="w-full">
-          <ReactGridLayout
-            dragConfig={{
-              enabled: !isMobilePlayer,
-              handle: ".player-drag-handle",
-              cancel: ".player-drag-cancel,button,input,select,textarea,a,[role='button']",
-            }}
-            resizeConfig={{ enabled: !isMobilePlayer }}
-            layout={streamKeys.map((streamKey, index) => ({
-              i: `${streamKey}_player_card`,
-              x: (index % playerGridColumns) * playerGridItemWidth,
-              y: Math.floor(index / playerGridColumns) * playerGridCardRows,
-              w: playerGridItemWidth,
-              h: playerGridCardRows,
-            }))}
-            width={playerGridWidth}
-            gridConfig={{ cols: 12, rowHeight: playerGridRowHeight, margin: [playerGridGap, playerGridGap], containerPadding: [0, 0] }}
-          >
-            {streamKeys.map((streamKey) => {
-              return (
-                <div key={`${streamKey}_player_card`} className="min-w-0 flex h-full flex-col gap-1 overflow-hidden">
-                  <div className={isSingleStream ? "relative flex min-h-0 flex-1 flex-col gap-4 w-full" : "flex min-h-0 flex-1 flex-col gap-1"}>
-                    <div className={isSingleStream ? `min-w-0 min-h-0 flex-1 transition-[margin] duration-200 ${isSingleStreamChatSidebar ? (cinemaMode ? "mr-80" : "mr-[21rem]") : ""}` : "min-w-0 min-h-0 flex-1"}>
-                      <Player
-                        key={`${streamKey}_player`}
-                        streamKey={streamKey}
-                        cinemaMode={cinemaMode}
-                        fillContainer
-                        isChatOpen={isChatOpen}
-                        onToggleChat={() => setIsChatOpen((prev) => !prev)}
-                        onChatAdapterChange={setStreamChatAdapter}
-                        onReactionSenderChange={setStreamReactionSender}
-                        onStreamStatusChange={setStreamStatus}
-                        onCloseStream={isSingleStream ? () => navigate("/") : () => removeStream(streamKey)}
-                      />
-                    </div>
+      {isTitleModalOpen && (
+        <ModalTextInput<string>
+          title={locale.player_page.modal_edit_stream_title}
+          message={locale.player_page.modal_edit_stream_message}
+          placeholder={locale.player_page.modal_edit_stream_placeholder}
+          initialValue={streamTitle || primaryStatus?.motd || ""}
+          errorTitle={locale.player_page.modal_edit_stream_title}
+          errorMessage={titleError}
+          isOpen={isTitleModalOpen}
+          canCloseOnBackgroundClick
+          onClose={() => {
+            setIsTitleModalOpen(false);
+            setTitleError("");
+          }}
+          onAccept={saveStreamTitle}
+        />
+      )}
 
-                    <ChatPanel
-                      streamKey={streamKey}
-                      variant={chatPanelVariant}
-                      isOpen={isChatOpen}
-                      adapter={chatAdapters[streamKey]}
-                      displayName={chatDisplayName}
-                      onReaction={reactionSenders[streamKey]}
-                      onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
-                    />
-                  </div>
+      {isSingleStream ? (
+        <div className={`player-layout ${cinemaMode ? "player-layout--cinema" : ""}`}>
+          <div className="player-main">
+            <StreamMOTD
+              isOnline={primaryStatus?.isOnline ?? false}
+              motd={streamTitle || primaryStatus?.motd || ""}
+              onEdit={isAccountOwner ? () => {
+                setTitleError("");
+                setIsTitleModalOpen(true);
+              } : undefined}
+            />
 
-                  <StreamMOTD
+            <Player
+              key={`${primaryStreamKey}_player`}
+              streamKey={primaryStreamKey}
+              cinemaMode={cinemaMode}
+              isOnline={primaryStatus?.isOnline ?? false}
+              isChatOpen={isChatOpen}
+              onToggleChat={() => setIsChatOpen((prev) => !prev)}
+              onChatAdapterChange={setStreamChatAdapter}
+              onStreamStatusChange={setStreamStatus}
+              onCloseStream={() => navigate("/")}
+            />
+
+            {streamInfoBar}
+
+            {cinemaMode && isChatOpen && (
+              <ChatPanel
+                streamKey={primaryStreamKey}
+                variant="below"
+                isOpen={isChatOpen}
+                adapter={chatAdapters[primaryStreamKey]}
+                displayName={effectiveChatDisplayName}
+                onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
+                onClose={() => setIsChatOpen(false)}
+              />
+            )}
+          </div>
+
+          {!cinemaMode && isChatOpen && (
+            <aside className="player-aside">
+              <ChatPanel
+                streamKey={primaryStreamKey}
+                variant="docked"
+                isOpen={isChatOpen}
+                adapter={chatAdapters[primaryStreamKey]}
+                displayName={effectiveChatDisplayName}
+                onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
+                onClose={() => setIsChatOpen(false)}
+              />
+            </aside>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid w-full grid-cols-1 md:grid-cols-2 gap-4">
+            {streamKeys.map((streamKey) => (
+              <div key={`${streamKey}_player_card`} className="min-w-0 flex flex-col gap-3">
+                <StreamMOTD
+                  isOnline={streamStatuses[streamKey]?.isOnline ?? false}
+                  motd={streamStatuses[streamKey]?.motd ?? ""}
+                  className='px-1'
+                />
+
+                <div className="flex flex-col gap-2">
+                  <Player
+                    key={`${streamKey}_player`}
+                    streamKey={streamKey}
+                    cinemaMode={cinemaMode}
                     isOnline={streamStatuses[streamKey]?.isOnline ?? false}
-                    motd={streamStatuses[streamKey]?.motd ?? ""}
-                    className={isSingleStream ? "px-1" : "px-4"}
+                    isChatOpen={isChatOpen}
+                    onToggleChat={() => setIsChatOpen((prev) => !prev)}
+                    onChatAdapterChange={setStreamChatAdapter}
+                    onStreamStatusChange={setStreamStatus}
+                    onCloseStream={() => removeStream(streamKey)}
+                  />
+                  <ChatPanel
+                    streamKey={streamKey}
+                    variant="below"
+                    isOpen={isChatOpen}
+                    adapter={chatAdapters[streamKey]}
+                    displayName={effectiveChatDisplayName}
+                    onChangeDisplayNameRequested={() => setIsDisplayNameModalOpen(true)}
+                    onClose={() => setIsChatOpen(false)}
                   />
                 </div>
-              );
-            })}
-          </ReactGridLayout>
-        </div>
+              </div>
+            ))}
+          </div>
 
-        {/*Footer menu*/}
-        <div className="mt-4 flex flex-row gap-2">
-          <Button
-            title={cinemaMode ? locale.player_page.cinema_mode_disable : locale.player_page.cinema_mode_enable}
-            onClick={toggleCinemaMode}
-            iconRight="CodeBracketSquare"
-          />
+          <div className="broadcast-actions mt-4">
+            <Button
+              title={cinemaMode ? locale.player_page.cinema_mode_disable : locale.player_page.cinema_mode_enable}
+              onClick={toggleCinemaMode}
+              iconRight="CodeBracketSquare"
+            />
+            <Button
+              title={locale.player_page.modal_add_stream_title}
+              color="Accept"
+              onClick={() => setIsModelOpen((prev) => !prev)}
+              iconRight="SquaresPlus"
+            />
+          </div>
+        </>
+      )}
 
-          {/*Show modal to add stream keys with*/}
-          <Button
-            title={locale.player_page.modal_add_stream_title}
-            color="Accept"
-            onClick={() => setIsModelOpen((prev) => !prev)}
-            iconRight="SquaresPlus"
-          />
+      <section className="mt-10">
+        <div className="section-head">
+          <div className="section-head__left">
+            <span className="section-kicker">02 // keep exploring</span>
+            <h2>more channels to visit</h2>
+          </div>
         </div>
-      </div>
+        <AvailableStreams showHeader={false} />
+      </section>
     </div>
   );
 };

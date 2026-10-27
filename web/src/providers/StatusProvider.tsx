@@ -27,8 +27,12 @@ export interface WhepSession {
 
 export interface StatusResult {
 	streamKey: string;
+	username?: string;
+	displayName?: string;
+	avatarUrl?: string;
 	motd: string;
 	streamStart: Date;
+	isPublic: boolean;
 
 	videoTracks: VideoTrack[];
 	audioTracks: AudioTrack[];

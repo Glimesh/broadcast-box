@@ -2,7 +2,7 @@ package console
 
 import (
 	"flag"
-	"log/slog"
+	"log"
 	"os"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -16,17 +16,17 @@ func HandleConsoleFlags() {
 
 	if *createNewProfile {
 		if len(*streamKey) == 0 {
-			slog.Info("No stream key was provided. Use the flags `-createNewProfile -streamKey MyStreamKey` to create a new profile.")
+			log.Println("No stream key was provided. Use the flags `-createNewProfile -streamKey MyStreamKey` to create a new profile.")
 			os.Exit(0)
 		}
 
 		token, err := authorization.CreateProfile(*streamKey)
 		if err != nil {
-			slog.Error("failed to create profile", "err", err)
+			log.Println(err)
 			os.Exit(0)
 		}
 
-		slog.Info("Profile Created", "streamKey", *streamKey, "bearerToken", token)
+		log.Println("Created", *streamKey, "with bearer token:", token)
 		os.Exit(0)
 	}
 }

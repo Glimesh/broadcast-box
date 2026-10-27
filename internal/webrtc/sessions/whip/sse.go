@@ -2,7 +2,7 @@ package whip
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 )
 
 // Returns all available Video and Audio layers of the provided stream key
@@ -39,7 +39,7 @@ func (w *WHIPSession) GetAvailableLayersEvent() string {
 
 	jsonResult, err := json.Marshal(resp)
 	if err != nil {
-		slog.Error("Error converting response to Json", "resp", resp, "err", err)
+		log.Println("Error converting response", resp, "to Json")
 	}
 
 	return "event: layers\ndata: " + string(jsonResult) + "\n\n"

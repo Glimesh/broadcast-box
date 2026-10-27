@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 	"net/http"
 	"os"
 
@@ -29,7 +29,7 @@ func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Reque
 	session, ok := manager.SessionsManager.GetSessionByID(streamKey)
 
 	if !ok {
-		slog.Info("Could not find active stream", "streamKey", streamKey)
+		log.Println("Could not find active stream", streamKey)
 		helpers.LogHTTPError(
 			responseWriter,
 			"No active stream found",
@@ -45,7 +45,7 @@ func streamStatusHandler(responseWriter http.ResponseWriter, request *http.Reque
 			responseWriter,
 			"Internal Server Error",
 			http.StatusInternalServerError)
-		slog.Error("API.Status Error", "err", err)
+		log.Println(err.Error())
 	}
 
 	responseWriter.Header().Add("Content-Type", "application/json")
@@ -71,7 +71,7 @@ func sessionStatusesHandler(responseWriter http.ResponseWriter, request *http.Re
 			"Internal Server Error",
 			http.StatusInternalServerError)
 
-		slog.Error("Internal Server Error", "err", err)
+		log.Println(err.Error())
 	}
 
 	responseWriter.Header().Add("Content-Type", "application/json")

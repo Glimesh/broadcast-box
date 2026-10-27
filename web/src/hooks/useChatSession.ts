@@ -17,6 +17,7 @@ export interface ChatAdapter {
 		onError: (error: string) => void,
 	): () => void;
 	send(text: string, displayName: string): Promise<void>;
+	deleteMessage(messageId: string, displayName: string): Promise<void>;
 }
 
 const MAX_MESSAGES = 1000;
@@ -62,6 +63,13 @@ export const useChatSession = (streamKey: string, adapter?: ChatAdapter, connect
 				}
 
 				setMessages((current) => appendUniqueCapped(current, message));
+			},
+			(messageId) => {
+				if (stopped) {
+					return;
+				}
+
+				setMessages((current) => current.filter((message) => message.id !== messageId));
 			},
 			(nextStatus) => {
 				if (!stopped) {

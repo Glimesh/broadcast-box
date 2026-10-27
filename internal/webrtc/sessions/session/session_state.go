@@ -17,6 +17,9 @@ type whipSessionStatus struct {
 // Information for a whip session
 type StreamSessionState struct {
 	StreamKey   string    `json:"streamKey"`
+	Username    string    `json:"username,omitempty"`
+	DisplayName string    `json:"displayName,omitempty"`
+	AvatarURL   string    `json:"avatarUrl,omitempty"`
 	IsPublic    bool      `json:"isPublic"`
 	MOTD        string    `json:"motd"`
 	StreamStart time.Time `json:"streamStart"`

@@ -11,23 +11,23 @@ const ApiPage = () => {
   const [response] = useState<ApiSettingsResult[]>()
 
   return (
-    <div className="p-6 w-full max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_api.title}</h1>
+    <div className="flex w-full flex-col gap-4">
+      <h1 className="panel-heading text-base">{locale.admin_page_api.title}</h1>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full rounded-lg shadow">
-          <thead className="text-white">
+      <div className="admin-table-wrap">
+        <table className="data-table">
+          <thead>
             <tr>
-              <th className="px-4 py-2 text-left">{locale.admin_page_api.table_header_setting_name}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_api.table_header_value}</th>
+              <th>{locale.admin_page_api.table_header_setting_name}</th>
+              <th>{locale.admin_page_api.table_header_value}</th>
             </tr>
           </thead>
           <tbody>
             {response?.map((setting, index) => {
               return (
                 <tr key={index} className="border-t">
-                  <td className="px-4 py-2 font-medium ">{setting.name}</td>
-                  <td className="px-4 py-2 font-medium ">{setting.value}</td>
+                  <td>{setting.name}</td>
+                  <td>{setting.value}</td>
                 </tr>
               );
             })}

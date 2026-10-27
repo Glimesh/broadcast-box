@@ -80,6 +80,9 @@ export interface localeInterface {
 
     cinema_mode_enable: string,
     cinema_mode_disable: string,
+
+    visibility_public: string,
+    visibility_private: string,
   },
   player: {
     message_is_not_online: string,
@@ -191,7 +194,6 @@ export interface localeInterface {
   chat: {
     title: string,
     placeholder_input: string,
-    button_reaction_title: string,
     button_change_display_name_title: string,
     button_send_title: string,
     status_connecting: string,

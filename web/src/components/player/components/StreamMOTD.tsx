@@ -5,23 +5,30 @@ interface StreamMOTDProps {
   isOnline: boolean;
   motd: string;
   className?: string;
+  onEdit?: () => void;
 }
-export const StreamMOTD = (props: StreamMOTDProps) =>{
-	const { isOnline, motd, className = '' } = props;
-	const { locale } = useContext(LocaleContext)
+
+export const StreamMOTD = (props: StreamMOTDProps) => {
+  const { isOnline, motd, className = '', onEdit } = props;
+  const { locale } = useContext(LocaleContext);
 
   return (
-		<div className={`w-full ${className}`}>
-			<div className="relative h-5">
-					<div className={`absolute inset-0 transition-opacity duration-300 text-gray-400 ${isOnline ? "opacity-100" : "opacity-0"}`} >
-						{motd}
-					</div>
+    <div className={`motd-strip ${isOnline ? "" : "motd-strip--offline"} ${className}`}>
+      <span className="motd-strip__text">
+        {isOnline ? (motd || "no title yet ♡") : locale.player.stream_status_offline}
+      </span>
 
-					<div className={`absolute inset-0 transition-opacity duration-300 text-red-400 font-semibold ${!isOnline ? "opacity-100" : "opacity-0"}`} >
-						<div className='flex space-x-4'>
-						{locale.player.stream_status_offline}
-						</div>
-					</div>
-			</div>
-		</div>)
-}
+      {onEdit && (
+        <button
+          type="button"
+          className="motd-strip__edit"
+          title={locale.player_page.edit_stream_title}
+          aria-label={locale.player_page.edit_stream_title}
+          onClick={onEdit}
+        >
+          edit ♡
+        </button>
+      )}
+    </div>
+  );
+};

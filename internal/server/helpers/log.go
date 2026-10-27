@@ -1,11 +1,11 @@
 package helpers
 
 import (
-	"log/slog"
+	"log"
 	"net/http"
 )
 
 func LogHTTPError(responseWriter http.ResponseWriter, error string, code int) {
-	slog.Error("HTTP Error", "err", error)
+	log.Println("LogHTTPError", error)
 	http.Error(responseWriter, error, code)
 }

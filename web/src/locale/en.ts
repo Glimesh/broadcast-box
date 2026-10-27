@@ -3,30 +3,30 @@ import { localeInterface } from "./localeInterface"
 const locale_en: localeInterface = {
   locale: "en",
   frontpage: {
-    welcome: "Welcome to Broadcast Box",
-    welcome_subtitle: "Broadcast Box is a tool that allows you to efficiently stream high-quality video in real time, using the latest in video codecs and WebRTC technology.",
+    welcome: "Welcome to Kohi-Box",
+    welcome_subtitle: "Kohi-Box is a tool that allows you to efficiently stream high-quality video in real time, using the latest in video codecs and WebRTC technology.",
 
     toggle_watch: "I want to watch",
     toggle_stream: "I want to stream",
 
     stream_input_label: "Stream key",
-    stream_input_placeholder_share: "Insert the key of the stream you want to share",
-    stream_input_placeholder_join: "Insert the key of the stream you want to join",
+    stream_input_placeholder_share: "paste the private key of the stream you want to share",
+    stream_input_placeholder_join: "paste the key of the stream you want to join",
 
-    stream_button_stream_start: "Start stream",
-    stream_button_stream_join: "Join stream",
+    stream_button_stream_start: "start stream ♡",
+    stream_button_stream_join: "join stream ♡",
   },
 
   available_streams: {
     title: "Current streams",
     stream_join_message: "Click a stream to join it",
-    no_streams_message: "No streams currently available",
+    no_streams_message: "no streams right now — check back soon ♡",
   },
 
   statistics: {
     title: "Statistics",
-    no_statistics_available: "No statistics currently available",
-    no_sessions: "No sessions available",
+    no_statistics_available: "nothing live right now — check back soon ♡",
+    no_sessions: "no sessions available",
 
     whep_sessions: "WHEP Sessions",
 
@@ -58,61 +58,71 @@ const locale_en: localeInterface = {
     warning: "Warning",
 
     mediaAccessError_default: "Could not access your media devices",
-    mediaAccessError_noMediaDevices: "MediaDevices API was not found. Publishing in Broadcast Box requires HTTPS",
+    mediaAccessError_noMediaDevices: "MediaDevices API was not found. Publishing in Kohi-Box requires HTTPS",
     mediaAccessError_notAllowedError: "You can't publish stream using your camera, access has been disabled.",
     mediaAccessError_notFoundError: "Seems like you don't have camera. Or the access to it is blocked\nCheck camera settings, browser permissions and system permissions.",
 
     connection_established: "Live: Currently streaming to",
     connection_disconnected: "WebRTC has disconnected or failed to connect at all",
-    connection_failed: "Failed to start Broadcast Box session",
+    connection_failed: "Failed to start Kohi-Box session",
     connection_has_packetloss: "WebRTC is experiencing packet loss",
 
-    publish_screen: "Publish Screen/Window/Tab",
-    publish_webcam: "Publish Webcam",
+    publish_screen: "publish screen/window/tab",
+    publish_webcam: "publish webcam",
 
-    button_end_stream: "End stream"
+    button_end_stream: "end stream"
   },
 
   player_page: {
-    cinema_mode_disable: "Disable cinema mode",
-    cinema_mode_enable: "Enable cinema mode",
+    cinema_mode_disable: "disable cinema mode",
+    cinema_mode_enable: "enable cinema mode",
 
-    modal_add_stream_title: "Add stream",
-    modal_add_stream_message: "Insert stream key to add to multi stream",
-    modal_add_stream_placeholder: "Insert the key of the stream you want to add",
+    modal_add_stream_title: "add stream",
+    modal_add_stream_message: "paste a stream key to add it to the multi-stream view",
+    modal_add_stream_placeholder: "paste the key of the stream you want to add",
+
+    visibility_public: "set private",
+    visibility_private: "set public",
+
+    edit_stream_title: "edit stream title",
+    modal_edit_stream_title: "edit stream title",
+    modal_edit_stream_message: "this is the little name shown above your stream",
+    modal_edit_stream_placeholder: "enter a title for your stream",
+    error_edit_stream_title: "couldn't save the title, try again ♡",
+    error_edit_stream_empty: "give your stream a name first ♡",
   },
 
   player: {
-    message_is_not_online: "is not currently streaming",
-    message_loading_video: "Loading video",
-    message_error: "Error",
+    message_is_not_online: "isn't streaming right now",
+    message_loading_video: "loading video...",
+    message_error: "couldn't load the video",
 
-    stream_status_offline: "Offline"
+    stream_status_offline: "offline"
   },
 
   stream_status: {
-    message_current_viewers: "Current Viewers"
+    message_current_viewers: "current viewers"
   },
 
   profile_settings: {
-    title: "Profile Settings",
-    subTitle: "Configure streaming profile",
+    title: "profile settings",
+    subTitle: "configure your stream profile",
 
-    toggle_stream_privacy_label: "Privacy",
-    toggle_stream_privacy_title_left: "Private",
-    toggle_stream_privacy_title_right: "Public",
+    toggle_stream_privacy_label: "privacy",
+    toggle_stream_privacy_title_left: "private",
+    toggle_stream_privacy_title_right: "public",
 
-    input_motd_label: "Message of the Day",
-    button_save_label: "Save"
+    input_motd_label: "message of the day",
+    button_save_label: "save ♡"
   },
 
   admin_login: {
-    login_input_dialog_title: "Login",
-    login_input_dialog_message: "Insert admin token to log in",
-    login_input_dialog_placeholder: "Insert admin token to log in",
-    error_message_login_failed: "Login failed",
+    login_input_dialog_title: "admin login",
+    login_input_dialog_message: "paste your admin token to sign in",
+    login_input_dialog_placeholder: "paste your admin token",
+    error_message_login_failed: "login failed",
 
-    button_login_text: "Login"
+    button_login_text: "sign in ♡"
   },
 
   admin_page: {
@@ -173,32 +183,31 @@ const locale_en: localeInterface = {
   },
 
   shared_component_card: {
-    button_accept: "Accept"
+    button_accept: "ok ♡"
   },
   shared_component_text_input_modal: {
-    button_accept: "Accept"
+    button_accept: "ok ♡"
   },
   shared_component_text_input_dialog: {
-    button_accept: "Accept"
+    button_accept: "ok ♡"
   },
 
   chat: {
-    title: "Chat",
-    placeholder_input: "Write a message",
-    button_reaction_title: "Send reaction",
-    button_change_display_name_title: "Change display name",
-    button_send_title: "Send message",
+    title: "chat",
+    placeholder_input: "say something nice...",
+    button_change_display_name_title: "change display name",
+    button_send_title: "send message",
     status_connecting: "connecting",
     status_connected: "connected",
     status_error: "error",
     status_disconnected: "disconnected",
-    no_messages_yet: "No chat messages yet.",
-    error_failed_to_connect: "Failed to connect chat",
-    error_not_connected: "Chat is not connected",
-    error_failed_to_send: "Failed to send message",
-    modal_display_name_title: "Display name",
-    modal_display_name_message: "Set your display name for chat",
-    modal_display_name_placeholder: "Enter display name",
+    no_messages_yet: "no messages yet — say hi ♡",
+    error_failed_to_connect: "couldn't connect to chat",
+    error_not_connected: "chat is not connected",
+    error_failed_to_send: "couldn't send message",
+    modal_display_name_title: "display name",
+    modal_display_name_message: "pick a name for chat",
+    modal_display_name_placeholder: "your name",
   },
 }
 export default locale_en

@@ -3,7 +3,7 @@ package whip
 import (
 	"errors"
 	"io"
-	"log/slog"
+	"log"
 	"math"
 	"strings"
 	"time"
@@ -27,7 +27,7 @@ func (w *WHIPSession) audioWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 	codec := codecs.GetAudioTrackCodec(remoteTrack.Codec().MimeType)
 	track, err := w.addAudioTrack(id, streamKey, codec)
 	if err != nil {
-		slog.Error("AudioWriter.AddTrack.Error", "err", err)
+		log.Println("AudioWriter.AddTrack.Error:", err)
 		return
 	}
 
@@ -37,10 +37,10 @@ func (w *WHIPSession) audioWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 		rtpRead, _, err := remoteTrack.Read(rtpBuf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				slog.Info("WHIPSession.AudioWriter.RtpPkt.EndOfStream")
+				log.Println("WHIPSession.AudioWriter.RtpPkt.EndOfStream")
 				return
 			} else {
-				slog.Error("WHIPSession.AudioWriter.RtpPkt.Err", "err", err)
+				log.Println("WHIPSession.AudioWriter.RtpPkt.Err", err)
 			}
 		}
 
@@ -48,7 +48,7 @@ func (w *WHIPSession) audioWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 
 		err = rtpPkt.Unmarshal(rtpBuf[:rtpRead])
 		if err != nil {
-			slog.Error("WHIPSession.AudioWriter.RtpPkt.Error", "err", err)
+			log.Println("WHIPSession.AudioWriter.RtpPkt.Error", err)
 			continue
 		}
 
@@ -79,7 +79,7 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 	codec := codecs.GetVideoTrackCodec(remoteTrack.Codec().MimeType)
 	track, err := w.addVideoTrack(id, streamKey, codec)
 	if err != nil {
-		slog.Error("WHIPSession.VideoWriter.AddTrack.Error", "err", err)
+		log.Println("WHIPSession.VideoWriter.AddTrack.Error:", err)
 		return
 	}
 	track.Priority = w.getPrioritizedStreamingLayer(id, peerConnection.CurrentRemoteDescription().SDP)
@@ -100,7 +100,7 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 	}
 
 	if depacketizer == nil {
-		slog.Error("WHIPSession.VideoWriter.Depacketizer: No depacketizer was found for codec", "codec", codec)
+		log.Println("WHIPSession.VideoWriter.Depacketizer: No depacketizer was found for codec", codec)
 	}
 
 	lastTimestamp := uint32(0)
@@ -118,11 +118,11 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 		rtpRead, _, err := remoteTrack.Read(pktBuf)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				slog.Info("WHIPSession.VideoWriter.RtpPkt.EndOfStream")
+				log.Println("WHIPSession.VideoWriter.RtpPkt.EndOfStream")
 				w.notifyClosed()
 				return
 			} else {
-				slog.Error("WHIPSession.VideoWriter.RtpPkt.Err", "err", err)
+				log.Println("WHIPSession.VideoWriter.RtpPkt.Err", err)
 			}
 		}
 
@@ -132,7 +132,7 @@ func (w *WHIPSession) videoWriter(remoteTrack *webrtc.TrackRemote, streamKey str
 
 		err = rtpPkt.Unmarshal(pktBuf[:rtpRead])
 		if err != nil {
-			slog.Error("WHIPSession.VideoWriter.RtpPkt.Unmarshal", "err", err)
+			log.Println("WHIPSession.VideoWriter.RtpPkt.Unmarshal", err)
 			continue
 		}
 
@@ -227,7 +227,7 @@ func (w *WHIPSession) getPrioritizedStreamingLayer(layer string, sdpDescription 
 	var sessionDescription sdp.SessionDescription
 	err := sessionDescription.Unmarshal([]byte(sdpDescription))
 	if err != nil {
-		slog.Error("Track.getPrioritizedStreamingLayer Error", "layer", layer, "err", err)
+		log.Println("Track.getPrioritizedStreamingLayer Error: (Layer "+layer+")", err)
 		return 100
 	}
 
@@ -236,10 +236,10 @@ func (w *WHIPSession) getPrioritizedStreamingLayer(layer string, sdpDescription 
 		for _, attribute := range description.Attributes {
 			if attribute.Key == "simulcast" && strings.HasPrefix(attribute.Value, "send ") {
 				layers := strings.TrimPrefix(attribute.Value, "send")
-				slog.Info("WHIPSession.VideoWriter.TrackPriority", "layers", layers)
+				log.Println("WHIPSession.VideoWriter.TrackPriority:", layers)
 				for simulcastLayer := range strings.SplitSeq(strings.TrimSpace(layers), ";") {
 					if simulcastLayer != "" && strings.EqualFold(simulcastLayer, layer) {
-						slog.Info("WHIPSession.VideoWriter.TrackPriority", "layer", layer)
+						log.Println("WHIPSession.VideoWriter.TrackPriority:", layer)
 						return priority
 					} else {
 						priority++

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log/slog"
+	"log"
 	"net/http"
 	"os"
 
@@ -20,11 +20,8 @@ func startHTTPServer(serverMux http.HandlerFunc) {
 		Addr:    getHTTPAddress(),
 	}
 
-	slog.Info("Starting HTTP", "address", getHTTPAddress())
-	if err := server.ListenAndServe(); err != nil {
-		slog.Error("Server closed with error", "err", err)
-		os.Exit(1)
-	}
+	log.Println("Starting HTTP server at", getHTTPAddress())
+	log.Fatal(server.ListenAndServe())
 }
 
 func getHTTPAddress() string {
@@ -44,19 +41,18 @@ func setupHTTPRedirect() {
 		}
 
 		go func() {
-			slog.Info("Setting up HTTP Redirecting")
+			log.Println("Setting up HTTP Redirecting")
 
 			redirectServer := &http.Server{
 				Addr:    httpRedirectPort,
 				Handler: http.HandlerFunc(handlers.RedirectToHttpsHandler),
 			}
 
-			slog.Info("Forwarding requests to HTTPS server", "address", redirectServer.Addr)
+			log.Println("Forwarding requests from", redirectServer.Addr, "to HTTPS server")
 			err := redirectServer.ListenAndServe()
 
 			if err != nil {
-				slog.Error("Redirect Server closed with error", "err", err)
-				os.Exit(1)
+				log.Fatal(err)
 			}
 		}()
 	}

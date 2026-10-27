@@ -39,19 +39,19 @@ const StatusPage = () => {
   }, [refreshStatus, statusRefreshIntervalMs])
 
   return (
-    <div className="p-6 w-full max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_status_page.title}</h1>
+    <div className="flex w-full flex-col gap-4">
+      <h1 className="panel-heading text-base">{locale.admin_page_status_page.title}</h1>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full rounded-lg shadow">
-          <thead className="text-white">
+      <div className="admin-table-wrap">
+        <table className="data-table">
+          <thead>
             <tr>
-              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_stream_key}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_is_public}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_video_tracks}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_audio_tracks}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_sessions}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_status_page.table_header_total_packets}</th>
+              <th>{locale.admin_page_status_page.table_header_stream_key}</th>
+              <th>{locale.admin_page_status_page.table_header_is_public}</th>
+              <th>{locale.admin_page_status_page.table_header_video_tracks}</th>
+              <th>{locale.admin_page_status_page.table_header_audio_tracks}</th>
+              <th>{locale.admin_page_status_page.table_header_sessions}</th>
+              <th>{locale.admin_page_status_page.table_header_total_packets}</th>
             </tr>
           </thead>
           <tbody>
@@ -68,12 +68,12 @@ const StatusPage = () => {
 
               return (
                 <tr key={index} className="border-t">
-                  <td className="px-4 py-2 font-medium ">{status.streamKey}</td>
-                  <td className="px-4 py-2 font-medium ">{status.isPublic ? locale.admin_page_status_page.yes : locale.admin_page_status_page.no}</td>
-                  <td className="px-4 py-2">{status.videoTracks.length}</td>
-                  <td className="px-4 py-2">{status.audioTracks.length}</td>
-                  <td className="px-4 py-2">{status.sessions.length}</td>
-                  <td className="px-4 py-2">{totalPackets}</td>
+                  <td>{status.streamKey}</td>
+                  <td>{status.isPublic ? locale.admin_page_status_page.yes : locale.admin_page_status_page.no}</td>
+                  <td>{status.videoTracks.length}</td>
+                  <td>{status.audioTracks.length}</td>
+                  <td>{status.sessions.length}</td>
+                  <td>{totalPackets}</td>
                 </tr>
               );
             })}

@@ -16,12 +16,16 @@ type ChatInbound = {
 type ChatHistoryEvent = {
 	type: "message";
 	message: Message;
+} | {
+	type: "delete";
+	deletedMessageId: string;
 };
 
 type ChatOutbound =
 	| { type: "chat.connected" }
 	| { type: "chat.history"; events: ChatHistoryEvent[] }
 	| { type: "chat.message"; eventId: number; message: Message }
+	| { type: "chat.delete"; eventId: number; deletedMessageId: string }
 	| { type: "chat.ack"; clientMsgId: string }
 	| { type: "chat.error"; error: string; clientMsgId?: string };
 
@@ -48,6 +52,7 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 	private pending = new Map<string, PendingMessage>();
 
 	private onMessage: ((message: Message) => void) | null = null;
+	private onDelete: ((messageId: string) => void) | null = null;
 	private onStatus: ((status: ChatStatus) => void) | null = null;
 	private onError: ((error: string) => void) | null = null;
 
@@ -104,11 +109,16 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 				payload.events.forEach((entry) => {
 					if (entry.type === "message") {
 						this.onMessage?.(entry.message);
+					} else if (entry.type === "delete") {
+						this.onDelete?.(entry.deletedMessageId);
 					}
 				});
 				return;
 			case "chat.message":
 				this.onMessage?.(payload.message);
+				return;
+			case "chat.delete":
+				this.onDelete?.(payload.deletedMessageId);
 				return;
 			case "chat.ack": {
 				this.settlePending(payload.clientMsgId);
@@ -170,10 +180,12 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 
 	subscribe(
 		onMessage: (message: Message) => void,
+		onDelete: (messageId: string) => void,
 		onStatus: (status: ChatStatus) => void,
 		onError: (error: string) => void,
 	): () => void {
 		this.onMessage = onMessage;
+		this.onDelete = onDelete;
 		this.onStatus = onStatus;
 		this.onError = onError;
 
@@ -186,6 +198,10 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 				this.onMessage = null;
 			}
 
+			if (this.onDelete === onDelete) {
+				this.onDelete = null;
+			}
+
 			if (this.onStatus === onStatus) {
 				this.onStatus = null;
 			}
@@ -194,6 +210,24 @@ export class ChatDataChannelAdapter implements ChatAdapter {
 				this.onError = null;
 			}
 		};
+	}
+
+	async deleteMessage(messageId: string, displayName: string): Promise<void> {
+		if (!this.channel || this.channel.readyState !== "open") {
+			throw new Error("Chat data channel is not open");
+		}
+
+		if (!this.isConnectedToStream) {
+			throw new Error("Chat is not connected to stream");
+		}
+
+		const payload = {
+			type: "chat.delete",
+			messageId,
+			displayName,
+		};
+
+		this.channel.send(JSON.stringify(payload));
 	}
 
 	async send(text: string, displayName: string): Promise<void> {

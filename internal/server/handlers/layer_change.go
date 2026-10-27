@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 	"net/http"
 	"strings"
 
@@ -29,7 +29,7 @@ func layerChangeHandler(responseWriter http.ResponseWriter, request *http.Reques
 	whepSessionID := values[len(values)-1]
 	whepSession, ok := manager.SessionsManager.GetWHEPSessionByID(whepSessionID)
 
-	slog.Info("Found WHEP session", "sessionID", whepSession.SessionID)
+	log.Println("Found WHEP session", whepSession.SessionID)
 
 	if !ok {
 		helpers.LogHTTPError(responseWriter, "Could not find WHEP session", http.StatusBadRequest)
@@ -37,13 +37,13 @@ func layerChangeHandler(responseWriter http.ResponseWriter, request *http.Reques
 	}
 
 	if requestContent.MediaID == "1" {
-		slog.Info("Setting Video Layer", "encodingID", requestContent.EncodingID)
+		log.Println("Setting Video Layer", requestContent.EncodingID)
 		whepSession.SetVideoLayer(requestContent.EncodingID)
 		return
 	}
 
 	if requestContent.MediaID == "2" {
-		slog.Info("Setting Audio Layer", "encodingID", requestContent.EncodingID)
+		log.Println("Setting Audio Layer", requestContent.EncodingID)
 		whepSession.SetAudioLayer(requestContent.EncodingID)
 		return
 	}

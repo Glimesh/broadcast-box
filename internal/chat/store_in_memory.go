@@ -2,9 +2,11 @@ package chat
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
+	accountStore "github.com/glimesh/broadcast-box/internal/accounts"
 	"github.com/google/uuid"
 )
 
@@ -14,6 +16,7 @@ type subscriber struct {
 
 type room struct {
 	mu           sync.Mutex
+	streamKey    string
 	subscribers  map[string]*subscriber
 	history      []Event
 	nextEventID  uint64
@@ -126,8 +129,8 @@ func (s *InMemoryStore) Send(sessionID string, text string, displayName string, 
 		return fmt.Errorf("room not found")
 	}
 
-	s.sendToRoom(r, text, displayName, now)
-	return nil
+	err := s.sendToRoom(r, streamKey, text, displayName, now)
+	return err
 }
 
 func (s *InMemoryStore) SendToStream(streamKey string, text string, displayName string, now time.Time) error {
@@ -135,8 +138,7 @@ func (s *InMemoryStore) SendToStream(streamKey string, text string, displayName 
 	r := s.getOrCreateRoomLocked(streamKey, now)
 	s.mu.Unlock()
 
-	s.sendToRoom(r, text, displayName, now)
-	return nil
+	return s.sendToRoom(r, streamKey, text, displayName, now)
 }
 
 func (s *InMemoryStore) Cleanup(now time.Time, ttl time.Duration) {
@@ -202,9 +204,19 @@ func (s *InMemoryStore) subscribeToRoom(r *room, lastEventID uint64, now time.Ti
 	return ch, cleanup, history, nil
 }
 
-func (s *InMemoryStore) sendToRoom(r *room, text string, displayName string, now time.Time) {
+func (s *InMemoryStore) sendToRoom(r *room, streamKey string, text string, displayName string, now time.Time) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if account, err := accountStore.Get(streamKey); err == nil {
+		lowerText := strings.ToLower(text)
+		for _, word := range account.ChatBannedWords {
+			word = strings.TrimSpace(word)
+			if word != "" && strings.Contains(lowerText, strings.ToLower(word)) {
+				return fmt.Errorf("message blocked by chat filter")
+			}
+		}
+	}
 
 	r.lastActivity = now
 	event := Event{
@@ -231,6 +243,66 @@ func (s *InMemoryStore) sendToRoom(r *room, text string, displayName string, now
 		default:
 		}
 	}
+
+	return nil
+}
+
+func (s *InMemoryStore) DeleteMessage(streamKey string, messageID string, requester string, now time.Time) error {
+	account, err := accountStore.Get(streamKey)
+	if err != nil {
+		return fmt.Errorf("stream not found")
+	}
+
+	allowed := strings.EqualFold(requester, account.DisplayName)
+	if !allowed {
+		for _, mod := range account.ChatMods {
+			if strings.EqualFold(mod, requester) {
+				allowed = true
+				break
+			}
+		}
+	}
+	if !allowed {
+		return fmt.Errorf("not authorized to delete messages")
+	}
+
+	s.mu.Lock()
+	r, ok := s.rooms[streamKey]
+	if !ok {
+		s.mu.Unlock()
+		return fmt.Errorf("room not found")
+	}
+	s.mu.Unlock()
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.lastActivity = now
+
+	newHistory := make([]Event, 0, len(r.history))
+	for _, ev := range r.history {
+		if ev.Type == EventTypeMessage && ev.Message.ID == messageID {
+			continue
+		}
+		newHistory = append(newHistory, ev)
+	}
+	r.history = newHistory
+
+	event := Event{
+		ID:               r.nextEventID,
+		Type:             EventTypeDelete,
+		DeletedMessageID: messageID,
+	}
+	r.nextEventID++
+
+	for _, sub := range r.subscribers {
+		select {
+		case sub.ch <- event:
+		default:
+		}
+	}
+
+	return nil
 }
 
 func (s *InMemoryStore) getOrCreateRoomLocked(streamKey string, now time.Time) *room {
@@ -241,6 +313,7 @@ func (s *InMemoryStore) getOrCreateRoomLocked(streamKey string, now time.Time) *
 	}
 
 	r = &room{
+		streamKey:    streamKey,
 		subscribers:  make(map[string]*subscriber),
 		history:      make([]Event, 0, s.maxHistory),
 		nextEventID:  1,

@@ -3,8 +3,8 @@ import { localeInterface } from "./localeInterface"
 const locale_da: localeInterface = {
   locale: "da",
   frontpage: {
-    welcome: "Velkommen til Broadcast Box",
-    welcome_subtitle: "Broadcast Box er et værktøj, der gør det muligt at streame video i høj kvalitet i realtid ved hjælp af de nyeste video-codecs og WebRTC-teknologi.",
+    welcome: "Velkommen til Kohi-Box",
+    welcome_subtitle: "Kohi-Box er et værktøj, der gør det muligt at streame video i høj kvalitet i realtid ved hjælp af de nyeste video-codecs og WebRTC-teknologi.",
 
     toggle_watch: "Jeg vil se",
     toggle_stream: "Jeg vil streame",
@@ -58,13 +58,13 @@ const locale_da: localeInterface = {
     warning: "Advarsel",
 
     mediaAccessError_default: "Kunne ikke få adgang til dine medieenheder",
-    mediaAccessError_noMediaDevices: "MediaDevices API blev ikke fundet. Udgivelse i Broadcast Box kræver HTTPS",
+    mediaAccessError_noMediaDevices: "MediaDevices API blev ikke fundet. Udgivelse i Kohi-Box kræver HTTPS",
     mediaAccessError_notAllowedError: "Du kan ikke streame med dit kamera, adgangen er blevet deaktiveret.",
     mediaAccessError_notFoundError: "Det ser ud til, at du ikke har et kamera, eller at adgangen er blokeret\nTjek kameraindstillinger, browser- og systemtilladelser.",
 
     connection_established: "Live: Streamer i øjeblikket til",
     connection_disconnected: "WebRTC er afbrudt eller kunne ikke oprette forbindelse",
-    connection_failed: "Kunne ikke starte Broadcast Box-session",
+    connection_failed: "Kunne ikke starte Kohi-Box-session",
     connection_has_packetloss: "WebRTC oplever pakketab",
 
     publish_screen: "Del skærm/vindue/faneblad",
@@ -81,12 +81,14 @@ const locale_da: localeInterface = {
     modal_add_stream_message: "Indsæt stream-nøgle for at tilføje til multi-stream",
     modal_add_stream_placeholder: "Indsæt nøglen til den stream, du vil tilføje",
 
+    visibility_public: "Sæt privat",
+    visibility_private: "Sæt offentlig",
   },
 
   player: {
     message_is_not_online: "streamer ikke i øjeblikket",
     message_loading_video: "Indlæser video",
-    message_error: "Fejl",
+    message_error: "Fejl ved indlæsning af video",
 
     stream_status_offline: "Offline"
   },
@@ -185,7 +187,6 @@ const locale_da: localeInterface = {
   chat: {
     title: "Chat",
     placeholder_input: "Skriv en besked",
-    button_reaction_title: "Send reaktion",
     button_change_display_name_title: "Skift visningsnavn",
     button_send_title: "Send besked",
     status_connecting: "forbinder",

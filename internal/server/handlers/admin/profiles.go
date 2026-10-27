@@ -2,7 +2,7 @@ package admin
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 	"net/http"
 
 	"github.com/glimesh/broadcast-box/internal/server/authorization"
@@ -30,7 +30,7 @@ func ProfilesHandler(responseWriter http.ResponseWriter, request *http.Request) 
 
 	err = json.NewEncoder(responseWriter).Encode(profiles)
 	if err != nil {
-		slog.Error("API.Admin.Profiles Error", "err", err)
+		log.Println("API.Admin.Profiles Error", err)
 	}
 }
 
@@ -57,7 +57,7 @@ func ProfilesResetTokenHandler(responseWriter http.ResponseWriter, request *http
 	}
 
 	if err := authorization.ResetProfileToken(payload.StreamKey); err != nil {
-		slog.Error("API.Admin.ProfilesResetTokenHandler", "err", err)
+		log.Println("API.Admin.ProfilesResetTokenHandler", err)
 		helpers.LogHTTPError(responseWriter, "Error updating token", http.StatusBadRequest)
 		return
 	}
@@ -88,7 +88,7 @@ func ProfileAddHandler(responseWriter http.ResponseWriter, request *http.Request
 	}
 
 	if _, err := authorization.CreateProfile(payload.StreamKey); err != nil {
-		slog.Error("API.Admin.CreateProfile", "err", err)
+		log.Println("API.Admin.CreateProfile", err)
 		helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -119,7 +119,7 @@ func ProfileRemoveHandler(responseWriter http.ResponseWriter, request *http.Requ
 	}
 
 	if _, err := authorization.RemoveProfile(payload.StreamKey); err != nil {
-		slog.Error("API.Admin.RemoveProfile", "err", err)
+		log.Println("API.Admin.RemoveProfile", err)
 		helpers.LogHTTPError(responseWriter, err.Error(), http.StatusBadRequest)
 		return
 	}

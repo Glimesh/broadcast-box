@@ -1,23 +1,11 @@
 import { getIcon, IconType } from "./Icons";
 
 const colorMapping = {
-  Accept: {
-    base: "bg-green-700",
-    hover: "hover:bg-green-500",
-  },
-  Deny: {
-    base: "bg-red-900",
-    hover: "hover:bg-red-800",
-  },
-  Default: {
-    base: "bg-blue-700",
-    hover: "hover:bg-blue-500",
-  },
-  Disabled: {
-    base: "bg-gray-600",
-    hover: "hover:bg-gray-600",
-  }
-}
+  Accept: "pixel-btn pixel-btn--lime",
+  Deny: "pixel-btn pixel-btn--danger",
+  Default: "pixel-btn",
+  Disabled: "pixel-btn",
+};
 
 interface Props {
   title?: string;
@@ -25,9 +13,9 @@ interface Props {
   isDisabled?: boolean;
   onClick?: () => void;
 
-  color?: "Accept" | "Deny"
-  iconLeft?: IconType
-  iconRight?: IconType
+  color?: "Accept" | "Deny";
+  iconLeft?: IconType;
+  iconRight?: IconType;
   classNames?: string;
 
   stretch?: boolean;
@@ -35,7 +23,6 @@ interface Props {
 }
 
 export default function Button(props: Props) {
-
   const color = props.isDisabled ? colorMapping.Disabled
     : props.color === "Accept" ? colorMapping.Accept
       : props.color === "Deny" ? colorMapping.Deny
@@ -43,30 +30,19 @@ export default function Button(props: Props) {
 
   return (
     <button
-      className={`flex text-white font-medium px-4 py-2 rounded ${props.center === true ? "justify-center" : ""} ${props.stretch ? "w-full" : "w-fit"} ${color.base} ${color.hover} ${props.classNames}`}
+      type="button"
+      className={`${color} ${props.stretch ? "pixel-btn--wide" : ""} ${props.center === true ? "justify-center" : ""} ${props.classNames ?? ""}`}
       onClick={!props.isDisabled ? props.onClick : undefined}
+      disabled={props.isDisabled}
     >
-      {props.iconLeft && (
-        <div className="mr-2">
-          {getIcon(props.iconLeft)}
-        </div>
-      )}
+      {props.iconLeft && <span className="shrink-0">{getIcon(props.iconLeft)}</span>}
 
-      <div className="flex flex-col">
-        <div className="font-bold">
-          {props.title}
-        </div>
-        <div className="font-light">
-          {props.subTitle}
-        </div>
-      </div>
+      <span className="flex flex-col items-start">
+        <span>{props.title}</span>
+        {props.subTitle && <span className="mt-0.5 text-[0.48rem] opacity-70">{props.subTitle}</span>}
+      </span>
 
-      {props.iconRight && (
-        <div className="ml-2">
-          {getIcon(props.iconRight)}
-        </div>
-      )}
+      {props.iconRight && <span className="shrink-0">{getIcon(props.iconRight)}</span>}
     </button>
   );
 }
-
