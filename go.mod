@@ -9,7 +9,7 @@ require (
 	github.com/pion/ice/v4 v4.4.7
 	github.com/pion/interceptor v0.1.49
 	github.com/pion/rtcp v1.2.20
-	github.com/pion/rtp v1.10.5
+	github.com/pion/rtp v1.10.6
 	github.com/pion/webrtc/v4 v4.2.24
 	github.com/stretchr/testify v1.12.1
 )
