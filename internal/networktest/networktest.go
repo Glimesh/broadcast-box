@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -129,7 +129,7 @@ func run(whipHandler func(res http.ResponseWriter, req *http.Request)) error {
 			}
 
 			if httpAddress != "" && httpAddress == ip.String() {
-				slog.Info("Found match for HTTP_ADDRESS", "ip", ip)
+				log.Println("Found match for HTTP_ADDRESS", ip)
 				filteredAttributes = append(filteredAttributes, a)
 				break
 			}
@@ -149,10 +149,10 @@ func run(whipHandler func(res http.ResponseWriter, req *http.Request)) error {
 	if candidateExists {
 		candidate, err := ice.UnmarshalCandidate(candidateString)
 		if err != nil {
-			slog.Error("Error unmarshalling candidate", "err", err)
+			log.Println("Error unmarshalling candidate")
 		}
 
-		slog.Info("Using test address", "address", candidate.Address())
+		log.Println("Using test address:", candidate.Address())
 	}
 
 	answer, err := answerParsed.Marshal()

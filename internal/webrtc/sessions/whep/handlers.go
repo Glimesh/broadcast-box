@@ -1,20 +1,26 @@
 package whep
 
 import (
-	"log/slog"
+	"log"
 
+	"github.com/glimesh/broadcast-box/internal/webrtc/chatdc"
 	"github.com/pion/webrtc/v4"
 )
 
 func (w *WHEPSession) RegisterWHEPHandlers(peerConnection *webrtc.PeerConnection) {
-	slog.Info("WHEPSession.RegisterHandlers")
+	log.Println("WHEPSession.RegisterHandlers")
 
 	peerConnection.OnICEConnectionStateChange(onWHEPICEConnectionStateChangeHandler(w))
+
+	peerConnection.OnDataChannel(func(dataChannel *webrtc.DataChannel) {
+		handler := chatdc.NewHandler(w.ChatManager)
+		handler.Bind(w.StreamKey, w.SessionID, dataChannel)
+	})
 }
 
 func onWHEPICEConnectionStateChangeHandler(w *WHEPSession) func(webrtc.ICEConnectionState) {
 	return func(state webrtc.ICEConnectionState) {
-		slog.Info("WHEPSession.OnICEConnectionStateChange", "state", state)
+		log.Println("WHEPSession.OnICEConnectionStateChange:", state)
 		switch state {
 		case
 			webrtc.ICEConnectionStateConnected:
@@ -24,7 +30,7 @@ func onWHEPICEConnectionStateChangeHandler(w *WHEPSession) func(webrtc.ICEConnec
 			webrtc.ICEConnectionStateClosed:
 			w.Close()
 		default:
-			slog.Info("WHEPSession.OnICEConnectionStateChange.Default", "state", state)
+			log.Println("WHEPSession.OnICEConnectionStateChange.Default", state)
 		}
 	}
 }

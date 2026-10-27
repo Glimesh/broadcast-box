@@ -2,11 +2,13 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App'
-import { BrowserRouter } from "react-router";
+import { BrowserRouter } from "react-router-dom";
 import { CinemaModeProvider } from './providers/CinemaModeProvider';
 import { StatusProvider } from "./providers/StatusProvider";
 import { HeaderProvider } from './providers/HeaderProvider';
 import { LocaleProvider } from './providers/LocaleProvider';
+import { AccountProvider } from './providers/AccountProvider';
+import { ThemeProvider } from './providers/ThemeProvider';
 
 const rootElement = document.getElementById('root')
 if (rootElement === null) {
@@ -19,15 +21,19 @@ const path = import.meta.env.PUBLIC_URL;
 root.render(
 	<React.StrictMode>
 		<BrowserRouter basename={path}>
-			<LocaleProvider>
-				<StatusProvider>
-					<CinemaModeProvider>
-						<HeaderProvider>
-							<App />
-						</HeaderProvider>
-					</CinemaModeProvider>
-				</StatusProvider>
-			</LocaleProvider>
+			<ThemeProvider>
+				<LocaleProvider>
+					<StatusProvider>
+						<AccountProvider>
+							<CinemaModeProvider>
+								<HeaderProvider>
+									<App />
+								</HeaderProvider>
+							</CinemaModeProvider>
+						</AccountProvider>
+					</StatusProvider>
+				</LocaleProvider>
+			</ThemeProvider>
 		</BrowserRouter>
 	</React.StrictMode>
 )

@@ -2,13 +2,15 @@ package handlers
 
 import (
 	"errors"
-	"log/slog"
+	"log"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 
+	accountStore "github.com/glimesh/broadcast-box/internal/accounts"
 	"github.com/glimesh/broadcast-box/internal/environment"
+	accountHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/accounts"
 	adminHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/admin"
 	whipHandlers "github.com/glimesh/broadcast-box/internal/server/handlers/whip"
 )
@@ -37,26 +39,51 @@ func GetServeMuxHandler() http.HandlerFunc {
 	serverMux.HandleFunc("/api/log", corsHandler(logHandler))
 	serverMux.HandleFunc("/api/status", corsHandler(statusHandler))
 
+	// Custom emotes
+	serverMux.HandleFunc("/api/emotes", corsHandler(EmotesHandler))
+	serverMux.HandleFunc("/api/chat/delete", corsHandler(ChatDeleteHandler))
+	serverMux.HandleFunc("/api/guestbook", corsHandler(GuestbookHandler))
+	serverMux.HandleFunc("/api/music", corsHandler(MusicHandler))
+	serverMux.Handle("/emotes/", http.StripPrefix("/emotes/", http.FileServer(http.Dir(adminHandlers.EmotesPath()))))
+
+	// User accounts
+	serverMux.HandleFunc("/api/account/register", corsHandler(accountHandlers.RegisterHandler))
+	serverMux.HandleFunc("/api/account/login", corsHandler(accountHandlers.LoginHandler))
+	serverMux.HandleFunc("/api/account/logout", corsHandler(accountHandlers.LogoutHandler))
+	serverMux.HandleFunc("/api/account/avatar", corsHandler(accountHandlers.AvatarHandler))
+	serverMux.HandleFunc("/api/account/update", corsHandler(accountHandlers.UpdateHandler))
+	serverMux.HandleFunc("/api/account/regenerate-token", corsHandler(accountHandlers.RegenerateTokenHandler))
+	serverMux.HandleFunc("/api/account/emotes", corsHandler(accountHandlers.UserEmotesHandler))
+	serverMux.HandleFunc("/api/account", corsHandler(accountHandlers.MeHandler))
+	serverMux.HandleFunc("/api/accounts/", corsHandler(accountHandlers.PublicProfileHandler))
+	serverMux.Handle("/avatars/", http.StripPrefix("/avatars/", http.FileServer(http.Dir(accountStore.AvatarsPath()))))
+
 	// Admin endpoints
 	serverMux.HandleFunc("/api/admin/login", corsHandler(adminHandlers.LoginHandler))
 	serverMux.HandleFunc("/api/admin/status", corsHandler(adminHandlers.StatusHandler))
 	serverMux.HandleFunc("/api/admin/logging", corsHandler(adminHandlers.LoggingHandler))
 	serverMux.HandleFunc("/api/admin/profiles", corsHandler(adminHandlers.ProfilesHandler))
 	serverMux.HandleFunc("/api/admin/profiles/reset-token", corsHandler(adminHandlers.ProfilesResetTokenHandler))
+	serverMux.HandleFunc("/api/admin/accounts", corsHandler(adminHandlers.AccountsHandler))
+	serverMux.HandleFunc("/api/admin/accounts/delete", corsHandler(adminHandlers.AccountsDeleteHandler))
+	serverMux.HandleFunc("/api/admin/accounts/permission", corsHandler(adminHandlers.AccountPermissionHandler))
+	serverMux.HandleFunc("/api/admin/registration", corsHandler(adminHandlers.RegistrationHandler))
 	serverMux.HandleFunc("/api/admin/profiles/add-profile", corsHandler(adminHandlers.ProfileAddHandler))
 	serverMux.HandleFunc("/api/admin/profiles/remove-profile", corsHandler(adminHandlers.ProfileRemoveHandler))
+	serverMux.HandleFunc("/api/admin/emotes", corsHandler(adminHandlers.EmotesHandler))
+	serverMux.HandleFunc("/api/admin/music", corsHandler(adminHandlers.MusicHandler))
 
 	// Path middleware
 	debugOutputWebRequests := os.Getenv(environment.DebugIncomingAPIRequest)
 	handler := http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		if strings.EqualFold(debugOutputWebRequests, "TRUE") {
-			slog.Info("Calling path", "path", request.URL.Path)
+			log.Println("Calling path", request.URL.Path)
 			_, pattern := serverMux.Handler(request)
 
 			if pattern == "" {
-				slog.Info("Unmatched path", "path", request.URL.Path)
+				log.Println("Unmatched path:", request.URL.Path)
 			} else {
-				slog.Info("Found pattern", "pattern", pattern)
+				log.Println("Found pattern", pattern)
 			}
 		}
 

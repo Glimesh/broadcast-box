@@ -2,7 +2,7 @@ package admin
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -16,12 +16,17 @@ type sessionResponse struct {
 	ErrorMessage string `json:"errorMessage"`
 }
 
+// VerifyAdminSession exposes a simple boolean check for admin-authenticated handlers.
+func VerifyAdminSession(request *http.Request) bool {
+	return verifyAdminSession(request).IsValid
+}
+
 // Verify that a bearer token is provided for an admin session
 // A response will be written to the response writter if the session is valid
 func verifyAdminSession(request *http.Request) *sessionResponse {
 	token := helpers.ResolveBearerToken(request.Header.Get("Authorization"))
 	if token == "" {
-		slog.Info("Authorization was not set")
+		log.Println("Authorization was not set")
 
 		return &sessionResponse{
 			IsValid:      false,
@@ -55,7 +60,7 @@ func verifyValidMethod(expectedMethod string, responseWriter http.ResponseWriter
 		})
 
 		if err != nil {
-			slog.Error("Admin.Helpers Error", "err", err)
+			log.Println("Admin.Helpers Error:", err)
 			return false
 		}
 

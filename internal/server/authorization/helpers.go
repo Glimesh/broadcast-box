@@ -2,7 +2,7 @@ package authorization
 
 import (
 	"fmt"
-	"log/slog"
+	"log"
 	"os"
 	"strings"
 
@@ -15,7 +15,7 @@ func assureProfilePath() {
 
 	err := os.MkdirAll(profilePath, os.ModePerm)
 	if err != nil {
-		slog.Error("Authorization: Error creating profile path folder folder", "err", err)
+		log.Println("Authorization: Error creating profile path folder folder:", err)
 		return
 	}
 }
@@ -25,12 +25,13 @@ func hasExistingStreamKey(streamKey string) bool {
 	files, err := os.ReadDir(profilePath)
 
 	if err != nil {
-		slog.Error("Authorization: Error reading profile directory", "err", err)
+		log.Println("Authorization: Error reading profile directory", err)
 		return false
 	}
 
+	filePrefix := streamKey + "_"
 	for _, file := range files {
-		if !file.IsDir() && streamKeyFromFileName(file.Name()) == streamKey {
+		if !file.IsDir() && strings.HasPrefix(file.Name(), filePrefix) {
 			return true
 		}
 	}
@@ -43,7 +44,7 @@ func hasExistingBearerToken(bearerToken string) bool {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		slog.Error("Authorization: Error reading profile directory", "err", err)
+		log.Println("Authorization: Error reading profile directory", err)
 		return false
 	}
 
@@ -61,12 +62,14 @@ func getProfileFileNameByStreamKey(streamKey string) (string, error) {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		slog.Error("Authorization: Error reading profile directory", "err", err)
+		log.Println("Authorization: Error reading profile directory", err)
 		return "", err
 	}
 
 	for _, file := range files {
-		if !file.IsDir() && strings.EqualFold(streamKey, streamKeyFromFileName(file.Name())) {
+		fileToken := strings.Split(file.Name(), "_")
+
+		if !file.IsDir() && strings.EqualFold(streamKey, fileToken[0]) {
 			return file.Name(), nil
 		}
 	}
@@ -79,7 +82,7 @@ func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
 
 	files, err := os.ReadDir(profilePath)
 	if err != nil {
-		slog.Error("Authorization: Error reading profile directory", "err", err)
+		log.Println("Authorization: Error reading profile directory", err)
 		return "", err
 	}
 
@@ -94,17 +97,6 @@ func getProfileFileNameByBearerToken(bearerToken string) (string, error) {
 	}
 
 	return "", fmt.Errorf("could not find profile file")
-}
-
-// Profile files are named <streamKey>_<token>. The token never contains an
-// underscore, but the stream key may, so split on the last one.
-func streamKeyFromFileName(fileName string) string {
-	splitIndex := strings.LastIndex(fileName, "_")
-	if splitIndex == -1 {
-		return fileName
-	}
-
-	return fileName[:splitIndex]
 }
 
 func generateToken() string {

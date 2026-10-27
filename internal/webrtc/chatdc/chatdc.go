@@ -2,7 +2,7 @@ package chatdc
 
 import (
 	"encoding/json"
-	"log/slog"
+	"log"
 	"strings"
 	"sync"
 
@@ -21,11 +21,13 @@ func NewHandler(cm *chat.Manager) *Handler {
 const DataChannelLabel = "bb-chat-v1"
 
 const (
-	inboundTypeSend = "chat.send"
+	inboundTypeSend    = "chat.send"
+	inboundTypeDelete  = "chat.delete"
 
 	outboundTypeConnected = "chat.connected"
 	outboundTypeHistory   = "chat.history"
 	outboundTypeMessage   = "chat.message"
+	outboundTypeDelete    = "chat.delete"
 	outboundTypeAck       = "chat.ack"
 	outboundTypeError     = "chat.error"
 )
@@ -35,15 +37,17 @@ type inboundMessage struct {
 	ClientMessage string `json:"clientMsgId,omitempty"`
 	Text          string `json:"text,omitempty"`
 	DisplayName   string `json:"displayName,omitempty"`
+	MessageID     string `json:"messageId,omitempty"`
 }
 
 type outboundMessage struct {
-	Type          string       `json:"type"`
-	ClientMessage string       `json:"clientMsgId,omitempty"`
-	Error         string       `json:"error,omitempty"`
-	EventID       uint64       `json:"eventId,omitempty"`
-	Message       chat.Message `json:"message,omitzero"`
-	Events        []chat.Event `json:"events,omitempty"`
+	Type              string       `json:"type"`
+	ClientMessage     string       `json:"clientMsgId,omitempty"`
+	Error             string       `json:"error,omitempty"`
+	EventID           uint64       `json:"eventId,omitempty"`
+	Message           chat.Message `json:"message,omitempty"`
+	Events            []chat.Event `json:"events,omitempty"`
+	DeletedMessageID  string       `json:"deletedMessageId,omitempty"`
 }
 
 func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.DataChannel) {
@@ -52,7 +56,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	}
 
 	if h.manager == nil {
-		slog.Info("ChatDC.Bind: chat manager not configured")
+		log.Println("ChatDC.Bind: chat manager not configured")
 		return
 	}
 
@@ -72,7 +76,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	send := func(payload outboundMessage) bool {
 		data, err := json.Marshal(payload)
 		if err != nil {
-			slog.Error("ChatDC.Bind: marshal error", "err", err)
+			log.Println("ChatDC.Bind: marshal error", err)
 			return false
 		}
 
@@ -80,7 +84,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 		defer writeLock.Unlock()
 
 		if err := dataChannel.SendText(string(data)); err != nil {
-			slog.Error("ChatDC.Bind: send error", "err", err)
+			log.Println("ChatDC.Bind: send error", err)
 			return false
 		}
 
@@ -88,7 +92,7 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 	}
 
 	dataChannel.OnOpen(func() {
-		slog.Info("ChatDC.Bind: open", "streamKey", streamKey, "peerID", peerID)
+		log.Println("ChatDC.Bind: open", streamKey, peerID)
 
 		ch, unsubscribe, history, err := h.manager.SubscribeStream(streamKey, 0)
 		if err != nil {
@@ -116,6 +120,11 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 				switch event.Type {
 				case chat.EventTypeMessage:
 					if !send(outboundMessage{Type: outboundTypeMessage, EventID: event.ID, Message: event.Message}) {
+						runCloseSubscription()
+						return
+					}
+				case chat.EventTypeDelete:
+					if !send(outboundMessage{Type: outboundTypeDelete, EventID: event.ID, DeletedMessageID: event.DeletedMessageID}) {
 						runCloseSubscription()
 						return
 					}
@@ -152,18 +161,33 @@ func (h *Handler) Bind(streamKey string, peerID string, dataChannel *webrtc.Data
 			}
 
 			_ = send(outboundMessage{Type: outboundTypeAck, ClientMessage: inbound.ClientMessage})
+
+		case inboundTypeDelete:
+			messageID := strings.TrimSpace(inbound.MessageID)
+			displayName := strings.TrimSpace(inbound.DisplayName)
+			if messageID == "" || len(displayName) < 1 || len(displayName) > 80 {
+				_ = send(outboundMessage{Type: outboundTypeError, Error: "invalid delete request", ClientMessage: inbound.ClientMessage})
+				return
+			}
+
+			if err := h.manager.DeleteMessage(streamKey, messageID, displayName); err != nil {
+				_ = send(outboundMessage{Type: outboundTypeError, Error: err.Error(), ClientMessage: inbound.ClientMessage})
+				return
+			}
+
+			_ = send(outboundMessage{Type: outboundTypeAck, ClientMessage: inbound.ClientMessage})
 		default:
 			_ = send(outboundMessage{Type: outboundTypeError, Error: "unsupported message type"})
 		}
 	})
 
 	dataChannel.OnClose(func() {
-		slog.Info("ChatDC.Bind: closed", "streamKey", streamKey, "peerID", peerID)
+		log.Println("ChatDC.Bind: closed", streamKey, peerID)
 		runCloseSubscription()
 	})
 
 	dataChannel.OnError(func(err error) {
-		slog.Error("ChatDC.Bind: error", "streamKey", streamKey, "peerID", peerID, "err", err)
+		log.Println("ChatDC.Bind: error", streamKey, peerID, err)
 		runCloseSubscription()
 	})
 }

@@ -31,7 +31,4 @@ type Session struct {
 	WHEPSessions     map[string]*whep.WHEPSession
 
 	ChatManager *chat.Manager
-
-	dataChannelPeersLock sync.RWMutex
-	dataChannelPeers     map[string]*dataChannelPeer
 }

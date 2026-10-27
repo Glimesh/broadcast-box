@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router'
-import { useNavigate } from 'react-router'
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import PlayerHeader from '../playerHeader/PlayerHeader';
 import { parseLinkHeader } from '@web3-storage/parse-link-header';
 import Button from '../shared/Button';
@@ -8,6 +8,7 @@ import { ErrorMessageEnum, getMediaErrorMessage } from './errorMessage';
 import ProfileSettings from './ProfileSettings';
 import Player from '../player/Player';
 import { LocaleContext } from '../../providers/LocaleProvider';
+import { AccountContext } from '../../providers/AccountProvider';
 import toBase64Utf8 from '../../utilities/base64';
 
 const mediaOptions = {
@@ -23,8 +24,10 @@ type MediaSource = "Screen" | "Webcam"
 function BrowserBroadcaster() {
 	const location = useLocation()
 	const { locale } = useContext(LocaleContext)
+	const { account } = useContext(AccountContext)
 	const navigate = useNavigate();
 	const streamKey = decodeURIComponent(location.pathname.split('/').pop() ?? "")
+	const publishToken = account?.streamKey === streamKey && account.streamToken ? account.streamToken : streamKey
 	const [mediaAccessError, setMediaAccessError] = useState<ErrorMessageEnum | null>(null)
 	const [publishSuccess, setPublishSuccess] = useState(false)
 	const [useDisplayMedia, setUseDisplayMedia] = useState<MediaSource | "None">("None");
@@ -189,7 +192,7 @@ function BrowserBroadcaster() {
 						method: 'POST',
 						body: offer.sdp,
 						headers: {
-							Authorization: `Bearer ${toBase64Utf8(streamKey)}`,
+							Authorization: `Bearer ${toBase64Utf8(publishToken)}`,
 							'Content-Type': 'application/sdp'
 						}
 					}).then(r => {
@@ -229,7 +232,7 @@ function BrowserBroadcaster() {
 		return () => {
 			cancelled = true
 		}
-		}, [getSenderByKind, mediaRequestCount, stopLocalMediaStream, streamKey, useDisplayMedia])
+		}, [getSenderByKind, mediaRequestCount, publishToken, stopLocalMediaStream, useDisplayMedia])
 
 	useEffect(() => {
 		hasSignalRef.current = hasSignal;
@@ -271,12 +274,20 @@ function BrowserBroadcaster() {
 	}, [hasSignal]);
 
 	return (
-		<div className='flex flex-col container mx-auto gap-2'>
+		<div className='page-container flex flex-col gap-4 animate-slide-up'>
+			<div className="section-head mt-0">
+				<div className="section-head__left">
+					<span className="section-kicker">browser broadcast</span>
+					<h2>go live ♡</h2>
+				</div>
+				<div className="section-head__right">whip / webrtc</div>
+			</div>
+
 			{mediaAccessError != null && <PlayerHeader headerType={"Error"}>{getMediaErrorMessage(locale, mediaAccessError)}</PlayerHeader>}
 			{peerConnectionDisconnected && <PlayerHeader headerType={"Error"}>{locale.player_header.connection_disconnected}</PlayerHeader>}
 			{connectFailed && <PlayerHeader headerType={"Error"}>{locale.player_header.connection_failed}</PlayerHeader>}
 			{hasPacketLoss && <PlayerHeader headerType={"Warning"}>{locale.player_header.connection_has_packetloss}</PlayerHeader>}
-			{publishSuccess && <PlayerHeader headerType={"Success"}>{locale.player_header.connection_established} <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="hover:underline">{window.location.href.replace('publish/', '')}</a></PlayerHeader>}
+			{publishSuccess && <PlayerHeader headerType={"Success"}>{locale.player_header.connection_established} <a href={window.location.href.replace('publish/', '')} target="_blank" rel="noreferrer" className="pixel-link">{window.location.href.replace('publish/', '')}</a></PlayerHeader>}
 
 			{/* Browser video feed */}
 			{profileStateIsActive ? (
@@ -284,26 +295,30 @@ function BrowserBroadcaster() {
 					streamKey={profileStreamKey}
 					cinemaMode={false} />
 			) : (
-				<video
-					ref={videoRef}
-					autoPlay
-					muted
-					controls
-					playsInline
-					className='w-full h-full aspect-video'
-				/>
+				<div className="broadcast-stage">
+					<video
+						ref={videoRef}
+						autoPlay
+						muted
+						controls
+						playsInline
+						className='w-full'
+					/>
+				</div>
 			)}
 
-			{/* Profile settings */}
-			<ProfileSettings stateHasChanged={(isActive, streamKey) => {
-				setProfileStateIsActive(() => isActive)
-				setProfileStreamKey(() => streamKey)
-			}
-			} />
+			{/* Profile settings are only available to the account that owns this stream key */}
+			{account?.streamKey === streamKey && (
+				<ProfileSettings stateHasChanged={(isActive, streamKey) => {
+					setProfileStateIsActive(() => isActive)
+					setProfileStreamKey(() => streamKey)
+				}
+				} />
+			)}
 
 			{/* Buttons */}
 			{!profileStateIsActive && (
-				<div className="flex flex-row gap-2">
+				<div className="broadcast-actions">
 					<Button
 						color='Accept'
 						title={locale.player_header.publish_screen}
@@ -319,6 +334,7 @@ function BrowserBroadcaster() {
 			{/* Conclude browser stream */}
 			{publishSuccess && (
 				<Button
+					color="Deny"
 					title={locale.player_header.button_end_stream}
 					onClick={endStream}
 				/>

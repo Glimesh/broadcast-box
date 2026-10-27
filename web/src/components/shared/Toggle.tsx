@@ -8,43 +8,39 @@ interface Props {
   onClickRight?: () => void;
 
   label?: string;
-  selected?: "Left" | "Right"
-  color?: "Accept" | "Deny"
-  iconLeft?: IconType
-  iconRight?: IconType
+  selected?: "Left" | "Right";
+  color?: "Accept" | "Deny";
+  iconLeft?: IconType;
+  iconRight?: IconType;
   classNames?: string;
 }
 
 export default function Toggle(props: Props) {
   return (
-    <div>
-      {/* Label */}
-      {props.label && (
-        <label className='block text-sm font-bold mb-2'>
-          {props.label}
-        </label>
-      )}
+    <div className={props.classNames}>
+      {props.label && <label className="pixel-label">{props.label}</label>}
 
-      {/* Toggle */}
-      <div className="flex rounded-md shadow-xs justify-center" role="group">
+      <div className="toggle-group" role="group">
         <button
           type="button"
+          disabled={props.isDisabled}
           onClick={() => props.onClickLeft?.()}
-          className={`${props.selected === "Left" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-s-lg hover:bg-blue-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white gap-1`}>
-
-          {props.iconLeft && getIcon(props.iconLeft)}
+          className={`toggle-option ${props.selected === "Left" ? "is-active" : ""}`}
+        >
+          {props.iconLeft && <span className="shrink-0">{getIcon(props.iconLeft)}</span>}
           {props.titleLeft}
         </button>
 
         <button
           type="button"
+          disabled={props.isDisabled}
           onClick={() => props.onClickRight?.()}
-          className={`${props.selected === "Right" ? "bg-blue-700" : ""} flex items-center px-4 py-2 text-sm font-medium border border-gray-200 rounded-e-lg hover:bg-blue-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-blue-700 dark:focus:ring-blue-500 dark:focus:text-white gap-1`}>
-
-          {props.iconRight && getIcon(props.iconRight)}
+          className={`toggle-option ${props.selected === "Right" ? "is-active" : ""}`}
+        >
+          {props.iconRight && <span className="shrink-0">{getIcon(props.iconRight)}</span>}
           {props.titleRight}
         </button>
-
       </div>
-    </div>)
+    </div>
+  );
 }

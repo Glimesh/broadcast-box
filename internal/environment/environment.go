@@ -2,7 +2,7 @@ package environment
 
 import (
 	"errors"
-	"log/slog"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -20,26 +20,22 @@ var errNoBuildDirectory = errors.New("build directory does not exist, run `npm i
 func LoadEnvironmentVariables() {
 	if err := loadConfigs(); err != nil {
 		if errors.Is(err, errNoBuildDirectory) {
-			slog.Error("Environment", "err", err)
-			os.Exit(1)
+			log.Fatal("Environment:", err)
 		}
 
-		slog.Info("Environment: Failed to find config in CWD, changing CWD to executable path")
+		log.Println("Environment: Failed to find config in CWD, changing CWD to executable path")
 
 		executablePath, executableErr := os.Executable()
 		if executableErr != nil {
-			slog.Error("Environment:", "err", executableErr)
-			os.Exit(1)
+			log.Fatal("Environment:", executableErr)
 		}
 
 		if chdirErr := os.Chdir(filepath.Dir(executablePath)); chdirErr != nil {
-			slog.Error("Environment:", "err", chdirErr)
-			os.Exit(1)
+			log.Fatal("Environment:", chdirErr)
 		}
 
 		if retryErr := loadConfigs(); retryErr != nil {
-			slog.Error("Environment:", "err", retryErr)
-			os.Exit(1)
+			log.Fatal("Environment:", retryErr)
 		}
 	}
 
@@ -68,13 +64,13 @@ func loadConfigs() error {
 
 func loadOptionalEnvironmentFile(fileName string) error {
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
-		slog.Info("Environment file not found, continuing with system environment", "fileName", fileName)
+		log.Printf("Environment: `%s` not found, continuing with system environment", fileName)
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	slog.Info("Environment: Loading `" + fileName + "`")
+	log.Println("Environment: Loading `" + fileName + "`")
 	if err := godotenv.Load(fileName); err != nil {
 		return err
 	}
@@ -93,11 +89,10 @@ func GetFrontendPath() string {
 
 func setDefaultEnvironmentVariables() {
 	if os.Getenv(StreamProfilePath) == "" {
-		slog.Info("Environment: Setting STREAM_PROFILE_PATH: profiles")
+		log.Println("Environment: Setting STREAM_PROFILE_PATH: profiles")
 		err := os.Setenv(StreamProfilePath, "profiles")
 		if err != nil {
-			slog.Error("Error setting default value for STREAM_PROFILE_PATH")
-			os.Exit(1)
+			log.Panic("Error setting default value for STREAM_PROFILE_PATH")
 		}
 	}
 }

@@ -2,17 +2,43 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<title>Broadcast Box</title>
+		<title>kohi-box ♡ a cozy corner of the web</title>
 		<meta
 			name="description"
-			content="Broadcast Box is a tool that allows you to efficiently stream high-quality video in real time, using the latest in video codecs and WebRTC technology."
+			content="kohi-box is a cozy self-hosted WebRTC streaming site. watch live channels, open your own, and say hi in chat."
 		/>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#dff8ff" />
+		<meta name="color-scheme" content="light dark" />
+		<script>
+			(function () {
+				try {
+					var preference = localStorage.getItem("bb_theme") || "light";
+					var dark = preference === "dark" || (preference === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+					document.documentElement.dataset.theme = dark ? "dark" : "light";
+					document.documentElement.style.colorScheme = dark ? "dark" : "light";
+					var themeColor = document.querySelector('meta[name="theme-color"]');
+					if (themeColor) themeColor.setAttribute("content", dark ? "#0b1428" : "#dff8ff");
+				} catch (error) {
+					document.documentElement.dataset.theme = "light";
+				}
+			})();
+		</script>
+		<link
+			rel="icon"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23dff8ff'/%3E%3Cpath d='M32 51s-18-11.2-18-23a10 10 0 0 1 18-5.8A10 10 0 0 1 50 28c0 11.8-18 23-18 23z' fill='%23ff8cc6' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E"
+		/>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Gaegu:wght@400;700&family=Nunito:wght@400;600;700;800&family=Silkscreen:wght@400;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
+			rel="stylesheet"
+		/>
 	</head>
 
-	<body class="bg-slate-900 text-gray-100">
+	<body>
 		<noscript>You need to enable JavaScript to run this app.</noscript>
 		<div id="root"></div>
-		<script type="module" src="/src/index.jsx"></script>
+		<script type="module" src="/src/index.tsx"></script>
 	</body>
 </html>

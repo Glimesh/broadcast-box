@@ -115,10 +115,10 @@ const ProfilesPage = () => {
 
 
   return (
-    <div className="p-6 w-full h-full max-w-6xl mx-auto flex flex-col justify-between">
-      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_profiles.title}</h1>
+    <div className="flex w-full flex-col gap-4">
+      <h1 className="panel-heading text-base">{locale.admin_page_profiles.title}</h1>
 
-      <div className="overflow-x-auto h-full">
+      <div className="admin-table-wrap h-full">
         <ModalTextInput
           title={locale.admin_page_profiles.add_profile_modal_title}
           message={locale.admin_page_profiles.add_profile_modal_message}
@@ -140,30 +140,30 @@ const ProfilesPage = () => {
           onDeny={() => setIsRemoveProfileModalOpen("")}
         />
 
-        <table className="min-w-full rounded-lg">
-          <thead className=" text-white">
+        <table className="data-table">
+          <thead>
             <tr>
-              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_stream_key}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_is_public}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_motd}</th>
-              <th className="px-4 py-2 text-left">{locale.admin_page_profiles.table_header_token}</th>
-              <th className="px-4 py-2 text-left"></th>
+              <th>{locale.admin_page_profiles.table_header_stream_key}</th>
+              <th>{locale.admin_page_profiles.table_header_is_public}</th>
+              <th>{locale.admin_page_profiles.table_header_motd}</th>
+              <th>{locale.admin_page_profiles.table_header_token}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {response?.map((profile, index) => {
               return (
                 <tr key={index} className="border-t">
-                  <td className="px-4 py-2 font-medium ">
+                  <td>
                     {profile.streamKey}
                   </td>
-                  <td className="px-4 py-2 font-medium ">
+                  <td>
                     {profile.isPublic
                       ? locale.admin_page_profiles.yes
                       : locale.admin_page_profiles.no}
                   </td>
-                  <td className="px-4 py-2">{profile.motd}</td>
-                  <td className="px-4 py-2 flex flex-row justify-between items-center">
+                  <td>{profile.motd}</td>
+                  <td className="flex flex-row items-center justify-between gap-2">
                     <div
                       title="Copy to clipboard"
                       className="flex flex-row gap-1 cursor-pointer"
@@ -177,9 +177,9 @@ const ProfilesPage = () => {
                       onClick={() => resetProfileToken(profile.streamKey)}
                     />
                   </td>
-                  <td className="px-4 py-2 items-center">
+                  <td>
                     <XMarkIcon
-                      className="ml-2 h-6 text-red-700"
+                      className="admin-delete ml-2 h-6"
                       onClick={() => setIsRemoveProfileModalOpen(() => profile.streamKey)}
                     />
                   </td>

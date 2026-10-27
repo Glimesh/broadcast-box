@@ -3,7 +3,7 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"log/slog"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -40,11 +40,11 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 
 		if debugSseMessages {
-			slog.Info("API.SSE Sending", "msg", msg)
+			log.Println("API.SSE Sending:", msg)
 		}
 
 		if err := responseController.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil && !errors.Is(err, http.ErrNotSupported) {
-			slog.Error("API.SSE SetWriteDeadline error", "err", err)
+			log.Println("API.SSE SetWriteDeadline error:", err)
 			return false
 		}
 
@@ -54,15 +54,15 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		}
 
 		if deadlineErr := responseController.SetWriteDeadline(time.Time{}); deadlineErr != nil && !errors.Is(deadlineErr, http.ErrNotSupported) {
-			slog.Error("API.SSE ClearWriteDeadline error", "err", deadlineErr)
+			log.Println("API.SSE ClearWriteDeadline error:", deadlineErr)
 			return false
 		}
 
 		if err != nil {
 			if errors.Is(err, os.ErrDeadlineExceeded) {
-				slog.Error("API.SSE Write timeout")
+				log.Println("API.SSE Write timeout")
 			} else {
-				slog.Error("API.SSE Write error", "err", err)
+				log.Println("API.SSE Write error:", err)
 			}
 			return false
 		}
@@ -86,7 +86,7 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("API.SSE: Client disconnected")
+				log.Println("API.SSE: Client disconnected")
 				return
 			case <-ticker.C:
 				if whepSession.IsSessionClosed.Load() {
@@ -116,7 +116,7 @@ func sseHandler(responseWriter http.ResponseWriter, request *http.Request) {
 		for {
 			select {
 			case <-ctx.Done():
-				slog.Info("API.SSE: Client disconnected")
+				log.Println("API.SSE: Client disconnected")
 				return
 			case <-ticker.C:
 				if !writeEvent(streamSession.GetSessionStatsEvent()) {

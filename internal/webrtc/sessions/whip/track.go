@@ -1,7 +1,7 @@
 package whip
 
 import (
-	"log/slog"
+	"log"
 	"time"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -11,7 +11,7 @@ import (
 
 // Add a new AudioTrack to the WHIP session
 func (w *WHIPSession) addAudioTrack(rid string, streamKey string, codec codecs.TrackCodeType) (*AudioTrack, error) {
-	slog.Info("WHIPSession.AddAudioTrack", "streamKey", streamKey, "rid", rid)
+	log.Println("WHIPSession.AddAudioTrack:", streamKey, "(", rid, ")")
 	w.TracksLock.Lock()
 	defer w.TracksLock.Unlock()
 
@@ -37,7 +37,7 @@ func (w *WHIPSession) addAudioTrack(rid string, streamKey string, codec codecs.T
 
 // Add a new VideoTrack to the WHIP session
 func (w *WHIPSession) addVideoTrack(rid string, streamKey string, codec codecs.TrackCodeType) (*VideoTrack, error) {
-	slog.Info("WHIPSession.AddVideoTrack", "rid", rid)
+	log.Println("WHIPSession.AddVideoTrack:", "(", rid, ")")
 	w.TracksLock.Lock()
 	defer w.TracksLock.Unlock()
 
@@ -63,7 +63,7 @@ func (w *WHIPSession) addVideoTrack(rid string, streamKey string, codec codecs.T
 
 // Remove Audio and Video tracks coming from the whip session id
 func (w *WHIPSession) RemoveTracks() {
-	slog.Info("WHIPSession.RemoveTracks")
+	log.Println("WHIPSession.RemoveTracks")
 
 	w.TracksLock.Lock()
 	w.AudioTracks = make(map[string]*AudioTrack)

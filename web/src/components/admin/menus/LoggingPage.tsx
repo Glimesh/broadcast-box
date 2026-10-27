@@ -34,10 +34,10 @@ const LoggingPage = () => {
   useEffect(() => getLogs(), [])
 
   return (
-    <div className="flex flex-col p-6 w-full max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">{locale.admin_page_logging.title}</h1>
+    <div className="flex w-full flex-col gap-4">
+      <h1 className="panel-heading text-base">{locale.admin_page_logging.title}</h1>
 
-      <div className="flex whitespace-pre-line overflow-y-scroll max-h-250">
+      <div className="log-view">
         {response}
       </div>
     </div>

@@ -3,102 +3,110 @@ import { LocaleContext } from "../../providers/LocaleProvider";
 import ErrorMessagePanel from "./ErrorMessagePanel";
 
 interface Props<T extends string | number> {
-	title: string;
-	errorTitle?: string;
-	message: string;
-	errorMessage?: string;
-	placeholder?: string;
-	children?: React.ReactNode;
-	isOpen: boolean;
-	onAccept?: (result: T) => void;
-	onDeny?: () => void;
-	onChange?: (result: T) => void;
-	onClose?: () => void;
-	initialValue?: T;
+  title: string;
+  errorTitle?: string;
+  message: string;
+  errorMessage?: string;
+  placeholder?: string;
+  children?: React.ReactNode;
+  isOpen: boolean;
+  onAccept?: (result: T) => void;
+  onDeny?: () => void;
+  onChange?: (result: T) => void;
+  onClose?: () => void;
+  initialValue?: T;
 
-	canCloseOnBackgroundClick?: boolean;
+  canCloseOnBackgroundClick?: boolean;
 }
 
 export default function ModalTextInput<T extends string | number>(
-	props: Props<T>,
+  props: Props<T>,
 ) {
-	const { locale } = useContext(LocaleContext)
-	const { onClose } = props
-	const valueRef = useRef<HTMLInputElement>(null);
+  const { locale } = useContext(LocaleContext);
+  const { onClose } = props;
+  const valueRef = useRef<HTMLInputElement>(null);
 
-	useEffect(() => {
-		if (!props.isOpen) {
-			onClose?.()
-		}
-	}, [onClose, props.isOpen])
+  useEffect(() => {
+    if (!props.isOpen) {
+      onClose?.();
+    }
+  }, [onClose, props.isOpen]);
 
-	if (!props.isOpen) {
-		return <></>;
-	}
+  if (!props.isOpen) {
+    return <></>;
+  }
 
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center">
-			<div
-				className="absolute inset-0 bg-black/50"
-				onClick={() => {
-					if (props.canCloseOnBackgroundClick) {
-						props.onDeny?.();
-						props.onClose?.();
-					}
-				}}
-			/>
-			<div
-				className="relative p-4 rounded-lg shadow-lg w-1/2 max-w-md bg-gray-800"
-				onClick={(e) => e.stopPropagation()}
-			>
-				<h2 className="text-lg font-semibold">{props.title}</h2>
-				<p className="mb-2">{props.message}</p>
+  return (
+    <div className="modal-backdrop animate-fade-in">
+      <div
+        className="absolute inset-0"
+        onClick={() => {
+          if (props.canCloseOnBackgroundClick) {
+            props.onDeny?.();
+            props.onClose?.();
+          }
+        }}
+      />
 
-				{ /*Error message*/}
-				{props.errorMessage != undefined && props.errorMessage !== "" && (
-					<ErrorMessagePanel
-						className="mb-4"
-						title={props.errorTitle ?? "Error"}
-						message={props.errorMessage}
-					/>
-				)}
+      <div
+        className={`window modal-window animate-scale-in ${props.children ? "modal-window--wide" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="window-bar">
+          <span className="window-dots" aria-hidden="true">
+            <span className="window-dot" />
+            <span className="window-dot" />
+            <span className="window-dot" />
+          </span>
+          <span>{props.title}</span>
+          <span className="window-bar__spacer" />
+          <span className="window-bar__code">input ♡</span>
+        </div>
 
-				{/*Input*/}
-				<input
-					className="mb-6 appearance-none border w-full py-2 px-3 leading-tight focus:outline-hidden focus:shadow-outline bg-gray-700 border-gray-700 text-white rounded-sm shadow-md placeholder-gray-200"
-					type="text"
-					ref={valueRef!}
-					placeholder={props.placeholder}
-					onKeyUp={(evt) => evt.key === "Enter" ? props.onAccept?.(valueRef.current?.value as T) : null}
-					autoFocus
-				/>
+        <div className="modal-body">
+          <p className="modal-copy">{props.message}</p>
 
-				{/* Optional children */}
-				{props.children && (<div className="mb-2">
-					{props.children}
-				</div>)}
+          {props.errorMessage !== undefined && props.errorMessage !== "" && (
+            <ErrorMessagePanel
+              className="mb-3"
+              title={props.errorTitle ?? "Error"}
+              message={props.errorMessage}
+            />
+          )}
 
-				{/*Buttons*/}
-				<div className="flex flex-row justify-items-stretch gap-2">
-					{props.onAccept !== null && (
-						<button
-							className="bg-green-700 text-white px-4 py-2 rounded"
-							onClick={() => props.onAccept?.(valueRef.current?.value as T)}
-						>
-							{locale.shared_component_text_input_modal.button_accept}
-						</button>
-					)}
-					<button
-						onClick={() => {
-							props.onDeny?.();
-							props.onClose?.();
-						}}
-						className="bg-blue-900 hover:bg-blue-700 text-white px-4 py-2 rounded"
-					>
-						Close
-					</button>
-				</div>
-			</div>
-		</div>
-	);
+          <input
+            className="pixel-input"
+            type="text"
+            ref={valueRef}
+            defaultValue={props.initialValue}
+            placeholder={props.placeholder}
+            onKeyUp={(evt) => evt.key === "Enter" ? props.onAccept?.(valueRef.current?.value as T) : null}
+            autoFocus
+          />
+
+          {props.children && <div className="mt-3">{props.children}</div>}
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="pixel-btn pixel-btn--lime"
+              onClick={() => props.onAccept?.(valueRef.current?.value as T)}
+            >
+              {locale.shared_component_text_input_modal.button_accept}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                props.onDeny?.();
+                props.onClose?.();
+              }}
+              className="pixel-btn pixel-btn--ghost"
+            >
+              close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -4,8 +4,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/glimesh/broadcast-box/internal/environment"
 )
 
 const (
@@ -14,6 +12,7 @@ const (
 	DefaultCleanupInterval = 1 * time.Hour
 
 	EventTypeMessage = "message"
+	EventTypeDelete  = "delete"
 )
 
 type Message struct {
@@ -24,9 +23,10 @@ type Message struct {
 }
 
 type Event struct {
-	ID      uint64  `json:"-"`
-	Type    string  `json:"type"`
-	Message Message `json:"message"`
+	ID              uint64  `json:"-"`
+	Type            string  `json:"type"`
+	Message         Message `json:"message"`
+	DeletedMessageID string `json:"deletedMessageId,omitempty"`
 }
 
 type Session struct {
@@ -43,6 +43,7 @@ type Store interface {
 	SubscribeStream(streamKey string, lastEventID uint64, now time.Time) (chan Event, func(), []Event, error)
 	Send(sessionID string, text string, displayName string, now time.Time) error
 	SendToStream(streamKey string, text string, displayName string, now time.Time) error
+	DeleteMessage(streamKey string, messageID string, requester string, now time.Time) error
 	Cleanup(now time.Time, ttl time.Duration)
 }
 
@@ -55,21 +56,21 @@ type Manager struct {
 
 func NewManager() *Manager {
 	maxHistory := DefaultMaxHistory
-	if val := os.Getenv(environment.ChatMaxHistory); val != "" {
+	if val := os.Getenv("CHAT_MAX_HISTORY"); val != "" {
 		if i, err := strconv.Atoi(val); err == nil {
 			maxHistory = i
 		}
 	}
 
 	defaultTTL := DefaultTTL
-	if val := os.Getenv(environment.ChatDefaultTTL); val != "" {
+	if val := os.Getenv("CHAT_DEFAULT_TTL"); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			defaultTTL = d
 		}
 	}
 
 	cleanupInterval := DefaultCleanupInterval
-	if val := os.Getenv(environment.ChatCleanupInterval); val != "" {
+	if val := os.Getenv("CHAT_CLEANUP_INTERVAL"); val != "" {
 		if d, err := time.ParseDuration(val); err == nil && d > 0 {
 			cleanupInterval = d
 		}
@@ -117,6 +118,10 @@ func (m *Manager) SubscribeStream(streamKey string, lastEventID uint64) (chan Ev
 
 func (m *Manager) SendToStream(streamKey string, text string, displayName string) error {
 	return m.store.SendToStream(streamKey, text, displayName, time.Now())
+}
+
+func (m *Manager) DeleteMessage(streamKey string, messageID string, requester string) error {
+	return m.store.DeleteMessage(streamKey, messageID, requester, time.Now())
 }
 
 func (m *Manager) cleanupLoop() {
