@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/environment"
 	"github.com/glimesh/broadcast-box/internal/server/handlers"
@@ -35,19 +36,26 @@ func getHTTPAddress() string {
 	return defaultHTTPAddress
 }
 
+func getHTTPRedirectAddress() string {
+	address := os.Getenv(environment.HTTPSRedirectPort)
+	if address == "" {
+		return defaultHTTPRedirectAddress
+	}
+
+	if !strings.HasPrefix(address, ":") {
+		address = ":" + address
+	}
+
+	return address
+}
+
 func setupHTTPRedirect() {
 	if shouldRedirectToHTTPS := os.Getenv(environment.HTTPEnableRedirect); shouldRedirectToHTTPS != "" {
-		httpRedirectPort := defaultHTTPRedirectAddress
-
-		if httpRedirectPortEnvVar := os.Getenv(environment.HTTPSRedirectPort); httpRedirectPortEnvVar != "" {
-			httpRedirectPort = httpRedirectPortEnvVar
-		}
-
 		go func() {
 			slog.Info("Setting up HTTP Redirecting")
 
 			redirectServer := &http.Server{
-				Addr:    httpRedirectPort,
+				Addr:    getHTTPRedirectAddress(),
 				Handler: http.HandlerFunc(handlers.RedirectToHttpsHandler),
 			}
 
