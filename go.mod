@@ -10,14 +10,14 @@ require (
 	github.com/pion/interceptor v0.1.51
 	github.com/pion/rtcp v1.2.20
 	github.com/pion/rtp v1.10.6
-	github.com/pion/webrtc/v4 v4.2.25
+	github.com/pion/webrtc/v4 v4.2.26
 	github.com/stretchr/testify v1.12.1
 )
 
 require (
 	github.com/pion/stun/v4 v4.0.1 // indirect
-	github.com/pion/transport/v5 v5.1.1 // indirect
-	github.com/pion/turn/v5 v5.1.2 // indirect
+	github.com/pion/transport/v5 v5.1.4 // indirect
+	github.com/pion/turn/v5 v5.1.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )
