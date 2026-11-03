@@ -28,10 +28,17 @@ const PlayerPage = () => {
   const [streamStatuses, setStreamStatuses] = useState<Record<string, StreamStatus | undefined>>({});
   const [isDisplayNameModalOpen, setIsDisplayNameModalOpen] = useState<boolean>(false);
   const [chatDisplayName, setChatDisplayName] = useState<string>(() => localStorage.getItem("chatDisplayName") ?? "");
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
 
   useEffect(() => {
     localStorage.setItem("chat-open", String(isChatOpen));
   }, [isChatOpen]);
+
+  useEffect(() => {
+    const updateViewportHeight = () => setViewportHeight(window.innerHeight);
+    window.addEventListener("resize", updateViewportHeight);
+    return () => window.removeEventListener("resize", updateViewportHeight);
+  }, []);
 
   const addStream = (streamKey: string) => {
     if (streamKeys.some((key: string) => key.toLowerCase() === streamKey.toLowerCase())) {
@@ -120,8 +127,16 @@ const PlayerPage = () => {
   const chatSidebarWidth = cinemaMode ? 320 : 336;
   const chatBelowHeight = isChatOpen && !isSingleStreamChatSidebar ? (isSingleStream ? 336 : 388) : 0;
   const playerWidth = Math.max(0, playerGridItemPixelWidth - (isSingleStreamChatSidebar ? chatSidebarWidth : 0));
-  const playerGridCardHeight = Math.ceil(playerWidth * 9 / 16 + 24 + chatBelowHeight);
+  const playerStatusHeight = 24;
+  const nonCinemaHeaderAndPaddingHeight = 56;
+  const playerViewportOffset = cinemaMode ? 0 : nonCinemaHeaderAndPaddingHeight;
+  const availablePlayerHeight = Math.max(0, viewportHeight - playerViewportOffset);
+  const responsivePlayerWidth = Math.min(playerWidth, availablePlayerHeight * 16 / 9);
+  const responsivePlayerHeight = responsivePlayerWidth * 9 / 16;
+  const isPlayerHeightConstrained = playerWidth * 9 / 16 + playerGridRowHeight + playerGridGap > availablePlayerHeight;
+  const playerGridCardHeight = Math.ceil(responsivePlayerHeight + playerStatusHeight + chatBelowHeight);
   const playerGridCardRows = Math.max(1, Math.ceil((playerGridCardHeight + playerGridGap) / (playerGridRowHeight + playerGridGap)));
+  const responsiveContentMaxWidth = responsivePlayerWidth + (isSingleStreamChatSidebar ? chatSidebarWidth : 0);
   const chatPanelVariant = isSingleStreamChatSidebar ? "sidebar" : (isSingleStream ? "compact-below" : "below");
 
   return (
@@ -176,8 +191,15 @@ const PlayerPage = () => {
           >
             {streamKeys.map((streamKey) => {
               return (
-                <div key={`${streamKey}_player_card`} className="min-w-0 flex h-full flex-col gap-1 overflow-hidden">
-                  <div className={isSingleStream ? "relative flex min-h-0 flex-1 flex-col gap-4 w-full" : "flex min-h-0 flex-1 flex-col gap-1"}>
+                <div key={`${streamKey}_player_card`} className="min-w-0 flex h-full flex-col items-center gap-1 overflow-hidden">
+                  <div
+                    className={isSingleStream ? "relative flex min-h-0 flex-1 flex-col gap-4 w-full" : "flex min-h-0 flex-1 flex-col gap-1 w-full"}
+                    style={cinemaMode || isPlayerHeightConstrained ? {
+                      flex: "none",
+                      height: `${responsivePlayerHeight + chatBelowHeight}px`,
+                      maxWidth: `${responsiveContentMaxWidth}px`,
+                    } : undefined}
+                  >
                     <div className={isSingleStream ? `min-w-0 min-h-0 flex-1 transition-[margin] duration-200 ${isSingleStreamChatSidebar ? (cinemaMode ? "mr-80" : "mr-[21rem]") : ""}` : "min-w-0 min-h-0 flex-1"}>
                       <Player
                         key={`${streamKey}_player`}
@@ -208,6 +230,7 @@ const PlayerPage = () => {
                     isOnline={streamStatuses[streamKey]?.isOnline ?? false}
                     motd={streamStatuses[streamKey]?.motd ?? ""}
                     className={isSingleStream ? "px-1" : "px-4"}
+                    style={cinemaMode || isPlayerHeightConstrained ? { maxWidth: `${responsiveContentMaxWidth}px` } : undefined}
                   />
                 </div>
               );
