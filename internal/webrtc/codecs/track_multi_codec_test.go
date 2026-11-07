@@ -37,7 +37,7 @@ func (w *trackWriter) Write(b []byte) (int, error) { return len(b), nil }
 func TestTrackMultiCodecBinding(t *testing.T) {
 	track := CreateTrackMultiCodec("id", "", "stream", webrtc.RTPCodecTypeVideo, VideoTrackCodecH264)
 	packet := &rtp.Packet{}
-	if err := track.WriteRTP(packet, VideoTrackCodecH264); err != nil {
+	if written, err := track.WriteRTP(packet, VideoTrackCodecH264); err != nil || written {
 		t.Fatal(err)
 	}
 
@@ -46,7 +46,7 @@ func TestTrackMultiCodecBinding(t *testing.T) {
 	if _, err := track.Bind(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := track.WriteRTP(packet, VideoTrackCodecH264); err != nil {
+	if written, err := track.WriteRTP(packet, VideoTrackCodecH264); err != nil || !written {
 		t.Fatal(err)
 	}
 	if writer.writes != 1 || writer.header.SSRC != 123 || writer.header.PayloadType != 102 {
@@ -55,7 +55,7 @@ func TestTrackMultiCodecBinding(t *testing.T) {
 	if err := track.Unbind(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := track.WriteRTP(packet, VideoTrackCodecVP8); err != nil {
+	if written, err := track.WriteRTP(packet, VideoTrackCodecVP8); err != nil || written {
 		t.Fatal(err)
 	}
 	if writer.writes != 1 {
@@ -64,7 +64,7 @@ func TestTrackMultiCodecBinding(t *testing.T) {
 	if _, err := track.Bind(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := track.WriteRTP(packet, VideoTrackCodecVP8); err != nil {
+	if written, err := track.WriteRTP(packet, VideoTrackCodecVP8); err != nil || !written {
 		t.Fatal(err)
 	}
 	if writer.writes != 2 || writer.header.PayloadType != 96 {
@@ -87,7 +87,7 @@ func TestTrackMultiCodecConcurrentBinding(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for range 100 {
-			_ = track.WriteRTP(&rtp.Packet{}, VideoTrackCodecH264)
+			_, _ = track.WriteRTP(&rtp.Packet{}, VideoTrackCodecH264)
 			_ = track.Kind()
 		}
 	}()
