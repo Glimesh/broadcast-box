@@ -1,6 +1,7 @@
 package whep
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/glimesh/broadcast-box/internal/webrtc/codecs"
@@ -23,6 +24,7 @@ func (c videoTrackContext) CodecParameters() []webrtc.RTPCodecParameters {
 
 type videoTrackWriter struct {
 	writes  int
+	err     error
 	started chan struct{}
 	release chan struct{}
 }
@@ -33,7 +35,7 @@ func (w *videoTrackWriter) WriteRTP(_ *rtp.Header, payload []byte) (int, error) 
 		<-w.release
 	}
 	w.writes++
-	return len(payload), nil
+	return len(payload), w.err
 }
 func (w *videoTrackWriter) Write(b []byte) (int, error) { return len(b), nil }
 
@@ -65,6 +67,26 @@ func TestLayerSwitchKeepsWaitingForNewKeyframe(t *testing.T) {
 	session.SendVideoPacket(packet)
 	if !session.IsWaitingForKeyframe.Load() || writer.writes != 1 {
 		t.Fatalf("waiting = %v, writes = %d", session.IsWaitingForKeyframe.Load(), writer.writes)
+	}
+}
+
+func TestSendVideoPacketWaitsAfterFailedKeyframe(t *testing.T) {
+	track := codecs.CreateTrackMultiCodec("id", "", "stream", webrtc.RTPCodecTypeVideo, codecs.VideoTrackCodecH264)
+	writer := &videoTrackWriter{err: errors.New("write failed")}
+	if _, err := track.Bind(videoTrackContext{writer: writer}); err != nil {
+		t.Fatal(err)
+	}
+	session := CreateNewWHEP("id", "stream", nil, track, nil, func() {})
+	packet := codecs.TrackPacket{Packet: &rtp.Packet{}, Codec: codecs.VideoTrackCodecH264, IsKeyframe: true}
+	session.SendVideoPacket(packet)
+	if !session.IsWaitingForKeyframe.Load() {
+		t.Fatal("failed keyframe cleared waiting state")
+	}
+
+	writer.err = nil
+	session.SendVideoPacket(packet)
+	if session.IsWaitingForKeyframe.Load() {
+		t.Fatal("successful keyframe did not clear waiting state")
 	}
 }
 

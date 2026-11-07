@@ -177,8 +177,9 @@ func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) (boo
 
 		if t.errorCount%50 == 0 {
 			slog.Error("WHIPSession.TrackMultiCodec.WriteRTP.Error", "errorCount", t.errorCount, "err", err)
-			return true, err
+			return false, err
 		}
+		return false, nil
 	}
 
 	return true, nil
