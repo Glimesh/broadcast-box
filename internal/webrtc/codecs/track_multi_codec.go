@@ -2,6 +2,7 @@ package codecs
 
 import (
 	"log/slog"
+	"sync"
 
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v4"
@@ -17,6 +18,8 @@ type TrackPacket struct {
 }
 
 type TrackMultiCodec struct {
+	mu sync.Mutex
+
 	id         string
 	rid        string
 	streamID   string
@@ -37,10 +40,14 @@ type TrackMultiCodec struct {
 	currentPayloadType uint8
 }
 
-func (t *TrackMultiCodec) ID() string                { return t.id }
-func (t *TrackMultiCodec) RID() string               { return t.rid }
-func (t *TrackMultiCodec) StreamID() string          { return t.streamID }
-func (t *TrackMultiCodec) Kind() webrtc.RTPCodecType { return t.kind }
+func (t *TrackMultiCodec) ID() string       { return t.id }
+func (t *TrackMultiCodec) RID() string      { return t.rid }
+func (t *TrackMultiCodec) StreamID() string { return t.streamID }
+func (t *TrackMultiCodec) Kind() webrtc.RTPCodecType {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.kind
+}
 
 func CreateTrackMultiCodec(id string, rid string, streamID string, kind webrtc.RTPCodecType, codec TrackCodeType) *TrackMultiCodec {
 	return &TrackMultiCodec{
@@ -53,6 +60,9 @@ func CreateTrackMultiCodec(id string, rid string, streamID string, kind webrtc.R
 }
 
 func (t *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecParameters, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	t.ssrc = ctx.SSRC()
 	t.writeStream = ctx.WriteStream()
 
@@ -122,30 +132,42 @@ func (t *TrackMultiCodec) Bind(ctx webrtc.TrackLocalContext) (webrtc.RTPCodecPar
 }
 
 func (t *TrackMultiCodec) Unbind(context webrtc.TrackLocalContext) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	t.writeStream = nil
 	return nil
 }
 
 func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Packets can arrive before binding or after the viewer disconnects.
+	if t.writeStream == nil {
+		return nil
+	}
+
 	packet.SSRC = uint32(t.ssrc)
 
 	if codec != t.codec {
 		slog.Info("WHEPSession.TrackMultiCodec.WriteRTP: Setting Codec", "streamID", t.streamID, "rid", t.RID(), "from", t.codec, "to", codec)
 		t.codec = codec
+	}
 
-		switch t.codec {
-		case VideoTrackCodecH264:
-			t.currentPayloadType = t.payloadTypeH264
-		case VideoTrackCodecH265:
-			t.currentPayloadType = t.payloadTypeH265
-		case VideoTrackCodecVP8:
-			t.currentPayloadType = t.payloadTypeVP8
-		case VideoTrackCodecVP9:
-			t.currentPayloadType = t.payloadTypeVP9
-		case VideoTrackCodecAV1:
-			t.currentPayloadType = t.payloadTypeAV1
-		case audioTrackCodecOpus:
-			t.currentPayloadType = t.payloadTypeOpus
-		}
+	switch t.codec {
+	case VideoTrackCodecH264:
+		t.currentPayloadType = t.payloadTypeH264
+	case VideoTrackCodecH265:
+		t.currentPayloadType = t.payloadTypeH265
+	case VideoTrackCodecVP8:
+		t.currentPayloadType = t.payloadTypeVP8
+	case VideoTrackCodecVP9:
+		t.currentPayloadType = t.payloadTypeVP9
+	case VideoTrackCodecAV1:
+		t.currentPayloadType = t.payloadTypeAV1
+	case audioTrackCodecOpus:
+		t.currentPayloadType = t.payloadTypeOpus
 	}
 
 	packet.PayloadType = t.currentPayloadType
