@@ -79,6 +79,11 @@ const Player = (props: PlayerProps) => {
 	const isPictureInPictureSupported = videoElement !== null
 		&& document.pictureInPictureEnabled
 		&& typeof videoElement.requestPictureInPicture === 'function'
+	const fullscreenElement = videoElement as FullscreenElement | null
+	const isFullscreenSupported = !!(fullscreenElement?.requestFullscreen
+		|| fullscreenElement?.webkitRequestFullscreen
+		|| fullscreenElement?.msRequestFullscreen
+		|| fullscreenElement?.webkitEnterFullscreen)
 
 	const peerConnectionConfig = useMemo<SetupPeerConnectionProps>(() => ({
 		streamKey: streamKey,
@@ -371,10 +376,14 @@ const Player = (props: PlayerProps) => {
 									</span>
 								)}
 
-								{isPictureInPictureSupported && (
-									<Square2StackIcon className="player-drag-cancel cursor-pointer" onClick={() => videoElement.requestPictureInPicture()} />
-								)}
-								<ArrowsPointingOutIcon className="player-drag-cancel cursor-pointer" onClick={handleEnterFullscreen} />
+								<Square2StackIcon
+									className={`player-drag-cancel ${isPictureInPictureSupported ? "cursor-pointer" : "opacity-25"}`}
+									onClick={isPictureInPictureSupported ? () => videoElement.requestPictureInPicture() : undefined}
+								/>
+								<ArrowsPointingOutIcon
+									className={`player-drag-cancel ${isFullscreenSupported ? "cursor-pointer" : "opacity-25"}`}
+									onClick={isFullscreenSupported ? handleEnterFullscreen : undefined}
+								/>
 							</div>
 						</div>)
 					}
