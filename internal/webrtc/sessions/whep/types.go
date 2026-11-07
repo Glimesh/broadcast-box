@@ -23,8 +23,7 @@ type (
 		PeerConnectionLock sync.RWMutex
 		PeerConnection     *webrtc.PeerConnection
 
-		// Protects VideoTrack, VideoTimestamp, VideoPacketsWritten, VideoSequenceNumber,
-		// and auto video layer selection state.
+		// Protects video delivery, keyframe waiting, and video layer selection state.
 		VideoLock               sync.RWMutex
 		VideoTrack              *codecs.TrackMultiCodec
 		VideoTimestamp          uint32

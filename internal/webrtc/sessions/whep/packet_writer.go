@@ -42,14 +42,17 @@ func (w *WHEPSession) SendVideoPacket(packet codecs.TrackPacket) {
 		return
 	}
 
-	if w.IsWaitingForKeyframe.Load() {
-		if !packet.IsKeyframe {
-			w.SendPLI()
-			return
-		}
+	w.VideoLock.Lock()
+	if currentLayer, _ := w.VideoLayerCurrent.Load().(string); currentLayer != packet.Layer {
+		w.VideoLock.Unlock()
+		return
+	}
+	if w.IsWaitingForKeyframe.Load() && !packet.IsKeyframe {
+		w.VideoLock.Unlock()
+		w.SendPLI()
+		return
 	}
 
-	w.VideoLock.Lock()
 	w.VideoBytesWritten += len(packet.Packet.Payload)
 	w.VideoPacketsWritten += 1
 	w.VideoSequenceNumber = uint16(w.VideoSequenceNumber) + uint16(packet.SequenceDiff)
@@ -58,9 +61,9 @@ func (w *WHEPSession) SendVideoPacket(packet codecs.TrackPacket) {
 	videoSequenceNumber := w.VideoSequenceNumber
 	videoTimestamp := w.VideoTimestamp
 	videoTrack := w.VideoTrack
-	w.VideoLock.Unlock()
 
 	if videoTrack == nil {
+		w.VideoLock.Unlock()
 		return
 	}
 
@@ -73,6 +76,7 @@ func (w *WHEPSession) SendVideoPacket(packet codecs.TrackPacket) {
 	} else if packet.IsKeyframe {
 		w.IsWaitingForKeyframe.Store(false)
 	}
+	w.VideoLock.Unlock()
 
 	if err != nil {
 		w.VideoPacketsDropped.Add(1)
