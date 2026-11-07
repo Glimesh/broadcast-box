@@ -139,13 +139,13 @@ func (t *TrackMultiCodec) Unbind(context webrtc.TrackLocalContext) error {
 	return nil
 }
 
-func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) error {
+func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) (bool, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	// Packets can arrive before binding or after the viewer disconnects.
 	if t.writeStream == nil {
-		return nil
+		return false, nil
 	}
 
 	packet.SSRC = uint32(t.ssrc)
@@ -177,9 +177,9 @@ func (t *TrackMultiCodec) WriteRTP(packet *rtp.Packet, codec TrackCodeType) erro
 
 		if t.errorCount%50 == 0 {
 			slog.Error("WHIPSession.TrackMultiCodec.WriteRTP.Error", "errorCount", t.errorCount, "err", err)
-			return err
+			return true, err
 		}
 	}
 
-	return nil
+	return true, nil
 }

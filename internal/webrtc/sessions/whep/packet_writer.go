@@ -26,7 +26,7 @@ func (w *WHEPSession) SendAudioPacket(packet codecs.TrackPacket) {
 	audioTrack := w.AudioTrack
 	w.AudioLock.Unlock()
 
-	if err := audioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
+	if _, err := audioTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
 		if errors.Is(err, io.ErrClosedPipe) {
 			slog.Info("WHEPSession.SendAudioPacket.ConnectionDropped")
 			w.Close()
@@ -47,8 +47,6 @@ func (w *WHEPSession) SendVideoPacket(packet codecs.TrackPacket) {
 			w.SendPLI()
 			return
 		}
-
-		w.IsWaitingForKeyframe.Store(false)
 	}
 
 	w.VideoLock.Lock()
@@ -69,7 +67,14 @@ func (w *WHEPSession) SendVideoPacket(packet codecs.TrackPacket) {
 	packet.Packet.SequenceNumber = videoSequenceNumber
 	packet.Packet.Timestamp = videoTimestamp
 
-	if err := videoTrack.WriteRTP(packet.Packet, packet.Codec); err != nil {
+	written, err := videoTrack.WriteRTP(packet.Packet, packet.Codec)
+	if !written {
+		w.IsWaitingForKeyframe.Store(true)
+	} else if packet.IsKeyframe {
+		w.IsWaitingForKeyframe.Store(false)
+	}
+
+	if err != nil {
 		w.VideoPacketsDropped.Add(1)
 
 		if errors.Is(err, io.ErrClosedPipe) {
