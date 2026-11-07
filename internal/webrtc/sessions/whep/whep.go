@@ -107,8 +107,10 @@ func (w *WHEPSession) GetWHEPSessionStatus() (state SessionState) {
 // Sets the requested audio layer for this WHEP session.
 func (w *WHEPSession) SetAudioLayer(encodingID string) {
 	slog.Debug("Setting Audio Layer")
+	w.VideoLock.Lock()
 	w.AudioLayerCurrent.Store(encodingID)
 	w.IsWaitingForKeyframe.Store(true)
+	w.VideoLock.Unlock()
 	w.SendPLI()
 }
 
@@ -120,9 +122,9 @@ func (w *WHEPSession) SetVideoLayer(encodingID string) {
 	w.VideoLayerCurrent.Store(encodingID)
 	w.videoLayerPriority = 0
 	w.videoLayerExplicit = encodingID != ""
+	w.IsWaitingForKeyframe.Store(true)
 	w.VideoLock.Unlock()
 
-	w.IsWaitingForKeyframe.Store(true)
 	w.SendPLI()
 }
 

@@ -21,13 +21,52 @@ func (c videoTrackContext) CodecParameters() []webrtc.RTPCodecParameters {
 	}
 }
 
-type videoTrackWriter struct{ writes int }
+type videoTrackWriter struct {
+	writes  int
+	started chan struct{}
+	release chan struct{}
+}
 
 func (w *videoTrackWriter) WriteRTP(_ *rtp.Header, payload []byte) (int, error) {
+	if w.started != nil {
+		close(w.started)
+		<-w.release
+	}
 	w.writes++
 	return len(payload), nil
 }
 func (w *videoTrackWriter) Write(b []byte) (int, error) { return len(b), nil }
+
+func TestLayerSwitchKeepsWaitingForNewKeyframe(t *testing.T) {
+	track := codecs.CreateTrackMultiCodec("id", "", "stream", webrtc.RTPCodecTypeVideo, codecs.VideoTrackCodecH264)
+	writer := &videoTrackWriter{started: make(chan struct{}), release: make(chan struct{})}
+	if _, err := track.Bind(videoTrackContext{writer: writer}); err != nil {
+		t.Fatal(err)
+	}
+	session := CreateNewWHEP("id", "stream", nil, track, nil, func() {})
+	session.SetVideoLayer("old")
+	packet := codecs.TrackPacket{Layer: "old", Packet: &rtp.Packet{}, Codec: codecs.VideoTrackCodecH264, IsKeyframe: true}
+	done := make(chan struct{})
+	go func() {
+		session.SendVideoPacket(packet)
+		close(done)
+	}()
+	<-writer.started
+	switched := make(chan struct{})
+	go func() {
+		session.SetVideoLayer("new")
+		close(switched)
+	}()
+	close(writer.release)
+	<-done
+	<-switched
+
+	// A packet selected before the switch must not clear the new request either.
+	session.SendVideoPacket(packet)
+	if !session.IsWaitingForKeyframe.Load() || writer.writes != 1 {
+		t.Fatalf("waiting = %v, writes = %d", session.IsWaitingForKeyframe.Load(), writer.writes)
+	}
+}
 
 func TestSendVideoPacketWaitsForBoundKeyframe(t *testing.T) {
 	track := codecs.CreateTrackMultiCodec("id", "", "stream", webrtc.RTPCodecTypeVideo, codecs.VideoTrackCodecH264)
