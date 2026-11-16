@@ -22,7 +22,11 @@ var (
 func SetupLogger() {
 	slog.SetLogLoggerLevel(parseLogLevel())
 
-	if strings.EqualFold(os.Getenv(loggingEnabled), "false") {
+	enabled := os.Getenv(loggingEnabled)
+	// File logging introduced in 316fe61 fails startup if the logs directory cannot
+	// be created. Default it off on NixOS so package updates work with the existing
+	// sandboxed service module without requiring a module change.
+	if strings.EqualFold(enabled, "false") || (os.Getenv(appEnv) == "nixos" && enabled == "") {
 		return
 	}
 
