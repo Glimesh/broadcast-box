@@ -5,12 +5,13 @@ import VideoLayerSelectorComponent from "./components/VideoLayerSelectorComponen
 import AudioLayerSelectorComponent from "./components/AudioLayerSelectorComponent";
 import CurrentViewersComponent from "./components/CurrentViewersComponent";
 import { StreamStatus } from '../../providers/StatusProvider';
-import { CurrentLayersMessage, PeerConnectionDataChannels, PeerConnectionSetup, SetupPeerConnectionProps } from './functions/peerconnection';
+import { CurrentLayersMessage, PeerConnectionDataChannels, PeerConnectionSetup, SetupPeerConnectionFailureType, SetupPeerConnectionProps, SetupPeerConnectionStateChange } from './functions/peerconnection';
 import { ChatAdapter } from '../../hooks/useChatSession';
 import { ArrowsPointingOutIcon, Square2StackIcon, HeartIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import VolumeComponent from './components/VolumeComponent';
 import { StatusMessageComponent } from './components/StatusMessageComponent';
+import { useReconnectController } from '../../hooks/useReconnectController';
 
 interface PlayerProps {
 	streamKey: string;
@@ -66,12 +67,22 @@ const Player = (props: PlayerProps) => {
 
 	const clickDelay = 250;
 	const videoRef = useRef<HTMLVideoElement>(null);
+	const fatalSetupErrorRef = useRef(false)
 	const layerEndpointRef = useRef<string>('');
 	const videoOverlayVisibleTimeoutRef = useRef<number | undefined>(undefined);
 	const reactionAnimationIdRef = useRef(0);
 	const lastClickTimeRef = useRef(0);
 	const clickTimeoutRef = useRef<number | undefined>(undefined);
 	const streamVideoPlayerId = streamKey + "_videoPlayer";
+	const {
+		scheduleReconnect,
+		reset: resetReconnect,
+		cancel: cancelReconnect,
+	} = useReconnectController({
+		baseDelayMs: 500,
+		maxDelayMs: 8_000,
+		maxAttempts: 8,
+	})
 	const setVideoRef = useCallback((element: HTMLVideoElement | null) => {
 		videoRef.current = element
 		setVideoElement(element)
@@ -107,7 +118,12 @@ const Player = (props: PlayerProps) => {
 
 			setStreamState("Loading")
 		},
-		onError: () => setStreamState("Error"),
+		onError: (_, failureType) => {
+			if (failureType === SetupPeerConnectionFailureType.FATAL) {
+				fatalSetupErrorRef.current = true
+				setStreamState("Error")
+			}
+		},
 		onDataChannelsChange: (channels, active) => {
 			setDataChannels((current) => active ? channels : current === channels ? undefined : current)
 		},
@@ -196,30 +212,68 @@ const Player = (props: PlayerProps) => {
 
 		let currentPeerConnection: RTCPeerConnection | null = null
 		let disposed = false
+		let setupInProgress = false
 		const beforeUnloadHandler = () => currentPeerConnection?.close()
 		window.addEventListener("beforeunload", beforeUnloadHandler)
+		resetReconnect()
 
 		const setupPeerConnection = () => {
+			if (setupInProgress || disposed) {
+				return
+			}
+
+			setupInProgress = true
+			fatalSetupErrorRef.current = false
+			setStreamState("Loading")
+
 			const setupProps: SetupPeerConnectionProps = {
 				...peerConnectionConfig,
-				onStreamRestart: setupPeerConnection,
+				onStateChange: (state) => {
+					if (state === SetupPeerConnectionStateChange.ONLINE) {
+						resetReconnect()
+						return
+					}
+
+					scheduleReconnect(setupPeerConnection)
+				},
+				onStreamRestart: () => {
+					resetReconnect()
+					scheduleReconnect(setupPeerConnection, { immediate: true })
+				},
 			}
+
+			currentPeerConnection?.close()
+			currentPeerConnection = null
 
 			PeerConnectionSetup(setupProps)
 				.then((peerConnection) => {
+					setupInProgress = false
 					if (disposed) {
 						peerConnection.close()
 						return
 					}
 					currentPeerConnection = peerConnection
 				})
-				.catch((err) => console.log("PeerConnectionConfig.Error", err))
+				.catch((err) => {
+					setupInProgress = false
+					console.log("PeerConnectionConfig.Error", err)
+
+					if (disposed || fatalSetupErrorRef.current) {
+						if (fatalSetupErrorRef.current) {
+							cancelReconnect()
+						}
+						return
+					}
+
+					scheduleReconnect(setupPeerConnection)
+				})
 		}
 
 		setupPeerConnection()
 
 		return () => {
 			disposed = true
+			cancelReconnect()
 			player?.removeEventListener('mouseup', handleMouseUp)
 			player?.removeEventListener('mouseenter', handleMouseEnter)
 			player?.removeEventListener('mouseleave', handleMouseLeave)
@@ -229,7 +283,7 @@ const Player = (props: PlayerProps) => {
 			currentPeerConnection?.close()
 			clearTimeout(videoOverlayVisibleTimeoutRef.current)
 		}
-	}, [peerConnectionConfig, resetTimer, streamVideoPlayerId])
+	}, [cancelReconnect, peerConnectionConfig, resetReconnect, resetTimer, scheduleReconnect, streamVideoPlayerId])
 
 	useEffect(() => {
 		const adapter = dataChannels?.chatAdapter;
@@ -423,7 +477,10 @@ const Player = (props: PlayerProps) => {
 					muted={isVideoMuted}
 					playsInline
 					className="rounded-md w-full h-full relative bg-gray-950"
-					onPlaying={() => setStreamState("Playing")}
+					onPlaying={() => {
+						setStreamState("Playing")
+						resetReconnect()
+					}}
 					onLoadStart={() => setStreamState("Loading")}
 					onVolumeChange={(event) => {
 						setIsVideoMuted(event.currentTarget.muted)
