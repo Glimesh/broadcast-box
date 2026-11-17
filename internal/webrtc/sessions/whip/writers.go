@@ -206,6 +206,10 @@ const (
 )
 
 func isPacketKeyframe(pkt *rtp.Packet, codec codecs.TrackCodeType, depacketizer rtp.Depacketizer) bool {
+	if codec == codecs.VideoTrackCodecVP8 {
+		return isVP8Keyframe(pkt.Payload, depacketizer.(*pionCodecs.VP8Packet))
+	}
+
 	if codec == codecs.VideoTrackCodecH264 {
 		nalu, err := depacketizer.Unmarshal(pkt.Payload)
 
@@ -218,6 +222,11 @@ func isPacketKeyframe(pkt *rtp.Packet, codec codecs.TrackCodeType, depacketizer 
 	}
 
 	return true
+}
+
+func isVP8Keyframe(packet []byte, vp8 *pionCodecs.VP8Packet) bool {
+	payload, err := vp8.Unmarshal(packet)
+	return err == nil && vp8.S == 1 && vp8.PID == 0 && len(payload) > 0 && payload[0]&1 == 0
 }
 
 // Helper function for getting the simulcast order and using as priority for consumers
