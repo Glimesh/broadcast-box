@@ -6,7 +6,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@web3-storage/parse-link-header": "^3.1.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-grid-layout": "^2.2.4",
