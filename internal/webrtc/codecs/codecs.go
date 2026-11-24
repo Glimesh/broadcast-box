@@ -129,6 +129,14 @@ var videoCodecs = []webrtc.RTPCodecParameters{
 			RTCPFeedback: videoRTCPFeedback,
 		},
 	},
+	{
+		PayloadType: 97,
+		RTPCodecCapability: webrtc.RTPCodecCapability{
+			MimeType:     webrtc.MimeTypeVP8,
+			ClockRate:    90000,
+			RTCPFeedback: videoRTCPFeedback,
+		},
+	},
 }
 
 var audioCodecs = []webrtc.RTPCodecParameters{
