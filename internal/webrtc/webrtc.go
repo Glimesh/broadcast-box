@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/glimesh/broadcast-box/internal/chat"
@@ -12,6 +13,8 @@ import (
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v4"
 )
+
+const playoutDelayURI = "http://www.webrtc.org/experiments/rtp-hdrext/playout-delay"
 
 func Setup(chatManager *chat.Manager) {
 	manager.SessionsManager = &manager.SessionManager{
@@ -24,6 +27,14 @@ func Setup(chatManager *chat.Manager) {
 	codecs.RegisterCodecs(mediaEngine)
 
 	interceptorRegistry := interceptors.GetRegistry(mediaEngine)
+	if err := mediaEngine.RegisterHeaderExtension(webrtc.RTPHeaderExtensionCapability{URI: playoutDelayURI}, webrtc.RTPCodecTypeVideo); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := mediaEngine.RegisterHeaderExtension(webrtc.RTPHeaderExtensionCapability{URI: playoutDelayURI}, webrtc.RTPCodecTypeAudio); err != nil {
+		log.Fatal(err)
+	}
+
 	udpMuxCache := map[int]*ice.MultiUDPMuxDefault{}
 	tcpMuxCache := map[string]ice.TCPMux{}
 
